@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ROOT_DIR / ".env", extra="ignore")
 
     camera_index: int = Field(default=0, ge=0)
-    detection_conf: float = Field(default=0.25, gt=0, lt=1)
+    detection_conf: float = Field(default=0.5, gt=0, lt=1)
     cors_origins: list[str] = ["http://localhost:5173"]
     model_path: Path = BACKEND_DIR / "models" / "best.pt"
     snapshot_path: Path = BACKEND_DIR / "snapshots" / "latest.jpg"

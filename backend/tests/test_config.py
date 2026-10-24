@@ -7,7 +7,12 @@ from app.core.config import Settings
 def test_defaults():
     s = Settings(_env_file=None)
     assert s.camera_index == 0
-    assert s.detection_conf == 0.25
+    assert s.detection_conf == 0.5
+
+
+def test_detection_conf_from_env(monkeypatch):
+    monkeypatch.setenv("DETECTION_CONF", "0.3")
+    assert Settings(_env_file=None).detection_conf == 0.3
 
 
 def test_camera_index_from_env(monkeypatch):
