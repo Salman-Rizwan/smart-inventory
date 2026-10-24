@@ -13,7 +13,7 @@ export default function FormField({ label, error, ...inputProps }) {
         {...inputProps}
       />
       {error && (
-        <p id={errorId} className="error">
+        <p id={errorId} className="field__error">
           {error}
         </p>
       )}

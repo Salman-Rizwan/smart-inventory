@@ -1,0 +1,51 @@
+/*
+ * Design tokens. Structure follows Carbon-style enterprise UI: flat, square, hairline
+ * borders, 4px spacing grid, one accent. Colour pairs below are checked against WCAG AA
+ * (text >= 4.5:1, UI boundaries >= 3:1).
+ */
+:root {
+  color-scheme: light;
+
+  --color-accent: #0e6b6f;
+  --color-accent-hover: #0a5558;
+  --color-accent-active: #073f42;
+  --color-on-accent: #ffffff;
+
+  --color-ink: #161616;
+  --color-ink-muted: #525252;
+  --color-canvas: #ffffff;
+  --color-surface: #f4f4f4;
+  --color-surface-strong: #e8e8e8;
+  --color-border: #d0d0d0;
+  --color-border-strong: #8d8d8d;
+
+  --color-success: #0e6027;
+  --color-success-bg: #defbe6;
+  --color-error: #a2191f;
+  --color-error-bg: #fff1f1;
+  --color-warning: #6e5100;
+  --color-warning-bg: #fcf4d6;
+  --color-info: #0e6b6f;
+  --color-info-bg: #e0f2f1;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --font-sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-display: 3rem;
+
+  --radius: 0;
+  --header-height: 56px;
+  --content-max: 1200px;
+  --focus-ring: 2px solid var(--color-accent);
+}

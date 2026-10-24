@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import Button from "../../shared/components/Button";
 import FormField from "../../shared/components/FormField";
+import Logo from "../../shared/components/Logo";
+import Notification from "../../shared/components/Notification";
 import { useAuth } from "./AuthContext";
 import { login } from "./authService";
 import { validateLogin } from "./validation";
@@ -19,10 +22,15 @@ export default function LoginPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const form = e.currentTarget;
     setFormError("");
     const errors = validateLogin(values);
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    const firstInvalid = Object.keys(errors)[0];
+    if (firstInvalid) {
+      form.elements[firstInvalid]?.focus();
+      return;
+    }
 
     setBusy(true);
     try {
@@ -30,44 +38,48 @@ export default function LoginPage() {
       navigate("/dashboard", { replace: true });
     } catch (error) {
       setFormError(error.message);
-    } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="card login">
-      <h1>Smart Inventory</h1>
-      <p className="muted">Sign in to continue</p>
-      <form onSubmit={handleSubmit} noValidate>
-        <FormField
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="username"
-          value={values.email}
-          onChange={handleChange}
-          error={fieldErrors.email}
-          autoFocus
-        />
-        <FormField
-          label="Password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          value={values.password}
-          onChange={handleChange}
-          error={fieldErrors.password}
-        />
-        {formError && (
-          <p className="error" role="alert">
-            {formError}
-          </p>
-        )}
-        <button type="submit" disabled={busy}>
-          {busy ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
-    </div>
+    <main className="auth-page">
+      <div className="panel auth-card">
+        <div className="panel__body">
+          <div className="auth-card__brand">
+            <Logo />
+            <span translate="no">Smart Inventory</span>
+          </div>
+          <h1>Sign In</h1>
+          <p className="muted">Use the account your shop administrator gave you.</p>
+          <form onSubmit={handleSubmit} noValidate>
+            <FormField
+              label="Email"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="username"
+              spellCheck={false}
+              value={values.email}
+              onChange={handleChange}
+              error={fieldErrors.email}
+            />
+            <FormField
+              label="Password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              value={values.password}
+              onChange={handleChange}
+              error={fieldErrors.password}
+            />
+            {formError && <Notification kind="error">{formError}</Notification>}
+            <Button type="submit" block loading={busy} loadingLabel="Signing in…">
+              Sign In
+            </Button>
+          </form>
+        </div>
+      </div>
+    </main>
   );
 }

@@ -9,7 +9,7 @@ import { authErrorMessage, login } from "./authService";
 describe("authErrorMessage", () => {
   it.each(["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"])(
     "does not reveal whether the account exists (%s)",
-    (code) => expect(authErrorMessage({ code })).toBe("Incorrect email or password."),
+    (code) => expect(authErrorMessage({ code })).toBe("Incorrect email or password. Check both and try again."),
   );
 
   it("explains rate limiting and network failures", () => {
@@ -34,6 +34,6 @@ describe("login", () => {
 
   it("throws a user-safe message on failure", async () => {
     signInWithEmailAndPassword.mockRejectedValue({ code: "auth/invalid-credential" });
-    await expect(login("a@b.co", "bad")).rejects.toThrow("Incorrect email or password.");
+    await expect(login("a@b.co", "bad")).rejects.toThrow("Incorrect email or password. Check both and try again.");
   });
 });

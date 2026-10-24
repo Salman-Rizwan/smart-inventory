@@ -1,37 +1,37 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import { logout } from "../auth/authService";
+import { formatDateTime } from "../../shared/format";
+import CountsGrid from "./CountsGrid";
+import { useLatestStatus, useRecentScans } from "./hooks";
+import ScanControl from "./ScanControl";
+import ScanHistoryTable from "./ScanHistoryTable";
+import SnapshotPanel from "./SnapshotPanel";
+
+const HISTORY_SIZE = 10;
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [error, setError] = useState("");
-
-  async function handleLogout() {
-    try {
-      await logout();
-      navigate("/login", { replace: true });
-    } catch {
-      setError("Could not log out. Please try again.");
-    }
-  }
+  const status = useLatestStatus();
+  const scans = useRecentScans(HISTORY_SIZE);
+  const scannedAt = status.data?.scannedAt ?? null;
 
   return (
-    <div className="page">
-      <header>
-        <h1>Smart Inventory</h1>
+    <div className="dashboard">
+      <div className="dashboard__head">
         <div>
-          <span className="muted">{user.email}</span>
-          <button onClick={handleLogout}>Log out</button>
+          <h1>Shelf Overview</h1>
+          <p className="muted">
+            Last scan:{" "}
+            {scannedAt ? <time dateTime={scannedAt.toISOString()}>{formatDateTime(scannedAt)}</time> : "none yet"}
+          </p>
         </div>
-      </header>
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      <p className="muted">Dashboard (live counts arrive in M5).</p>
+        <ScanControl />
+      </div>
+
+      <section aria-labelledby="counts-title">
+        <h2 id="counts-title" className="visually-hidden">Current Counts</h2>
+        <CountsGrid status={status.data} loading={status.loading} error={status.error} />
+      </section>
+
+      <SnapshotPanel scannedAt={scannedAt} />
+      <ScanHistoryTable scans={scans.data ?? []} loading={scans.loading} error={scans.error} />
     </div>
   );
 }

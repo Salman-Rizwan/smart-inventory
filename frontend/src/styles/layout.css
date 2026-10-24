@@ -1,0 +1,53 @@
+/* ---------- App shell ---------- */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-border);
+}
+.app-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  max-width: var(--content-max);
+  min-height: var(--header-height);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+.brand { display: flex; align-items: center; gap: var(--space-3); color: var(--color-ink); text-decoration: none; font-weight: 600; }
+.brand:hover { color: var(--color-ink); }
+.app-nav { display: flex; gap: var(--space-1); flex: 1; }
+.app-nav a {
+  display: flex;
+  align-items: center;
+  min-height: var(--header-height);
+  padding: 0 var(--space-4);
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  border-bottom: 3px solid transparent;
+}
+.app-nav a:hover { background: var(--color-surface); color: var(--color-ink); }
+.app-nav a[aria-current="page"] { color: var(--color-ink); font-weight: 600; border-bottom-color: var(--color-accent); }
+.app-user { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-sm); }
+.app-user__email { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-ink-muted); }
+
+.app-main {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-7);
+  scroll-margin-top: var(--header-height);
+}
+
+/* ---------- Auth ---------- */
+.auth-page { display: grid; place-items: center; min-height: 100vh; padding: var(--space-4); }
+.auth-card { width: 100%; max-width: 400px; }
+.auth-card__brand { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); font-weight: 600; }
+.auth-card form { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-5); }
+
+@media (max-width: 640px) {
+  .app-header__inner { gap: var(--space-2); }
+  .app-user__email { display: none; }
+  .brand__name { display: none; }
+}

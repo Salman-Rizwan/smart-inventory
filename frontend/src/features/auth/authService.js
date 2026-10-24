@@ -2,10 +2,10 @@ import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../firebase";
 
 const MESSAGES = {
-  "auth/invalid-credential": "Incorrect email or password.",
-  "auth/invalid-login-credentials": "Incorrect email or password.",
-  "auth/wrong-password": "Incorrect email or password.",
-  "auth/user-not-found": "Incorrect email or password.",
+  "auth/invalid-credential": "Incorrect email or password. Check both and try again.",
+  "auth/invalid-login-credentials": "Incorrect email or password. Check both and try again.",
+  "auth/wrong-password": "Incorrect email or password. Check both and try again.",
+  "auth/user-not-found": "Incorrect email or password. Check both and try again.",
   "auth/invalid-email": "Enter a valid email address.",
   "auth/user-disabled": "This account has been disabled.",
   "auth/too-many-requests": "Too many attempts. Please wait a few minutes and try again.",

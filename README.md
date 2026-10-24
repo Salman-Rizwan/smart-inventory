@@ -48,7 +48,9 @@ backend/
 frontend/
   src/
     features/auth/       login page, auth context, protected route, auth service, validation
-    features/dashboard/  dashboard page
+    features/dashboard/  live dashboard: data layer (repository, scan API, hooks), components, page
+    layouts/             app shell (header, navigation, skip link)
+    styles/              design tokens, base, shared component and layout CSS
     shared/              api/httpClient.js (token + error handling), reusable components
     firebase.js          Firebase web config
 firestore.rules          Firestore security rules
@@ -118,6 +120,10 @@ Product document ids are the model's own class names. Adding a new part later me
 | NFR6 | Access restricted to logged-in users | M2, M10 | Security rules; key never committed |
 | NFR7 | New part categories can be added | Data model | Product ids equal class names |
 
+## Design system
+
+Carbon-style enterprise UI: flat, square, hairline borders, a 4 px grid, IBM Plex Sans (self-hosted), and one deep-teal accent (`#0e6b6f`). Tokens live in `frontend/src/styles/tokens.css`. Text and UI colours meet WCAG AA, status is never colour-only (icon plus text), focus is always visible, and motion respects `prefers-reduced-motion`. Checked with axe (0 violations) and the Web Interface Guidelines.
+
 ## Run and test
 
 ```bash
@@ -129,7 +135,7 @@ ruff check . && ruff format --check .
 # frontend (from frontend/)
 npm install
 npm run dev                        # http://localhost:5173
-npm test                           # 15 tests
+npm test                           # 32 tests
 ```
 
 `POST /scan` and `GET /snapshot/latest.jpg` require a Firebase ID token (`Authorization: Bearer <token>`); the frontend adds it automatically.
@@ -139,6 +145,7 @@ npm test                           # 15 tests
 - [x] M1: model counts parts from the webcam
 - [x] M2: Firebase project, Firestore, Auth test users, test write from Python
 - [x] M3: FastAPI `/health`, `/scan`, `/snapshot/latest.jpg` writing to Firestore
-- [x] M4: React login, protected dashboard, logout (manual browser check pending)
-- [ ] M5 live dashboard, then M6 to M13 (see the build plan)
+- [x] M4: React login, protected dashboard, logout
+- [x] M5: live dashboard (count cards, annotated image, Scan Now, last 10 scans)
+- [ ] M6 to M13 (see the build plan)
 - [ ] `reconcile.py` and `firestore.rules` are still empty

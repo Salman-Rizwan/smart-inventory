@@ -1,0 +1,89 @@
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+}
+.btn--primary { background: var(--color-accent); color: var(--color-on-accent); }
+.btn--primary:hover { background: var(--color-accent-hover); }
+.btn--primary:active { background: var(--color-accent-active); }
+.btn--secondary { background: var(--color-canvas); color: var(--color-accent); border-color: var(--color-accent); }
+.btn--secondary:hover { background: var(--color-info-bg); color: var(--color-accent-hover); }
+.btn--ghost { background: transparent; color: var(--color-ink); }
+.btn--ghost:hover { background: var(--color-surface-strong); }
+.btn--block { width: 100%; }
+.btn:disabled { background: var(--color-surface-strong); color: var(--color-ink-muted); border-color: transparent; cursor: not-allowed; }
+@media (pointer: coarse) { .btn { min-height: 48px; } }
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Surfaces ---------- */
+.panel { background: var(--color-canvas); border: 1px solid var(--color-border); }
+.panel__header { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border); }
+.panel__body { padding: var(--space-5); }
+
+/* ---------- Forms ---------- */
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.field label { font-size: var(--text-sm); color: var(--color-ink-muted); }
+.field input {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  font: inherit;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+}
+.field input:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+.field input[aria-invalid="true"] { border-bottom: 2px solid var(--color-error); }
+.field__error { font-size: var(--text-sm); color: var(--color-error); }
+
+/* ---------- Notifications ---------- */
+.notification {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  border-left: 4px solid currentColor;
+}
+.notification__icon { flex: none; font-weight: 600; line-height: 1.5; }
+.notification__text { color: var(--color-ink); }
+.notification--error { color: var(--color-error); background: var(--color-error-bg); }
+.notification--success { color: var(--color-success); background: var(--color-success-bg); }
+.notification--warning { color: var(--color-warning); background: var(--color-warning-bg); }
+.notification--info { color: var(--color-info); background: var(--color-info-bg); }
+
+/* ---------- Tables ---------- */
+.table-scroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.table caption { text-align: left; }
+.table th, .table td { padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.table thead th { font-weight: 600; background: var(--color-surface); border-bottom: 1px solid var(--color-border-strong); }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.table tbody tr:hover { background: var(--color-surface); }
+
+/* ---------- Empty / loading ---------- */
+.empty-state { padding: var(--space-6) var(--space-5); text-align: center; color: var(--color-ink-muted); }
+.empty-state strong { display: block; margin-bottom: var(--space-1); color: var(--color-ink); font-weight: 600; }
