@@ -1,5 +1,7 @@
-import time, cv2
+import time
 from collections import Counter
+
+import cv2
 from ultralytics import YOLO
 
 model = YOLO("models/best.pt")
