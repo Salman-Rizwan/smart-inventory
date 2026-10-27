@@ -23,3 +23,11 @@ export function nextPosCount(current: number, delta: number): number {
   if (next > MAX_POS_COUNT) throw new StockError("too_large");
   return next;
 }
+
+/** The POS count after receiving `quantity` units from a purchase order. No per-receipt cap, unlike manual entry. */
+export function receiptPosCount(current: number, quantity: number): number {
+  if (!Number.isInteger(quantity) || quantity < 1) throw new StockError("invalid_quantity");
+  const next = current + quantity;
+  if (next > MAX_POS_COUNT) throw new StockError("too_large");
+  return next;
+}

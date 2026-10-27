@@ -42,7 +42,9 @@ backend/
     core/            config.py (validated settings), exceptions.py, security.py (Firebase token check), logging.py
     camera.py  detector.py  firebase_db.py   adapters for the webcam, YOLO model and Firestore
     reconcile.py     POS comparison rule (Matched / Mismatch)
-    alerts.py        alert lifecycle planner (pure); orders follow in M9
+    alerts.py        alert lifecycle planner (pure)
+    orders.py        automatic reorder planner (pure)
+    products.py      product record read from Firestore
   models/            best.pt (trained YOLOv8 weights)
   scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), seed_orders.py (sample orders), capture_dataset.py
   tests/             pytest suite (fakes only, no webcam or Firebase needed)
@@ -51,7 +53,7 @@ frontend/
     features/auth/       login, auth context (user + role profile), route guards, roles, validation
     features/alerts/     alerts panel, header bell, shared live listener (TypeScript)
     features/inventory/  Stock Check panel (camera vs POS), POS buttons, stock rules (TypeScript)
-    features/orders/     dealer purchase-orders page: summary tiles, filter, action queue (TypeScript)
+    features/orders/     orders page for dealer and shopkeeper: summary tiles, filter, action queue, Mark Received (TypeScript)
     features/dashboard/  live dashboard: data layer (repository, scan API, hooks), components, page
     layouts/             app shell (header, navigation, skip link)
     styles/              design tokens, base, shared component and layout CSS
@@ -144,13 +146,16 @@ After every scan the backend decides what to do with alerts for each part (`app/
 
 The shopkeeper dashboard shows an **Active Alerts** panel with an **Acknowledge** button (Open to Acknowledged; the alert stays until the counts match). The header bell shows the open count and opens a **Notifications** dropdown listing the open alerts (selecting one jumps to the panel); the count also appears in the browser tab title, like "(2) Smart Inventory". Alerts are in-app only, and the dealer does not see them. The browser can only acknowledge an alert (enforced in `firestore.rules`); creating and resolving alerts is backend-only.
 
-## Dealer orders (M9, in progress)
+## Purchase orders (M9)
 
-The dealer lands on **Purchase Orders**: summary tiles (Pending, Accepted, Dispatched, Received), an Open, Completed and All filter (kept in the URL, like `?status=completed`), and an action queue with Pending first and the oldest first. A dealer moves an order one step forward: **Accept Order** (Pending to Accepted), then **Mark Dispatched** (Accepted to Dispatched). Dispatched orders wait for the shop to confirm receipt. The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance, and the browser tab title shows how many are pending. The shopkeeper does not see this page.
+**Automatic ordering.** After every scan the backend (`app/orders.py`, a pure function with unit tests) checks each part against its `reorderLevel`. A part is *low* when the camera count is at or below that level. A **Pending** order for `reorderQty` is raised when the part has been low for `REORDER_CONFIRM_SCANS` scans in a row (default 2, so one bad frame, such as a hand over the camera, cannot order stock) **and** has no open order. A part therefore never has two orders. While an order is open the count is held at zero, so after it is received the part must be low for fresh scans before the next order, which leaves time to restock the shelf. Orders are marked `source: auto`.
 
-- `firestore.rules` lets a dealer make only those two moves, touching nothing but the state and that step's server timestamp. Orders are created by the backend, never from the browser.
-- `python -m scripts.seed_orders` (from `backend/`) puts one sample order per state into the real `purchase_orders` collection, marked `seeded`. `--clear` removes them. **Run `--clear` before demonstrating automatic reordering**, because an open seeded order for a part stops a new one being raised for it.
-- Still to build: the backend creating orders when a part falls to its reorder level, and the shopkeeper's Orders tab with Mark Received.
+**Dealer** (Purchase Orders page): summary tiles (Pending, Accepted, Dispatched, Received), an Open, Completed and All filter kept in the URL (`?status=completed`), and an action queue with Pending first and the oldest first. **Accept Order** (Pending to Accepted), then **Mark Dispatched** ("the goods have left my warehouse"). The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance, and the tab title shows how many are pending.
+
+**Shopkeeper** (Orders tab, with a count badge for orders waiting to be confirmed): the same page, with Dispatched orders first. **Mark Received** confirms the goods arrived and, in the same transaction, adds the order quantity to the part's POS record. Receiving twice is refused.
+
+- `firestore.rules` lets each role make only its own step, touching nothing but the state and that step's server timestamp. Orders are created by the backend, never from the browser.
+- `python -m scripts.seed_orders` (from `backend/`) puts one sample order per state into the real `purchase_orders` collection, marked `seeded`; `--clear` removes them. **Run `--clear` before demonstrating automatic ordering**: an open order for a part, seeded or not, stops a new one being raised for it.
 
 ## Roles
 
@@ -184,6 +189,6 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 - [x] M4: React login, protected dashboard, logout
 - [x] M5: live dashboard (count cards, annotated image, Scan Now, last 10 scans)
 - [ ] M7 POS reconciliation and M8 alerts: built and tested; the live POS-button and Acknowledge checks wait for the updated Firestore rules to be published
-- [ ] M9 dealer orders: dealer page, rules and sample data done; automatic ordering and the shopkeeper Orders tab to do
+- [ ] M9 automatic orders, dealer page and shopkeeper Orders tab: built and tested; the live Mark Received check waits for the updated Firestore rules to be published
 - [ ] M6, M10 to M13 (see the build plan)
 - [ ] `reconcile.py` and `firestore.rules` are still empty

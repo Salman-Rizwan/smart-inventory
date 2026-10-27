@@ -27,7 +27,7 @@ export default function App() {
               <Route element={<RoleRoute allow={["shopkeeper"]} />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
               </Route>
-              <Route element={<RoleRoute allow={["dealer"]} />}>
+              <Route element={<RoleRoute allow={["dealer", "shopkeeper"]} />}>
                 <Route path="/orders" element={<OrdersPage />} />
               </Route>
             </Route>

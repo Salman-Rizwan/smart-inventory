@@ -1,21 +1,34 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Notification from "../../shared/components/Notification";
 import OrderFilterGroup from "./OrderFilter";
 import OrderRowItem from "./OrderRowItem";
 import OrderSummaryTiles from "./OrderSummaryTiles";
 import { useOrders } from "./OrdersContext";
-import { countByState, describePending, filterOrders, parseFilter, sortOrders, type OrderFilter } from "./orderWorkflow";
+import { countByState, describeAttention, filterOrders, parseFilter, sortOrders, type OrderFilter } from "./orderWorkflow";
+import type { OrderRole } from "./types";
 
 const EMPTY: Record<OrderFilter, { title: string; hint: string }> = {
-  open: { title: "No open orders", hint: "An order appears here automatically when a part runs low on the shelf." },
+  open: { title: "No open orders", hint: "An order appears here automatically when a part stays low on the shelf." },
   completed: { title: "No completed orders yet", hint: "Orders move here once the shop confirms they arrived." },
-  all: { title: "No purchase orders yet", hint: "An order appears here automatically when a part runs low on the shelf." },
+  all: { title: "No purchase orders yet", hint: "An order appears here automatically when a part stays low on the shelf." },
 };
 
-/** The dealer's workspace: what needs action, and every order's progress. */
+const COPY: Record<OrderRole, { title: string; subtitle: string }> = {
+  dealer: {
+    title: "Purchase Orders",
+    subtitle: "Restock requests raised by the shop. Pending orders need your action first.",
+  },
+  shopkeeper: {
+    title: "Orders",
+    subtitle: "Restock orders raised for your shop. Mark an order received when the goods arrive.",
+  },
+};
+
+/** The orders workspace for the dealer (fulfil) and the shopkeeper (confirm receipt): what needs action, and every order's progress. */
 export default function OrdersPage() {
-  const { orders, pendingCount, loading, error } = useOrders();
+  const { orders, role, attentionCount, loading, error } = useOrders();
+  const [outcome, setOutcome] = useState("");
   const [params, setParams] = useSearchParams();
   const filter = parseFilter(params.get("status"));
 
@@ -28,19 +41,19 @@ export default function OrdersPage() {
     }),
     [orders],
   );
-  const rows = useMemo(() => sortOrders(filterOrders(orders, filter)), [orders, filter]);
+  const rows = useMemo(() => sortOrders(filterOrders(orders, filter), role), [orders, filter, role]);
 
   const showTable = !loading && !error && rows.length > 0;
-  const announcement = loading || error ? "" : describePending(pendingCount);
+  const announcement = loading || error ? "" : describeAttention(role, attentionCount);
 
   return (
     <div className="dashboard">
       <div className="dashboard__head">
         <div>
           <h1 id="orders-title" tabIndex={-1}>
-            Purchase Orders
+            {COPY[role].title}
           </h1>
-          <p className="muted">Restock requests raised by the shop. Pending orders need your action first.</p>
+          <p className="muted">{COPY[role].subtitle}</p>
         </div>
       </div>
 
@@ -48,11 +61,13 @@ export default function OrdersPage() {
         {announcement}
       </p>
 
-      {!loading && !error && <OrderSummaryTiles counts={counts} />}
+      {outcome && <Notification kind="success">{outcome}</Notification>}
+
+      {!loading && !error && <OrderSummaryTiles counts={counts} role={role} />}
 
       <section className="panel" aria-labelledby="orders-list-title">
         <div className="panel__header panel__header--split">
-          <h2 id="orders-list-title">Orders</h2>
+          <h2 id="orders-list-title">Order List</h2>
           <OrderFilterGroup
             value={filter}
             counts={filterCounts}
@@ -79,7 +94,7 @@ export default function OrdersPage() {
         {showTable && (
           <div className="table-scroll">
             <table className="table">
-              <caption className="visually-hidden">Purchase orders, those needing action first</caption>
+              <caption className="visually-hidden">Orders, those needing action first</caption>
               <thead>
                 <tr>
                   <th scope="col">Order</th>
@@ -92,7 +107,7 @@ export default function OrdersPage() {
               </thead>
               <tbody>
                 {rows.map((order) => (
-                  <OrderRowItem key={order.id} order={order} />
+                  <OrderRowItem key={order.id} order={order} role={role} onDone={setOutcome} />
                 ))}
               </tbody>
             </table>

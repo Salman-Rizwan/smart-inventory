@@ -20,8 +20,10 @@ const order = (id: string, state: OrderState, product = "spark_plug", qty = 10, 
 const provide = (orders: Order[]) =>
   vi.mocked(useOrders).mockReturnValue({
     enabled: true,
+    role: "dealer",
     orders,
     pendingCount: orders.filter((o) => o.state === "Pending").length,
+    attentionCount: orders.filter((o) => o.state === "Pending").length,
     loading: false,
     error: "",
   });

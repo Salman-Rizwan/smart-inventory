@@ -6,11 +6,31 @@ import { useAuth } from "../features/auth/AuthContext";
 import { logout } from "../features/auth/authService";
 import { ROLES } from "../features/auth/roles";
 import OrderBell from "../features/orders/OrderBell";
-import { OrdersProvider } from "../features/orders/OrdersContext";
+import { OrdersProvider, useOrders } from "../features/orders/OrdersContext";
 import Avatar from "../shared/components/Avatar";
 import Button from "../shared/components/Button";
 import Logo from "../shared/components/Logo";
 import Notification from "../shared/components/Notification";
+
+/** Primary navigation. An item can carry a count of orders waiting for this role to act. */
+function PrimaryNav({ items }) {
+  const { attentionCount } = useOrders();
+  return (
+    <nav className="app-nav" aria-label="Primary">
+      {items.map((item) => (
+        <NavLink key={item.to} to={item.to}>
+          {item.label}
+          {item.badge === "orders" && attentionCount > 0 && (
+            <>
+              <span className="nav-badge" aria-hidden="true">{attentionCount}</span>
+              <span className="visually-hidden">, {attentionCount} need your action</span>
+            </>
+          )}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
 
 export default function AppShell() {
   const { profile } = useAuth();
@@ -33,7 +53,7 @@ export default function AppShell() {
 
   return (
     <AlertsProvider enabled={role.alerts}>
-      <OrdersProvider enabled={role.orders}>
+      <OrdersProvider enabled={role.orders} role={profile.role}>
         <a className="skip-link" href="#main">Skip to Main Content</a>
         <header className="app-header">
           <div className="app-header__inner">
@@ -41,14 +61,10 @@ export default function AppShell() {
               <Logo />
               <span className="brand__name" translate="no">Smart Inventory</span>
             </NavLink>
-            <nav className="app-nav" aria-label="Primary">
-              {role.nav.map((item) => (
-                <NavLink key={item.to} to={item.to}>{item.label}</NavLink>
-              ))}
-            </nav>
+            <PrimaryNav items={role.nav} />
             <div className="app-user">
               {role.alerts && <AlertBell />}
-              {role.orders && <OrderBell />}
+              {role.orderBell && <OrderBell />}
               <div className="app-user__identity">
                 <span className="app-user__name">{profile.name}</span>
                 <span className="app-user__role">{role.label}</span>

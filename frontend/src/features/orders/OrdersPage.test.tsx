@@ -4,12 +4,12 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./OrdersContext", () => ({ useOrders: vi.fn() }));
-vi.mock("./orderRepository", () => ({ advanceOrder: vi.fn() }));
+vi.mock("./orderActions", () => ({ performOrderAction: vi.fn() }));
 
 import { useOrders } from "./OrdersContext";
-import { advanceOrder } from "./orderRepository";
+import { performOrderAction } from "./orderActions";
 import OrdersPage from "./OrdersPage";
-import type { Order, OrderState } from "./types";
+import type { Order, OrderRole, OrderState } from "./types";
 
 const order = (id: string, state: OrderState, product = "spark_plug", qty = 10, hour = 5): Order => ({
   id,
@@ -19,11 +19,13 @@ const order = (id: string, state: OrderState, product = "spark_plug", qty = 10, 
   createdAt: new Date(`2026-10-27T0${hour}:00:00Z`),
 });
 
-const provide = (orders: Order[], extra: Partial<ReturnType<typeof useOrders>> = {}) =>
+const provide = (orders: Order[], extra: Partial<ReturnType<typeof useOrders>> = {}, role: OrderRole = "dealer") =>
   vi.mocked(useOrders).mockReturnValue({
     enabled: true,
+    role,
     orders,
     pendingCount: orders.filter((o) => o.state === "Pending").length,
+    attentionCount: orders.filter((o) => o.state === (role === "dealer" ? "Pending" : "Dispatched")).length,
     loading: false,
     error: "",
     ...extra,
@@ -164,12 +166,12 @@ describe("OrdersPage", () => {
 
     it("accepts an order with the right next step", async () => {
       provide(ORDERS);
-      vi.mocked(advanceOrder).mockResolvedValue(undefined);
+      vi.mocked(performOrderAction).mockResolvedValue(undefined);
       renderPage();
 
       await userEvent.click(screen.getByRole("button", { name: /Accept Order: order #AAAAAA/ }));
 
-      expect(advanceOrder).toHaveBeenCalledWith(
+      expect(performOrderAction).toHaveBeenCalledWith(
         "aaaaaa111",
         expect.objectContaining({ next: "Accepted", timestampField: "acceptedAt" }),
       );
@@ -177,12 +179,12 @@ describe("OrdersPage", () => {
 
     it("dispatches an accepted order", async () => {
       provide(ORDERS);
-      vi.mocked(advanceOrder).mockResolvedValue(undefined);
+      vi.mocked(performOrderAction).mockResolvedValue(undefined);
       renderPage();
 
       await userEvent.click(screen.getByRole("button", { name: /Mark Dispatched: order #BBBBBB/ }));
 
-      expect(advanceOrder).toHaveBeenCalledWith(
+      expect(performOrderAction).toHaveBeenCalledWith(
         "bbbbbb222",
         expect.objectContaining({ next: "Dispatched", timestampField: "dispatchedAt" }),
       );
@@ -190,7 +192,7 @@ describe("OrdersPage", () => {
 
     it("shows a next step when the update is refused, without leaking details, and keeps the button", async () => {
       provide(ORDERS);
-      vi.mocked(advanceOrder).mockRejectedValue({ code: "permission-denied", message: "secret rule detail" });
+      vi.mocked(performOrderAction).mockRejectedValue({ code: "permission-denied", message: "secret rule detail" });
       renderPage();
 
       await userEvent.click(screen.getByRole("button", { name: /Accept Order: order #AAAAAA/ }));
@@ -199,6 +201,75 @@ describe("OrdersPage", () => {
       expect(alert).toHaveTextContent(/Refresh the page/);
       expect(alert).not.toHaveTextContent("secret");
       expect(screen.getByRole("button", { name: /Accept Order: order #AAAAAA/ })).toBeEnabled();
+    });
+  });
+
+  describe("outcome message", () => {
+    it("confirms what happened after an action", async () => {
+      provide(ORDERS);
+      vi.mocked(performOrderAction).mockResolvedValue(undefined);
+      renderPage();
+
+      await userEvent.click(screen.getByRole("button", { name: /Accept Order: order #AAAAAA/ }));
+
+      expect(await screen.findByText(/Order #AAAAAA accepted/)).toBeInTheDocument();
+    });
+  });
+
+  describe("as a shopkeeper", () => {
+    it("uses the shop's wording", () => {
+      provide(ORDERS, {}, "shopkeeper");
+      renderPage();
+      expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();
+      expect(screen.getByText(/Mark an order received when the goods arrive/)).toBeInTheDocument();
+      expect(screen.getByText("On the way: confirm when it arrives")).toBeInTheDocument();
+    });
+
+    it("lists the order waiting for confirmation first", () => {
+      provide(ORDERS, {}, "shopkeeper");
+      renderPage();
+      const rows = screen.getAllByRole("row").slice(1);
+      expect(rows[0]).toHaveTextContent("#CCCCCC");
+    });
+
+    it("offers Mark Received on a dispatched order and nothing on the others", () => {
+      provide(ORDERS, {}, "shopkeeper");
+      renderPage();
+      expect(within(screen.getByRole("row", { name: /#CCCCCC/ })).getByRole("button", { name: /Mark Received/ })).toBeInTheDocument();
+      expect(within(screen.getByRole("row", { name: /#AAAAAA/ })).queryByRole("button")).not.toBeInTheDocument();
+      expect(within(screen.getByRole("row", { name: /#BBBBBB/ })).queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("marks an order received and says the POS record was updated", async () => {
+      provide(ORDERS, {}, "shopkeeper");
+      vi.mocked(performOrderAction).mockResolvedValue(undefined);
+      renderPage();
+
+      await userEvent.click(screen.getByRole("button", { name: /Mark Received: order #CCCCCC/ }));
+
+      expect(performOrderAction).toHaveBeenCalledWith(
+        "cccccc333",
+        expect.objectContaining({ next: "Received", timestampField: "receivedAt" }),
+      );
+      expect(await screen.findByText("Order #CCCCCC received. 10 × Spark Plug added to the POS record.")).toBeInTheDocument();
+    });
+
+    it("explains a refusal, such as receiving twice, and keeps the button", async () => {
+      provide(ORDERS, {}, "shopkeeper");
+      const { OrderError } = await import("./orderWorkflow");
+      vi.mocked(performOrderAction).mockRejectedValue(new OrderError("not_dispatched"));
+      renderPage();
+
+      await userEvent.click(screen.getByRole("button", { name: /Mark Received: order #CCCCCC/ }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(/already been received.*Refresh/);
+      expect(screen.getByRole("button", { name: /Mark Received: order #CCCCCC/ })).toBeEnabled();
+    });
+
+    it("announces the number of orders waiting to be received", () => {
+      provide(ORDERS, {}, "shopkeeper");
+      renderPage();
+      expect(screen.getAllByRole("status").some((el) => el.textContent === "1 order waiting to be received.")).toBe(true);
     });
   });
 });

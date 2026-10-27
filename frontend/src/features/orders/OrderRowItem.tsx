@@ -4,10 +4,10 @@ import Notification from "../../shared/components/Notification";
 import StatusBadge, { type BadgeKind } from "../../shared/components/StatusBadge";
 import { formatDateTime, formatInteger } from "../../shared/format";
 import { partLabel } from "../dashboard/parts";
+import { performOrderAction } from "./orderActions";
 import { orderErrorMessage } from "./orderErrors";
-import { advanceOrder } from "./orderRepository";
-import { DEALER_ACTIONS, shortId } from "./orderWorkflow";
-import type { Order, OrderState } from "./types";
+import { actionFor, describeOutcome, shortId } from "./orderWorkflow";
+import type { Order, OrderRole, OrderState } from "./types";
 
 const BADGES: Record<OrderState, BadgeKind> = {
   Pending: "warning",
@@ -16,20 +16,27 @@ const BADGES: Record<OrderState, BadgeKind> = {
   Received: "success",
 };
 
-export default function OrderRowItem({ order }: { order: Order }) {
+interface Props {
+  order: Order;
+  role: OrderRole;
+  onDone: (message: string) => void;
+}
+
+export default function OrderRowItem({ order, role, onDone }: Props) {
   const errorId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const action = DEALER_ACTIONS[order.state];
+  const action = actionFor(role, order.state);
   const part = partLabel(order.product);
   const id = shortId(order.id);
 
-  async function handleAdvance() {
+  async function handleAction() {
     if (!action) return;
     setBusy(true);
     setError("");
     try {
-      await advanceOrder(order.id, action);
+      await performOrderAction(order.id, action);
+      onDone(describeOutcome(action, id, order.qty, part));
     } catch (err) {
       console.error("Order update failed", err);
       setError(orderErrorMessage(err, id));
@@ -55,7 +62,7 @@ export default function OrderRowItem({ order }: { order: Order }) {
             <Button
               variant="secondary"
               className="btn--sm"
-              onClick={handleAdvance}
+              onClick={handleAction}
               loading={busy}
               loadingLabel="Saving…"
               aria-label={`${action.label}: order ${id}, ${formatInteger(order.qty)} ${part}`}

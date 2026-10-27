@@ -4,14 +4,19 @@ export const ROLES = {
     label: "Shopkeeper",
     home: "/dashboard",
     alerts: true, // sees discrepancy alerts (bell and panel)
-    orders: false,
-    nav: [{ to: "/dashboard", label: "Dashboard" }],
+    orders: true, // sees the orders page and confirms receipt
+    orderBell: false,
+    nav: [
+      { to: "/dashboard", label: "Dashboard" },
+      { to: "/orders", label: "Orders", badge: "orders" }, // badge: orders waiting for this role to act
+    ],
   },
   dealer: {
     label: "Dealer",
     home: "/orders",
     alerts: false,
-    orders: true, // sees purchase orders (bell and page)
+    orders: true, // sees purchase orders (page and bell)
+    orderBell: true,
     nav: [{ to: "/orders", label: "Purchase Orders" }],
   },
 };

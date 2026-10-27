@@ -10,13 +10,13 @@ import type { Order, OrderState } from "./types";
 const order = (id: string, state: OrderState): Order => ({ id, product: "spark_plug", qty: 10, state, createdAt: null });
 
 function Probe() {
-  const { pendingCount, orders, loading, error } = useOrders();
-  return <p>{`pending=${pendingCount} total=${orders.length} loading=${loading} error=${error}`}</p>;
+  const { pendingCount, attentionCount, orders, loading, error } = useOrders();
+  return <p>{`pending=${pendingCount} attention=${attentionCount} total=${orders.length} loading=${loading} error=${error}`}</p>;
 }
 
-const mount = (enabled = true) =>
+const mount = (enabled = true, role: "dealer" | "shopkeeper" = "dealer") =>
   render(
-    <OrdersProvider enabled={enabled}>
+    <OrdersProvider enabled={enabled} role={role}>
       <Probe />
     </OrdersProvider>,
   );
@@ -33,8 +33,18 @@ describe("OrdersProvider", () => {
       return () => {};
     });
     mount();
-    expect(screen.getByText("pending=2 total=4 loading=false error=")).toBeInTheDocument();
+    expect(screen.getByText("pending=2 attention=2 total=4 loading=false error=")).toBeInTheDocument();
     expect(document.title).toBe("(2) Smart Inventory");
+  });
+
+  it("counts dispatched orders for the shopkeeper, and leaves the tab title to the alerts", () => {
+    vi.mocked(subscribeOrders).mockImplementation((onData) => {
+      onData([order("a", "Pending"), order("b", "Dispatched"), order("c", "Dispatched")]);
+      return () => {};
+    });
+    mount(true, "shopkeeper");
+    expect(screen.getByText("pending=1 attention=2 total=3 loading=false error=")).toBeInTheDocument();
+    expect(document.title).toBe("Smart Inventory");
   });
 
   it("uses the plain title when nothing is pending", () => {
@@ -72,7 +82,7 @@ describe("OrdersProvider", () => {
   it("never subscribes for a role that does not see orders", () => {
     mount(false);
     expect(subscribeOrders).not.toHaveBeenCalled();
-    expect(screen.getByText("pending=0 total=0 loading=false error=")).toBeInTheDocument();
+    expect(screen.getByText("pending=0 attention=0 total=0 loading=false error=")).toBeInTheDocument();
     expect(document.title).toBe("Smart Inventory");
   });
 });
