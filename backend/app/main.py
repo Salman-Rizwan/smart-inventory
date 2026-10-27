@@ -36,6 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 settings.max_box_side_ratio,
             ),
             repository=ScanRepository(),
+            reorder_confirm_scans=settings.reorder_confirm_scans,
             snapshots=app.state.snapshot_store,
         )
         logger.info("Backend ready")

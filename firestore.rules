@@ -5,7 +5,8 @@ service cloud.firestore {
     // Interim rules (M7 to M9). Signed-in users can read the shared inventory collections, and a
     // user can read only their own profile. The only browser writes are: a shopkeeper changing a
     // product's posCount (the mock POS buttons), a shopkeeper acknowledging an open alert, and a
-    // dealer moving a purchase order forward (Pending -> Accepted -> Dispatched). The backend uses
+    // dealer moving a purchase order forward (Pending -> Accepted -> Dispatched), and a shopkeeper
+    // confirming a Dispatched order as Received. The backend uses
     // the Admin SDK and bypasses these rules. M10 replaces this with the full role-based rule set.
 
     function hasRole(role) {
@@ -44,21 +45,29 @@ service cloud.firestore {
         && request.resource.data.acknowledgedAt == request.time;
     }
 
-    // Orders are created by the backend. A dealer may only move an order one step forward, touching
-    // nothing but state and that step's timestamp (the server's own time).
+    // Orders are created by the backend. Each role moves an order one step, touching nothing but the
+    // state and that step's timestamp (the server's own time): the dealer accepts and dispatches, the
+    // shopkeeper confirms receipt.
     match /purchase_orders/{orderId} {
-      allow update: if isDealer()
-        && (
-          (resource.data.state == 'Pending'
-            && request.resource.data.state == 'Accepted'
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'acceptedAt'])
-            && request.resource.data.acceptedAt == request.time)
-          ||
-          (resource.data.state == 'Accepted'
-            && request.resource.data.state == 'Dispatched'
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'dispatchedAt'])
-            && request.resource.data.dispatchedAt == request.time)
-        );
+      allow update: if
+        (isDealer()
+          && (
+            (resource.data.state == 'Pending'
+              && request.resource.data.state == 'Accepted'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'acceptedAt'])
+              && request.resource.data.acceptedAt == request.time)
+            ||
+            (resource.data.state == 'Accepted'
+              && request.resource.data.state == 'Dispatched'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'dispatchedAt'])
+              && request.resource.data.dispatchedAt == request.time)
+          ))
+        ||
+        (isShopkeeper()
+          && resource.data.state == 'Dispatched'
+          && request.resource.data.state == 'Received'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'receivedAt'])
+          && request.resource.data.receivedAt == request.time);
     }
 
     match /{collection}/{document=**} {

@@ -95,3 +95,16 @@ def test_scan_opens_an_alert_for_a_mismatch(make_client):
     client, repo = make_client(repository=FakeRepository(pos_counts={"spark_plug": 2, "petrol_filter": 1}))
     assert client.post("/scan").status_code == 200
     assert [(a["product"], a["state"]) for a in repo.alerts] == [("spark_plug", "Open")]
+
+
+def test_scan_raises_an_order_once_a_part_stays_low(make_client):
+    from tests.conftest import FakeDetector
+
+    client, repo = make_client(
+        repository=FakeRepository(reorder_level=2, reorder_qty=10),
+        detector=FakeDetector({"spark_plug": 1, "petrol_filter": 5}),
+    )
+    client.post("/scan")
+    assert repo.orders == []
+    client.post("/scan")
+    assert [(o["product"], o["qty"]) for o in repo.orders] == [("spark_plug", 10)]

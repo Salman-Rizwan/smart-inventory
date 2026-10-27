@@ -10,6 +10,7 @@ def test_defaults():
     assert s.detection_conf == 0.5
     assert s.max_box_area_ratio == 0.25
     assert s.max_box_side_ratio == 0.6
+    assert s.reorder_confirm_scans == 2
 
 
 def test_detection_conf_from_env(monkeypatch):
@@ -32,6 +33,8 @@ def test_camera_index_from_env(monkeypatch):
         ("MAX_BOX_AREA_RATIO", "1.5"),
         ("MAX_BOX_SIDE_RATIO", "0"),
         ("MAX_BOX_SIDE_RATIO", "2"),
+        ("REORDER_CONFIRM_SCANS", "0"),
+        ("REORDER_CONFIRM_SCANS", "1.5"),
     ],
 )
 def test_invalid_settings_rejected(monkeypatch, name, value):

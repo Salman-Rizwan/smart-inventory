@@ -7,12 +7,18 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 from app.alerts import ACTIVE_STATES, OPEN, RESOLVED, ActiveAlert, AlertPlan
 from app.core.exceptions import StorageError
+from app.orders import OPEN_STATES, PENDING, ActiveOrder, OrderPlan
+from app.products import ProductRecord
 
 logger = logging.getLogger(__name__)
 
 
 def _is_count(value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _count_or_zero(data: dict, key: str) -> int:
+    return data[key] if _is_count(data.get(key)) else 0
 
 
 def init_firebase(key_path: Path) -> None:
@@ -38,21 +44,26 @@ class ScanRepository:
             logger.exception("Firestore write failed")
             raise StorageError() from exc
 
-    def get_pos_counts(self) -> dict[str, int]:
-        """POS stock figure per product id. Products with an invalid posCount are skipped."""
+    def get_products(self) -> dict[str, ProductRecord]:
+        """Products with their POS and reorder settings. A product with an invalid posCount is skipped."""
         try:
             docs = list(self.db.collection("products").stream())
         except Exception as exc:
             logger.exception("Firestore read of products failed")
             raise StorageError() from exc
-        pos_counts: dict[str, int] = {}
+        products: dict[str, ProductRecord] = {}
         for doc in docs:
-            pos = (doc.to_dict() or {}).get("posCount")
-            if _is_count(pos):
-                pos_counts[doc.id] = pos
-            else:
-                logger.warning("Ignoring product %s: invalid posCount %r", doc.id, pos)
-        return pos_counts
+            data = doc.to_dict() or {}
+            if not _is_count(data.get("posCount")):
+                logger.warning("Ignoring product %s: invalid posCount %r", doc.id, data.get("posCount"))
+                continue
+            products[doc.id] = ProductRecord(
+                pos_count=data["posCount"],
+                reorder_level=_count_or_zero(data, "reorderLevel"),
+                reorder_qty=_count_or_zero(data, "reorderQty"),
+                low_streak=_count_or_zero(data, "lowScanStreak"),
+            )
+        return products
 
     def save_product_statuses(self, statuses: dict[str, str]) -> None:
         """Store Matched or Mismatch on each product in one batch."""
@@ -113,4 +124,49 @@ class ScanRepository:
             batch.commit()
         except Exception as exc:
             logger.exception("Firestore write of alerts failed")
+            raise StorageError() from exc
+
+    def get_open_orders(self) -> list[ActiveOrder]:
+        """Orders that are Pending, Accepted or Dispatched. Malformed documents are skipped."""
+        try:
+            query = self.db.collection("purchase_orders").where(
+                filter=FieldFilter("state", "in", list(OPEN_STATES))
+            )
+            docs = list(query.stream())
+        except Exception as exc:
+            logger.exception("Firestore read of purchase orders failed")
+            raise StorageError() from exc
+        orders: list[ActiveOrder] = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            if isinstance(data.get("product"), str) and data["product"]:
+                orders.append(ActiveOrder(doc.id, data["product"], data["state"]))
+            else:
+                logger.warning("Ignoring malformed order %s", doc.id)
+        return orders
+
+    def apply_order_plan(self, plan: OrderPlan) -> None:
+        """Create orders and update low-scan streaks in one atomic batch."""
+        if plan.is_empty:
+            return
+        try:
+            orders = self.db.collection("purchase_orders")
+            products = self.db.collection("products")
+            batch = self.db.batch()
+            for new in plan.create:
+                batch.set(
+                    orders.document(),
+                    {
+                        "product": new.product,
+                        "qty": new.qty,
+                        "state": PENDING,
+                        "createdAt": firestore.SERVER_TIMESTAMP,
+                        "source": "auto",
+                    },
+                )
+            for product_id, streak in plan.streaks.items():
+                batch.update(products.document(product_id), {"lowScanStreak": streak})
+            batch.commit()
+        except Exception as exc:
+            logger.exception("Firestore write of orders failed")
             raise StorageError() from exc

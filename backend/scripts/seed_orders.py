@@ -14,6 +14,7 @@ import argparse
 from datetime import UTC, datetime, timedelta
 
 from firebase_admin import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 from app.core.config import get_settings
 from app.firebase_db import init_firebase
@@ -59,7 +60,7 @@ def main() -> None:
 
     if args.clear:
         removed = 0
-        for doc in orders.where("seeded", "==", True).stream():
+        for doc in orders.where(filter=FieldFilter("seeded", "==", True)).stream():
             doc.reference.delete()
             removed += 1
         print(f"Removed {removed} seeded order(s).")
