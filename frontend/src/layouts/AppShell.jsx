@@ -2,6 +2,8 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { logout } from "../features/auth/authService";
+import AlertBell from "../features/alerts/AlertBell";
+import { AlertsProvider } from "../features/alerts/AlertsContext";
 import { ROLES } from "../features/auth/roles";
 import Avatar from "../shared/components/Avatar";
 import Button from "../shared/components/Button";
@@ -28,7 +30,7 @@ export default function AppShell() {
   }
 
   return (
-    <>
+    <AlertsProvider enabled={role.alerts}>
       <a className="skip-link" href="#main">Skip to Main Content</a>
       <header className="app-header">
         <div className="app-header__inner">
@@ -42,6 +44,7 @@ export default function AppShell() {
             ))}
           </nav>
           <div className="app-user">
+            {role.alerts && <AlertBell />}
             <div className="app-user__identity">
               <span className="app-user__name">{profile.name}</span>
               <span className="app-user__role">{role.label}</span>
@@ -57,6 +60,6 @@ export default function AppShell() {
         {error && <Notification kind="error">{error}</Notification>}
         <Outlet />
       </main>
-    </>
+    </AlertsProvider>
   );
 }

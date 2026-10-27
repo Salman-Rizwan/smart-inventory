@@ -1,5 +1,6 @@
 import { formatDateTime } from "../../shared/format";
 import CountsGrid from "./CountsGrid";
+import AlertsPanel from "../alerts/AlertsPanel";
 import StockCheckPanel from "../inventory/StockCheckPanel";
 import { useLatestStatus, useRecentScans } from "./hooks";
 import ScanControl from "./ScanControl";
@@ -25,6 +26,8 @@ export default function DashboardPage() {
         </div>
         <ScanControl />
       </div>
+
+      <AlertsPanel />
 
       <section aria-labelledby="counts-title">
         <h2 id="counts-title" className="visually-hidden">Current Counts</h2>
