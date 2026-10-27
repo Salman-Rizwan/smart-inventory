@@ -6,7 +6,8 @@ service cloud.firestore {
     // user can read only their own profile. The only browser writes are: a shopkeeper changing a
     // product's posCount (the mock POS buttons), a shopkeeper acknowledging an open alert, and a
     // dealer moving a purchase order forward (Pending -> Accepted -> Dispatched), and a shopkeeper
-    // confirming a Dispatched order as Received. The backend uses
+    // confirming a Dispatched order as Received. Each user also owns one document of read keys for the
+    // notification bell. The backend uses
     // the Admin SDK and bypasses these rules. M10 replaces this with the full role-based rule set.
 
     function hasRole(role) {
@@ -68,6 +69,17 @@ service cloud.firestore {
           && request.resource.data.state == 'Received'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'receivedAt'])
           && request.resource.data.receivedAt == request.time);
+    }
+
+    // Per-user read state for the notification bell: only the owner can read or change it, it holds
+    // nothing but a capped list of keys, and it cannot be deleted.
+    match /notification_reads/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['readKeys'])
+        && request.resource.data.readKeys is list
+        && request.resource.data.readKeys.size() <= 500;
+      allow delete: if false;
     }
 
     match /{collection}/{document=**} {
