@@ -10,7 +10,9 @@ def test_scan_returns_counts_and_saves(make_client):
     client, repo = make_client()
     res = client.post("/scan")
     assert res.status_code == 200
-    assert res.json() == {"counts": {"spark_plug": 3, "petrol_filter": 1}, "inferenceMs": 412}
+    body = res.json()
+    assert body["counts"] == {"spark_plug": 3, "petrol_filter": 1}
+    assert body["inferenceMs"] == 412
     assert repo.saved == [({"spark_plug": 3, "petrol_filter": 1}, 412)]
 
 
@@ -62,3 +64,28 @@ def test_request_id_header(make_client):
     client, _ = make_client()
     assert client.get("/health", headers={"X-Request-ID": "abc"}).headers["X-Request-ID"] == "abc"
     assert client.get("/health").headers["X-Request-ID"]
+
+
+def test_scan_compares_with_pos_and_saves_statuses(make_client):
+    client, repo = make_client(
+        repository=FakeRepository(pos_counts={"spark_plug": 2, "petrol_filter": 1}),
+    )
+    body = client.post("/scan").json()
+    assert body["products"]["spark_plug"] == {"visual": 3, "pos": 2, "status": "Mismatch"}
+    assert body["products"]["petrol_filter"] == {"visual": 1, "pos": 1, "status": "Matched"}
+    assert repo.statuses == [{"spark_plug": "Mismatch", "petrol_filter": "Matched"}]
+
+
+def test_part_without_a_pos_record_is_skipped(make_client):
+    client, repo = make_client(repository=FakeRepository(pos_counts={"spark_plug": 3}))
+    body = client.post("/scan").json()
+    assert list(body["products"]) == ["spark_plug"]
+    assert repo.statuses == [{"spark_plug": "Matched"}]
+
+
+def test_reconciliation_failure_does_not_lose_the_scan(make_client):
+    client, repo = make_client(repository=FakeRepository(products_fail=True))
+    res = client.post("/scan")
+    assert res.status_code == 200
+    assert res.json()["products"] == {}
+    assert len(repo.saved) == 1

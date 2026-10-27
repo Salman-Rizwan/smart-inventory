@@ -2,16 +2,18 @@ import logging
 import threading
 
 from app.camera import Camera
+from app.core.exceptions import StorageError
 from app.detector import Detector
 from app.firebase_db import ScanRepository
-from app.schemas.scan import ScanResponse
+from app.reconcile import reconcile
+from app.schemas.scan import ProductCheck, ScanResponse
 from app.services.snapshot_store import SnapshotStore
 
 logger = logging.getLogger(__name__)
 
 
 class ScanService:
-    """Use case: capture a frame, count the parts, store the result."""
+    """Use case: capture a frame, count the parts, store the result, compare with the POS."""
 
     def __init__(
         self, camera: Camera, detector: Detector, repository: ScanRepository, snapshots: SnapshotStore
@@ -29,5 +31,21 @@ class ScanService:
             inference_ms = round(detection.inference_ms)
             self.snapshots.save(detection.annotated)
             self.repository.save_scan(detection.counts, inference_ms)
+            products = self._reconcile(detection.counts)
         logger.info("Scan complete: %s in %d ms", detection.counts, inference_ms)
-        return ScanResponse(counts=detection.counts, inference_ms=inference_ms)
+        return ScanResponse(counts=detection.counts, inference_ms=inference_ms, products=products)
+
+    def _reconcile(self, counts: dict[str, int]) -> dict[str, ProductCheck]:
+        """Compare with the POS. The scan is already saved, so a failure here must not lose it."""
+        try:
+            pos_counts = self.repository.get_pos_counts()
+            results = reconcile(counts, pos_counts)
+            for part in sorted(set(counts) - set(results)):
+                logger.warning("No valid POS record for %s; skipping reconciliation", part)
+            self.repository.save_product_statuses({part: r.status for part, r in results.items()})
+        except StorageError:
+            logger.warning("Reconciliation skipped: could not reach the products collection")
+            return {}
+        return {
+            part: ProductCheck(visual=r.visual, pos=r.pos, status=r.status) for part, r in results.items()
+        }

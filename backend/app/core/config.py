@@ -15,6 +15,8 @@ class Settings(BaseSettings):
 
     camera_index: int = Field(default=0, ge=0)
     detection_conf: float = Field(default=0.5, gt=0, lt=1)
+    max_box_area_ratio: float = Field(default=0.25, gt=0, le=1)
+    max_box_side_ratio: float = Field(default=0.6, gt=0, le=1)
     cors_origins: list[str] = ["http://localhost:5173"]
     model_path: Path = BACKEND_DIR / "models" / "best.pt"
     snapshot_path: Path = BACKEND_DIR / "snapshots" / "latest.jpg"

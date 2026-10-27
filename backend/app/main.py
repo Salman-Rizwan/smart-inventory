@@ -29,7 +29,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.snapshot_store = SnapshotStore(settings.snapshot_path)
         app.state.scan_service = ScanService(
             camera=Camera(settings.camera_index),
-            detector=Detector(settings.model_path, settings.detection_conf),
+            detector=Detector.from_path(
+                settings.model_path,
+                settings.detection_conf,
+                settings.max_box_area_ratio,
+                settings.max_box_side_ratio,
+            ),
             repository=ScanRepository(),
             snapshots=app.state.snapshot_store,
         )

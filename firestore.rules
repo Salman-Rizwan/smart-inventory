@@ -2,13 +2,27 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Interim rules: signed-in users can read the shared inventory collections; a user can
-    // read only their own profile; the browser cannot write anything. The backend uses the
-    // Admin SDK and bypasses these rules. M10 replaces this with role-based write rules.
+    // Interim rules (M7). Signed-in users can read the shared inventory collections, and a
+    // user can read only their own profile. The only browser write is a shopkeeper changing a
+    // product's posCount (the mock POS buttons). The backend uses the Admin SDK and bypasses
+    // these rules. M10 replaces this with the full role-based rule set.
+
+    function isShopkeeper() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'shopkeeper';
+    }
 
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
+    }
+
+    match /products/{productId} {
+      allow update: if isShopkeeper()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['posCount'])
+        && request.resource.data.posCount is int
+        && request.resource.data.posCount >= 0
+        && request.resource.data.posCount <= 100000;
     }
 
     match /{collection}/{document=**} {

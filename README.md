@@ -41,13 +41,14 @@ backend/
     schemas/         Pydantic request and response models
     core/            config.py (validated settings), exceptions.py, security.py (Firebase token check), logging.py
     camera.py  detector.py  firebase_db.py   adapters for the webcam, YOLO model and Firestore
-    reconcile.py     POS comparison, alerts, orders (M7 onward)
+    reconcile.py     POS comparison rule (Matched / Mismatch); alerts and orders follow in M8 and M9
   models/            best.pt (trained YOLOv8 weights)
-  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), capture_dataset.py
+  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), capture_dataset.py
   tests/             pytest suite (fakes only, no webcam or Firebase needed)
 frontend/
   src/
     features/auth/       login, auth context (user + role profile), route guards, roles, validation
+    features/inventory/  Stock Check panel (camera vs POS), POS buttons, stock rules (TypeScript)
     features/orders/     dealer purchase-orders page (placeholder until M9)
     features/dashboard/  live dashboard: data layer (repository, scan API, hooks), components, page
     layouts/             app shell (header, navigation, skip link)
@@ -121,6 +122,14 @@ Product document ids are the model's own class names. Adding a new part later me
 | NFR6 | Access restricted to logged-in users | M2, M10 | Security rules; key never committed |
 | NFR7 | New part categories can be added | Data model | Product ids equal class names |
 
+## POS reconciliation (M7)
+
+Each part has a mock POS record in `products/{class name}` (`posCount`, `reorderLevel`, `reorderQty`). After every scan the backend compares the camera count with `posCount` and stores **Matched** or **Mismatch** on the product. The shopkeeper dashboard's Stock Check panel shows the same comparison live, with **Record Sale** (POS minus 1) and **Receive Stock** (POS plus a quantity) buttons that simulate POS transactions. A negative Difference means the records claim stock that is not on the shelf.
+
+- Seed the records from the model's class names: `python -m scripts.seed_products` (from `backend/`; existing records are left alone, `--reset` restores them).
+- Only a shopkeeper can change `posCount`, as a whole number from 0 to 100000, and nothing else (enforced in `firestore.rules`).
+- **False-detection guard:** the model has no "not a part" class, so people and rooms can score as parts. Detections covering more than `MAX_BOX_AREA_RATIO` (default 25%) of the frame, or whose longest side exceeds `MAX_BOX_SIDE_RATIO` (default 60%), are ignored and logged. This is a mitigation until the model is retrained with background photos.
+
 ## Roles
 
 Each account has a `users/{uid}` document with `name` and `role` (`shopkeeper` or `dealer`). The shopkeeper lands on the shelf dashboard; the dealer lands on Purchase Orders. A route guard sends anyone who opens the other role's page back to their own, and an account with no role sees an "Account Not Ready" page. Create the profile documents with `python -m scripts.seed_users` (from `backend/`).
@@ -134,13 +143,13 @@ Carbon-style enterprise UI: flat, square, hairline borders, a 4 px grid, IBM Ple
 ```bash
 # backend (from backend/)
 uvicorn app.main:app --reload      # API docs at http://localhost:8000/docs
-python -m pytest                   # 14 tests
+python -m pytest                   # backend tests (fakes only)
 ruff check . && ruff format --check .
 
 # frontend (from frontend/)
 npm install
 npm run dev                        # http://localhost:5173
-npm test                           # 32 tests
+npm run typecheck && npm test      # TypeScript check, then the unit and component tests
 ```
 
 `POST /scan` and `GET /snapshot/latest.jpg` require a Firebase ID token (`Authorization: Bearer <token>`); the frontend adds it automatically.
