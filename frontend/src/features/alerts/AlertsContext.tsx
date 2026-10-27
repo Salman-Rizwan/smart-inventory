@@ -1,11 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useSubscription, type Subscribe } from "../../shared/hooks/useSubscription";
+import { useTitleCount } from "../../shared/hooks/useTitleCount";
 import { subscribeActiveAlerts } from "./alertRepository";
 import { countOpen } from "./alertSummary";
 import type { Alert } from "./types";
 
 const LOAD_ERROR = "Alerts could not be loaded. Check your connection and sign in again if this continues.";
-const APP_TITLE = "Smart Inventory";
 
 interface AlertsValue {
   enabled: boolean;
@@ -27,14 +27,7 @@ export function AlertsProvider({ enabled, children }: { enabled: boolean; childr
   const alerts = useMemo(() => data ?? [], [data]);
   const openCount = countOpen(alerts);
 
-  // The count in the browser tab title shows up even when another window is in front.
-  useEffect(() => {
-    if (!enabled) return undefined;
-    document.title = openCount > 0 ? `(${openCount}) ${APP_TITLE}` : APP_TITLE;
-    return () => {
-      document.title = APP_TITLE;
-    };
-  }, [enabled, openCount]);
+  useTitleCount(openCount, enabled);
 
   const value = useMemo(
     () => ({ enabled, alerts, openCount, loading: enabled && loading, error }),

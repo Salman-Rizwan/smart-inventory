@@ -1,36 +1,43 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import NotificationMenu, { type NotificationItem } from "../../shared/components/NotificationMenu";
+import { focusSection } from "../../shared/focusSection";
+import { partLabel } from "../dashboard/parts";
 import { useAlerts } from "./AlertsContext";
+import { sortAlerts } from "./alertSummary";
 
-/** Header bell with the open-alert count. Jumps to the alerts panel and moves focus there. */
+/** Shopkeeper notifications: the open alerts, newest first. Selecting one jumps to the alerts panel. */
 export default function AlertBell() {
-  const { openCount } = useAlerts();
+  const { alerts, openCount } = useAlerts();
   const navigate = useNavigate();
+  const goToAlerts = () => {
+    if (!focusSection("alerts-title")) navigate("/dashboard");
+  };
 
-  function handleClick() {
-    const heading = document.getElementById("alerts-title");
-    if (!heading) {
-      navigate("/dashboard");
-      return;
-    }
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    heading.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
-    heading.focus({ preventScroll: true });
-  }
+  const items = useMemo<NotificationItem[]>(
+    () =>
+      sortAlerts(alerts)
+        .filter((a) => a.state === "Open")
+        .map((a) => ({
+          id: a.id,
+          title: `${partLabel(a.product)} mismatch`,
+          detail: `Camera sees ${a.visualCount}, POS says ${a.posCount}.`,
+          time: a.createdAt,
+          onSelect: goToAlerts,
+        })),
+    // goToAlerts only closes over navigate, which is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [alerts],
+  );
 
-  const label =
-    openCount === 0 ? "No open alerts" : `${openCount} open ${openCount === 1 ? "alert" : "alerts"}. Go to alerts`;
-
+  const label = `Notifications: ${openCount === 0 ? "no" : openCount} open ${openCount === 1 ? "alert" : "alerts"}`;
   return (
-    <button type="button" className="icon-btn" onClick={handleClick} aria-label={label}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
-        <path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-        <path d="M10 19a2 2 0 0 0 4 0" />
-      </svg>
-      {openCount > 0 && (
-        <span className="icon-btn__badge" aria-hidden="true">
-          {openCount > 9 ? "9+" : openCount}
-        </span>
-      )}
-    </button>
+    <NotificationMenu
+      label={label}
+      count={openCount}
+      items={items}
+      emptyText="No new alerts"
+      viewAll={{ label: "View Alerts", onSelect: goToAlerts }}
+    />
   );
 }

@@ -44,14 +44,14 @@ backend/
     reconcile.py     POS comparison rule (Matched / Mismatch)
     alerts.py        alert lifecycle planner (pure); orders follow in M9
   models/            best.pt (trained YOLOv8 weights)
-  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), capture_dataset.py
+  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), seed_orders.py (sample orders), capture_dataset.py
   tests/             pytest suite (fakes only, no webcam or Firebase needed)
 frontend/
   src/
     features/auth/       login, auth context (user + role profile), route guards, roles, validation
     features/alerts/     alerts panel, header bell, shared live listener (TypeScript)
     features/inventory/  Stock Check panel (camera vs POS), POS buttons, stock rules (TypeScript)
-    features/orders/     dealer purchase-orders page (placeholder until M9)
+    features/orders/     dealer purchase-orders page: summary tiles, filter, action queue (TypeScript)
     features/dashboard/  live dashboard: data layer (repository, scan API, hooks), components, page
     layouts/             app shell (header, navigation, skip link)
     styles/              design tokens, base, shared component and layout CSS
@@ -68,7 +68,8 @@ Request flow: route (validates input, checks the Firebase ID token) -> service (
 cd backend
 python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt   # pins ultralytics==8.4.163
+pip install -r requirements.txt       # runtime; pins ultralytics==8.4.163
+pip install -r requirements-dev.txt   # adds the test and lint tools (pytest, ruff)
 ```
 
 ## M1: webcam smoke test
@@ -141,7 +142,15 @@ After every scan the backend decides what to do with alerts for each part (`app/
 - Counts match again: the alert becomes **Resolved** automatically. A mismatch that returns opens a new alert, and resolved alerts stay in Firestore as history.
 - An empty shelf raises alerts too, since stock the POS expects is missing.
 
-The shopkeeper dashboard shows an **Active Alerts** panel with an **Acknowledge** button (Open to Acknowledged; the alert stays until the counts match). The header bell shows the open count and jumps to the panel, and the count also appears in the browser tab title, like "(2) Smart Inventory". Alerts are in-app only, and the dealer does not see them. The browser can only acknowledge an alert (enforced in `firestore.rules`); creating and resolving alerts is backend-only.
+The shopkeeper dashboard shows an **Active Alerts** panel with an **Acknowledge** button (Open to Acknowledged; the alert stays until the counts match). The header bell shows the open count and opens a **Notifications** dropdown listing the open alerts (selecting one jumps to the panel); the count also appears in the browser tab title, like "(2) Smart Inventory". Alerts are in-app only, and the dealer does not see them. The browser can only acknowledge an alert (enforced in `firestore.rules`); creating and resolving alerts is backend-only.
+
+## Dealer orders (M9, in progress)
+
+The dealer lands on **Purchase Orders**: summary tiles (Pending, Accepted, Dispatched, Received), an Open, Completed and All filter (kept in the URL, like `?status=completed`), and an action queue with Pending first and the oldest first. A dealer moves an order one step forward: **Accept Order** (Pending to Accepted), then **Mark Dispatched** (Accepted to Dispatched). Dispatched orders wait for the shop to confirm receipt. The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance, and the browser tab title shows how many are pending. The shopkeeper does not see this page.
+
+- `firestore.rules` lets a dealer make only those two moves, touching nothing but the state and that step's server timestamp. Orders are created by the backend, never from the browser.
+- `python -m scripts.seed_orders` (from `backend/`) puts one sample order per state into the real `purchase_orders` collection, marked `seeded`. `--clear` removes them. **Run `--clear` before demonstrating automatic reordering**, because an open seeded order for a part stops a new one being raised for it.
+- Still to build: the backend creating orders when a part falls to its reorder level, and the shopkeeper's Orders tab with Mark Received.
 
 ## Roles
 
@@ -175,5 +184,6 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 - [x] M4: React login, protected dashboard, logout
 - [x] M5: live dashboard (count cards, annotated image, Scan Now, last 10 scans)
 - [ ] M7 POS reconciliation and M8 alerts: built and tested; the live POS-button and Acknowledge checks wait for the updated Firestore rules to be published
-- [ ] M6, M9 to M13 (see the build plan)
+- [ ] M9 dealer orders: dealer page, rules and sample data done; automatic ordering and the shopkeeper Orders tab to do
+- [ ] M6, M10 to M13 (see the build plan)
 - [ ] `reconcile.py` and `firestore.rules` are still empty

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
-export type BadgeKind = "success" | "warning" | "error" | "neutral";
+export type BadgeKind = "success" | "warning" | "error" | "info" | "neutral";
 
-const ICONS: Record<BadgeKind, string> = { success: "✓", warning: "!", error: "✕", neutral: "–" };
+const ICONS: Record<BadgeKind, string> = { success: "✓", warning: "!", error: "✕", info: "i", neutral: "–" };
 
 /** Status as icon plus text, so meaning never depends on colour alone. */
 export default function StatusBadge({ kind, children }: { kind: BadgeKind; children: ReactNode }) {

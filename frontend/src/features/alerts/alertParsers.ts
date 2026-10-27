@@ -1,14 +1,10 @@
+import { toDate } from "../../shared/firestoreDate";
 import type { Alert, AlertState } from "./types";
 
 const isCount = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 0;
 
 const isActiveState = (value: unknown): value is AlertState => value === "Open" || value === "Acknowledged";
-
-function toDate(value: unknown): Date | null {
-  const candidate = value as { toDate?: () => Date } | null;
-  return candidate && typeof candidate.toDate === "function" ? candidate.toDate() : null;
-}
 
 /** Validates an alerts/{id} document. Returns null for malformed or resolved alerts. */
 export function parseAlert(id: string, data: Record<string, unknown> | undefined): Alert | null {

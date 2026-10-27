@@ -4,12 +4,14 @@ export const ROLES = {
     label: "Shopkeeper",
     home: "/dashboard",
     alerts: true, // sees discrepancy alerts (bell and panel)
+    orders: false,
     nav: [{ to: "/dashboard", label: "Dashboard" }],
   },
   dealer: {
     label: "Dealer",
     home: "/orders",
     alerts: false,
+    orders: true, // sees purchase orders (bell and page)
     nav: [{ to: "/orders", label: "Purchase Orders" }],
   },
 };
