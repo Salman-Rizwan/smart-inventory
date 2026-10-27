@@ -1,32 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSubscription } from "../../shared/hooks/useSubscription";
 import { fetchLatestSnapshot } from "./scanApi";
 import { subscribeLatestStatus, subscribeRecentScans } from "./inventoryRepository";
 
 const LOAD_ERROR = "Live data could not be loaded. Check your connection and sign in again if this continues.";
 
-function useSubscription(subscribe) {
-  const [state, setState] = useState({ data: undefined, error: "" });
-  useEffect(
-    () =>
-      subscribe(
-        (data) => setState({ data, error: "" }),
-        (err) => {
-          console.error("Firestore listener failed", err);
-          setState({ data: undefined, error: LOAD_ERROR });
-        },
-      ),
-    [subscribe],
-  );
-  return { data: state.data, error: state.error, loading: state.data === undefined && !state.error };
-}
-
 const subscribeStatus = (onData, onError) => subscribeLatestStatus(onData, onError);
 
-export const useLatestStatus = () => useSubscription(subscribeStatus);
+export const useLatestStatus = () => useSubscription(subscribeStatus, LOAD_ERROR);
 
 export function useRecentScans(count) {
   const subscribe = useCallback((onData, onError) => subscribeRecentScans(count, onData, onError), [count]);
-  return useSubscription(subscribe);
+  return useSubscription(subscribe, LOAD_ERROR);
 }
 
 /**

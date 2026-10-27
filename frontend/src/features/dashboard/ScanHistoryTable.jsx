@@ -45,7 +45,7 @@ export default function ScanHistoryTable({ scans, loading, error }) {
             <tbody>
               {scans.map((scan) => (
                 <tr key={scan.id}>
-                  <th scope="row">{formatDateTime(scan.scannedAt)}</th>
+                  <th scope="row" className="mono">{formatDateTime(scan.scannedAt)}</th>
                   {columns.map((part) => (
                     <td key={part} className="num">{formatInteger(scan.counts[part] ?? 0)}</td>
                   ))}

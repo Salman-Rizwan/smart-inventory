@@ -48,6 +48,7 @@ a:hover { color: var(--color-accent-hover); }
 
 .muted { color: var(--color-ink-muted); }
 .tabular { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

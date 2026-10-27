@@ -1,5 +1,6 @@
 import { formatDateTime } from "../../shared/format";
 import CountsGrid from "./CountsGrid";
+import StockCheckPanel from "../inventory/StockCheckPanel";
 import { useLatestStatus, useRecentScans } from "./hooks";
 import ScanControl from "./ScanControl";
 import ScanHistoryTable from "./ScanHistoryTable";
@@ -29,6 +30,8 @@ export default function DashboardPage() {
         <h2 id="counts-title" className="visually-hidden">Current Counts</h2>
         <CountsGrid status={status.data} loading={status.loading} error={status.error} />
       </section>
+
+      <StockCheckPanel counts={status.data?.counts ?? null} />
 
       <SnapshotPanel scannedAt={scannedAt} />
       <ScanHistoryTable scans={scans.data ?? []} loading={scans.loading} error={scans.error} />
