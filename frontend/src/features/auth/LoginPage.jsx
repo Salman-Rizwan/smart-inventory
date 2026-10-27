@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (!loading && user) return <Navigate to="/dashboard" replace />;
+  if (!loading && user) return <Navigate to="/" replace />;
 
   const handleChange = (e) => setValues((v) => ({ ...v, [e.target.name]: e.target.value }));
 
@@ -35,7 +35,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await login(values.email, values.password);
-      navigate("/dashboard", { replace: true });
+      navigate("/", { replace: true });
     } catch (error) {
       setFormError(error.message);
       setBusy(false);

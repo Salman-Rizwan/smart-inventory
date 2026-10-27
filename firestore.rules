@@ -2,11 +2,18 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Interim rules (M5): signed-in users can read everything; the browser cannot
-    // write anything. The backend uses the Admin SDK and bypasses these rules.
-    // M10 replaces this with role-based rules.
-    match /{document=**} {
-      allow read: if request.auth != null;
+    // Interim rules: signed-in users can read the shared inventory collections; a user can
+    // read only their own profile; the browser cannot write anything. The backend uses the
+    // Admin SDK and bypasses these rules. M10 replaces this with role-based write rules.
+
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /{collection}/{document=**} {
+      allow read: if request.auth != null
+        && collection in ['status', 'scans', 'products', 'alerts', 'purchase_orders'];
       allow write: if false;
     }
   }

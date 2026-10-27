@@ -43,11 +43,12 @@ backend/
     camera.py  detector.py  firebase_db.py   adapters for the webcam, YOLO model and Firestore
     reconcile.py     POS comparison, alerts, orders (M7 onward)
   models/            best.pt (trained YOLOv8 weights)
-  scripts/           test_webcam.py (M1), test_firebase.py (M2)
+  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), capture_dataset.py
   tests/             pytest suite (fakes only, no webcam or Firebase needed)
 frontend/
   src/
-    features/auth/       login page, auth context, protected route, auth service, validation
+    features/auth/       login, auth context (user + role profile), route guards, roles, validation
+    features/orders/     dealer purchase-orders page (placeholder until M9)
     features/dashboard/  live dashboard: data layer (repository, scan API, hooks), components, page
     layouts/             app shell (header, navigation, skip link)
     styles/              design tokens, base, shared component and layout CSS
@@ -119,6 +120,10 @@ Product document ids are the model's own class names. Adding a new part later me
 | NFR5 | Any webcam works (camera configurable) | M3 | `CAMERA_INDEX` setting |
 | NFR6 | Access restricted to logged-in users | M2, M10 | Security rules; key never committed |
 | NFR7 | New part categories can be added | Data model | Product ids equal class names |
+
+## Roles
+
+Each account has a `users/{uid}` document with `name` and `role` (`shopkeeper` or `dealer`). The shopkeeper lands on the shelf dashboard; the dealer lands on Purchase Orders. A route guard sends anyone who opens the other role's page back to their own, and an account with no role sees an "Account Not Ready" page. Create the profile documents with `python -m scripts.seed_users` (from `backend/`).
 
 ## Design system
 

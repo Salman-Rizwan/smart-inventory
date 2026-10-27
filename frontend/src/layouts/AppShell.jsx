@@ -2,15 +2,18 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { logout } from "../features/auth/authService";
+import { ROLES } from "../features/auth/roles";
+import Avatar from "../shared/components/Avatar";
 import Button from "../shared/components/Button";
 import Logo from "../shared/components/Logo";
 import Notification from "../shared/components/Notification";
 
 export default function AppShell() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const role = ROLES[profile.role];
 
   async function handleLogout() {
     setBusy(true);
@@ -29,15 +32,21 @@ export default function AppShell() {
       <a className="skip-link" href="#main">Skip to Main Content</a>
       <header className="app-header">
         <div className="app-header__inner">
-          <NavLink to="/dashboard" className="brand" aria-label="Smart Inventory home">
+          <NavLink to={role.home} className="brand" aria-label="Smart Inventory home">
             <Logo />
             <span className="brand__name" translate="no">Smart Inventory</span>
           </NavLink>
           <nav className="app-nav" aria-label="Primary">
-            <NavLink to="/dashboard">Dashboard</NavLink>
+            {role.nav.map((item) => (
+              <NavLink key={item.to} to={item.to}>{item.label}</NavLink>
+            ))}
           </nav>
           <div className="app-user">
-            <span className="app-user__email" title={user.email}>{user.email}</span>
+            <div className="app-user__identity">
+              <span className="app-user__name">{profile.name}</span>
+              <span className="app-user__role">{role.label}</span>
+            </div>
+            <Avatar name={profile.name} />
             <Button variant="ghost" onClick={handleLogout} loading={busy} loadingLabel="Logging out…">
               Log Out
             </Button>
