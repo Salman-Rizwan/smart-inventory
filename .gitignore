@@ -24,3 +24,5 @@ runs/
 backend/snapshots/
 .agents/
 backend/dataset_capture/
+.coverage
+htmlcov/

@@ -2,14 +2,23 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Interim rules (M7 and M8). Signed-in users can read the shared inventory collections, and a
-    // user can read only their own profile. The only browser writes are a shopkeeper changing a
-    // product's posCount (the mock POS buttons) and acknowledging an open alert. The backend uses
+    // Interim rules (M7 to M9). Signed-in users can read the shared inventory collections, and a
+    // user can read only their own profile. The only browser writes are: a shopkeeper changing a
+    // product's posCount (the mock POS buttons), a shopkeeper acknowledging an open alert, and a
+    // dealer moving a purchase order forward (Pending -> Accepted -> Dispatched). The backend uses
     // the Admin SDK and bypasses these rules. M10 replaces this with the full role-based rule set.
 
-    function isShopkeeper() {
+    function hasRole(role) {
       return request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'shopkeeper';
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isShopkeeper() {
+      return hasRole('shopkeeper');
+    }
+
+    function isDealer() {
+      return hasRole('dealer');
     }
 
     match /users/{uid} {
@@ -33,6 +42,23 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'acknowledgedAt'])
         && request.resource.data.state == 'Acknowledged'
         && request.resource.data.acknowledgedAt == request.time;
+    }
+
+    // Orders are created by the backend. A dealer may only move an order one step forward, touching
+    // nothing but state and that step's timestamp (the server's own time).
+    match /purchase_orders/{orderId} {
+      allow update: if isDealer()
+        && (
+          (resource.data.state == 'Pending'
+            && request.resource.data.state == 'Accepted'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'acceptedAt'])
+            && request.resource.data.acceptedAt == request.time)
+          ||
+          (resource.data.state == 'Accepted'
+            && request.resource.data.state == 'Dispatched'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'dispatchedAt'])
+            && request.resource.data.dispatchedAt == request.time)
+        );
     }
 
     match /{collection}/{document=**} {
