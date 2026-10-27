@@ -12,11 +12,17 @@ describe("parseOrder", () => {
       qty: 10,
       state: "Pending",
       createdAt: new Date("2026-10-27T05:00:00Z"),
+      dispatchedAt: null,
     });
   });
 
   it.each(["Pending", "Accepted", "Dispatched", "Received"])("accepts the %s state", (state) => {
     expect(parseOrder("o1", { ...valid, state })?.state).toBe(state);
+  });
+
+  it("reads the dispatch time when the order has been sent", () => {
+    const sent = parseOrder("o1", { ...valid, state: "Dispatched", dispatchedAt: stamp("2026-10-27T07:00:00Z") });
+    expect(sent?.dispatchedAt).toEqual(new Date("2026-10-27T07:00:00Z"));
   });
 
   it("tolerates a missing timestamp", () => {

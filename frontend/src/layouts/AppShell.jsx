@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import AlertBell from "../features/alerts/AlertBell";
 import { AlertsProvider } from "../features/alerts/AlertsContext";
 import { useAuth } from "../features/auth/AuthContext";
 import { logout } from "../features/auth/authService";
 import { ROLES } from "../features/auth/roles";
-import OrderBell from "../features/orders/OrderBell";
+import NotificationBell from "../features/notifications/NotificationBell";
+import { NotificationsProvider } from "../features/notifications/NotificationsContext";
 import { OrdersProvider, useOrders } from "../features/orders/OrdersContext";
 import Avatar from "../shared/components/Avatar";
 import Button from "../shared/components/Button";
@@ -33,7 +33,7 @@ function PrimaryNav({ items }) {
 }
 
 export default function AppShell() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -54,32 +54,33 @@ export default function AppShell() {
   return (
     <AlertsProvider enabled={role.alerts}>
       <OrdersProvider enabled={role.orders} role={profile.role}>
-        <a className="skip-link" href="#main">Skip to Main Content</a>
-        <header className="app-header">
-          <div className="app-header__inner">
-            <NavLink to={role.home} className="brand" aria-label="Smart Inventory home">
-              <Logo />
-              <span className="brand__name" translate="no">Smart Inventory</span>
-            </NavLink>
-            <PrimaryNav items={role.nav} />
-            <div className="app-user">
-              {role.alerts && <AlertBell />}
-              {role.orderBell && <OrderBell />}
-              <div className="app-user__identity">
-                <span className="app-user__name">{profile.name}</span>
-                <span className="app-user__role">{role.label}</span>
+        <NotificationsProvider uid={user.uid} role={profile.role}>
+          <a className="skip-link" href="#main">Skip to Main Content</a>
+          <header className="app-header">
+            <div className="app-header__inner">
+              <NavLink to={role.home} className="brand" aria-label="Smart Inventory home">
+                <Logo />
+                <span className="brand__name" translate="no">Smart Inventory</span>
+              </NavLink>
+              <PrimaryNav items={role.nav} />
+              <div className="app-user">
+                <NotificationBell />
+                <div className="app-user__identity">
+                  <span className="app-user__name">{profile.name}</span>
+                  <span className="app-user__role">{role.label}</span>
+                </div>
+                <Avatar name={profile.name} />
+                <Button variant="ghost" onClick={handleLogout} loading={busy} loadingLabel="Logging out…">
+                  Log Out
+                </Button>
               </div>
-              <Avatar name={profile.name} />
-              <Button variant="ghost" onClick={handleLogout} loading={busy} loadingLabel="Logging out…">
-                Log Out
-              </Button>
             </div>
-          </div>
-        </header>
-        <main id="main" className="app-main" tabIndex={-1}>
-          {error && <Notification kind="error">{error}</Notification>}
-          <Outlet />
-        </main>
+          </header>
+          <main id="main" className="app-main" tabIndex={-1}>
+            {error && <Notification kind="error">{error}</Notification>}
+            <Outlet />
+          </main>
+        </NotificationsProvider>
       </OrdersProvider>
     </AlertsProvider>
   );

@@ -21,53 +21,41 @@ function Probe() {
   return <p>{`open=${openCount} total=${alerts.length} loading=${loading} error=${error}`}</p>;
 }
 
-describe("AlertsProvider", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    document.title = "Smart Inventory";
-  });
+const mount = (enabled = true) =>
+  render(
+    <AlertsProvider enabled={enabled}>
+      <Probe />
+    </AlertsProvider>,
+  );
 
-  it("puts the open-alert count in the browser tab title", () => {
+describe("AlertsProvider", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("counts only open alerts", () => {
     vi.mocked(subscribeActiveAlerts).mockImplementation((onData) => {
       onData([alert("a1", "Open"), alert("a2", "Open"), alert("a3", "Acknowledged")]);
       return () => {};
     });
-    render(
-      <AlertsProvider enabled>
-        <Probe />
-      </AlertsProvider>,
-    );
+    mount();
     expect(screen.getByText("open=2 total=3 loading=false error=")).toBeInTheDocument();
-    expect(document.title).toBe("(2) Smart Inventory");
   });
 
-  it("restores the plain title when there are no open alerts", () => {
+  it("counts none when every alert is acknowledged", () => {
     vi.mocked(subscribeActiveAlerts).mockImplementation((onData) => {
       onData([alert("a1", "Acknowledged")]);
       return () => {};
     });
-    render(
-      <AlertsProvider enabled>
-        <Probe />
-      </AlertsProvider>,
-    );
-    expect(document.title).toBe("Smart Inventory");
+    mount();
+    expect(screen.getByText("open=0 total=1 loading=false error=")).toBeInTheDocument();
   });
 
-  it("restores the title and unsubscribes on unmount", () => {
+  it("unsubscribes on unmount", () => {
     const unsubscribe = vi.fn();
     vi.mocked(subscribeActiveAlerts).mockImplementation((onData) => {
       onData([alert("a1", "Open")]);
       return unsubscribe;
     });
-    const { unmount } = render(
-      <AlertsProvider enabled>
-        <Probe />
-      </AlertsProvider>,
-    );
-    expect(document.title).toBe("(1) Smart Inventory");
-    unmount();
-    expect(document.title).toBe("Smart Inventory");
+    mount().unmount();
     expect(unsubscribe).toHaveBeenCalled();
   });
 
@@ -77,22 +65,13 @@ describe("AlertsProvider", () => {
       onError(new Error("permission-denied"));
       return () => {};
     });
-    render(
-      <AlertsProvider enabled>
-        <Probe />
-      </AlertsProvider>,
-    );
+    mount();
     expect(screen.getByText(/error=Alerts could not be loaded/)).toBeInTheDocument();
   });
 
   it("never subscribes for a role that does not see alerts", () => {
-    render(
-      <AlertsProvider enabled={false}>
-        <Probe />
-      </AlertsProvider>,
-    );
+    mount(false);
     expect(subscribeActiveAlerts).not.toHaveBeenCalled();
     expect(screen.getByText("open=0 total=0 loading=false error=")).toBeInTheDocument();
-    expect(document.title).toBe("Smart Inventory");
   });
 });

@@ -1,20 +1,24 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { formatDateTime } from "../format";
+import Notification from "./Notification";
 
 export interface NotificationItem {
   id: string;
   title: string;
   detail: string;
   time: Date | null;
+  unread: boolean;
   onSelect: () => void;
 }
 
 interface Props {
-  label: string; // accessible name of the bell, including the count in words
-  count: number;
-  items: NotificationItem[]; // most urgent first; only the first few are listed
+  label: string; // accessible name of the bell, including the unread count in words
+  count: number; // unread count: the badge number
+  items: NotificationItem[]; // unread first; only the first few are listed
   emptyText: string;
   viewAll: { label: string; onSelect: () => void };
+  onMarkAllRead: () => void;
+  notice?: string; // shown above the list, e.g. when read status is unavailable
 }
 
 const MAX_ITEMS = 5;
@@ -22,9 +26,11 @@ const MAX_ITEMS = 5;
 /**
  * Header bell with a dropdown of what needs attention. A disclosure, not a menu: Tab moves through
  * the items, Escape closes and returns focus to the bell, and clicking or tabbing away closes it.
+ * Unread items are bold with a dot (and announced as "Unread"); read ones are greyed.
  */
-export default function NotificationMenu({ label, count, items, emptyText, viewAll }: Props) {
+export default function NotificationMenu({ label, count, items, emptyText, viewAll, onMarkAllRead, notice }: Props) {
   const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
@@ -50,9 +56,19 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
     };
   }, [open]);
 
+  const toggle = () => {
+    setStatus("");
+    setOpen((v) => !v);
+  };
+
   const choose = (action: () => void) => {
     setOpen(false);
     action();
+  };
+
+  const markAll = () => {
+    onMarkAllRead();
+    setStatus("All notifications marked as read.");
   };
 
   return (
@@ -64,7 +80,7 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
         aria-label={label}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
           <path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
@@ -83,7 +99,18 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
             <h2 id={`${panelId}-title`} className="notify__title">
               Notifications
             </h2>
+            {count > 0 && <span className="notify__new">{`${count} new`}</span>}
           </div>
+
+          <p className="visually-hidden" role="status" aria-live="polite">
+            {status}
+          </p>
+
+          {notice && (
+            <div className="notify__notice">
+              <Notification kind="warning">{notice}</Notification>
+            </div>
+          )}
 
           {shown.length === 0 ? (
             <div className="notify__empty">
@@ -98,21 +125,40 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
               <ul className="notify__list">
                 {shown.map((item) => (
                   <li key={item.id}>
-                    <button type="button" className="notify__item" onClick={() => choose(item.onSelect)}>
-                      <span className="notify__item-title">{item.title}</span>
-                      <span className="notify__item-detail">{item.detail}</span>
-                      {item.time && <time className="notify__item-time mono" dateTime={item.time.toISOString()}>{formatDateTime(item.time)}</time>}
+                    <button
+                      type="button"
+                      className={item.unread ? "notify__item notify__item--unread" : "notify__item"}
+                      onClick={() => choose(item.onSelect)}
+                    >
+                      <span className="notify__item-title">
+                        {item.unread && (
+                          <>
+                            <span className="notify__dot" aria-hidden="true" />
+                            <span className="visually-hidden">Unread:</span>{" "}
+                          </>
+                        )}
+                        {item.title}
+                      </span>{" "}
+                      <span className="notify__item-detail">{item.detail}</span>{" "}
+                      {item.time && (
+                        <time className="notify__item-time mono" dateTime={item.time.toISOString()}>
+                          {formatDateTime(item.time)}
+                        </time>
+                      )}
                     </button>
                   </li>
                 ))}
               </ul>
               <div className="notify__footer">
-                {items.length > shown.length && (
-                  <span className="muted">{`Showing ${shown.length} of ${items.length}`}</span>
-                )}
-                <button type="button" className="btn btn--ghost btn--sm" onClick={() => choose(viewAll.onSelect)}>
-                  {viewAll.label}
-                </button>
+                {items.length > shown.length && <span className="muted">{`Showing ${shown.length} of ${items.length}`}</span>}
+                <div className="notify__actions">
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={markAll} disabled={count === 0}>
+                    Mark All as Read
+                  </button>
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => choose(viewAll.onSelect)}>
+                    {viewAll.label}
+                  </button>
+                </div>
               </div>
             </>
           )}

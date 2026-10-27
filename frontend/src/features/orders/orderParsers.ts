@@ -17,5 +17,6 @@ export function parseOrder(id: string, data: Record<string, unknown> | undefined
     qty: data.qty,
     state: data.state as OrderState,
     createdAt: toDate(data.createdAt),
+    dispatchedAt: toDate(data.dispatchedAt),
   };
 }

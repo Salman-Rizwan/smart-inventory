@@ -9,4 +9,5 @@ export interface Order {
   qty: number;
   state: OrderState;
   createdAt: Date | null;
+  dispatchedAt?: Date | null; // when the dealer sent it
 }

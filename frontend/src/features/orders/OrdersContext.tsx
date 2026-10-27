@@ -1,6 +1,5 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useSubscription, type Subscribe } from "../../shared/hooks/useSubscription";
-import { useTitleCount } from "../../shared/hooks/useTitleCount";
 import { subscribeOrders } from "./orderRepository";
 import { attentionState, countByState } from "./orderWorkflow";
 import type { Order, OrderRole } from "./types";
@@ -22,8 +21,8 @@ const subscribeNone: Subscribe<Order[]> = () => () => {};
 
 /**
  * One live orders listener shared by the header bell, the nav badge and the orders page. Roles that do
- * not see orders pass enabled={false} and never subscribe. Only the dealer's pending count goes in the
- * tab title; the shopkeeper's title shows alerts.
+ * not see orders pass enabled={false} and never subscribe. The tab title is owned by the notifications
+ * provider, which shows the unread count.
  */
 export function OrdersProvider({ enabled, role, children }: { enabled: boolean; role: OrderRole; children: ReactNode }) {
   const { data, error, loading } = useSubscription(enabled ? subscribeOrders : subscribeNone, LOAD_ERROR);
@@ -31,8 +30,6 @@ export function OrdersProvider({ enabled, role, children }: { enabled: boolean; 
   const counts = countByState(orders);
   const pendingCount = counts.Pending;
   const attentionCount = counts[attentionState(role)];
-
-  useTitleCount(pendingCount, enabled && role === "dealer");
 
   const value = useMemo(
     () => ({ enabled, role, orders, pendingCount, attentionCount, loading: enabled && loading, error }),

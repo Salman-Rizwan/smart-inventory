@@ -1,6 +1,5 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useSubscription, type Subscribe } from "../../shared/hooks/useSubscription";
-import { useTitleCount } from "../../shared/hooks/useTitleCount";
 import { subscribeActiveAlerts } from "./alertRepository";
 import { countOpen } from "./alertSummary";
 import type { Alert } from "./types";
@@ -26,8 +25,6 @@ export function AlertsProvider({ enabled, children }: { enabled: boolean; childr
   const { data, error, loading } = useSubscription(enabled ? subscribeActiveAlerts : subscribeNone, LOAD_ERROR);
   const alerts = useMemo(() => data ?? [], [data]);
   const openCount = countOpen(alerts);
-
-  useTitleCount(openCount, enabled);
 
   const value = useMemo(
     () => ({ enabled, alerts, openCount, loading: enabled && loading, error }),

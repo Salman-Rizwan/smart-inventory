@@ -51,7 +51,8 @@ backend/
 frontend/
   src/
     features/auth/       login, auth context (user + role profile), route guards, roles, validation
-    features/alerts/     alerts panel, header bell, shared live listener (TypeScript)
+    features/alerts/     alerts panel and shared live listener (TypeScript)
+    features/notifications/  the bell: derived notifications, per-user read state, dropdown wiring (TypeScript)
     features/inventory/  Stock Check panel (camera vs POS), POS buttons, stock rules (TypeScript)
     features/orders/     orders page for dealer and shopkeeper: summary tiles, filter, action queue, Mark Received (TypeScript)
     features/dashboard/  live dashboard: data layer (repository, scan API, hooks), components, page
@@ -144,18 +145,28 @@ After every scan the backend decides what to do with alerts for each part (`app/
 - Counts match again: the alert becomes **Resolved** automatically. A mismatch that returns opens a new alert, and resolved alerts stay in Firestore as history.
 - An empty shelf raises alerts too, since stock the POS expects is missing.
 
-The shopkeeper dashboard shows an **Active Alerts** panel with an **Acknowledge** button (Open to Acknowledged; the alert stays until the counts match). The header bell shows the open count and opens a **Notifications** dropdown listing the open alerts (selecting one jumps to the panel); the count also appears in the browser tab title, like "(2) Smart Inventory". Alerts are in-app only, and the dealer does not see them. The browser can only acknowledge an alert (enforced in `firestore.rules`); creating and resolving alerts is backend-only.
+The shopkeeper dashboard shows an **Active Alerts** panel with an **Acknowledge** button (Open to Acknowledged; the alert stays until the counts match). The header bell opens a **Notifications** dropdown (see Notifications below); selecting an alert there jumps to this panel. Alerts are in-app only, and the dealer does not see them. The browser can only acknowledge an alert (enforced in `firestore.rules`); creating and resolving alerts is backend-only.
 
 ## Purchase orders (M9)
 
 **Automatic ordering.** After every scan the backend (`app/orders.py`, a pure function with unit tests) checks each part against its `reorderLevel`. A part is *low* when the camera count is at or below that level. A **Pending** order for `reorderQty` is raised when the part has been low for `REORDER_CONFIRM_SCANS` scans in a row (default 2, so one bad frame, such as a hand over the camera, cannot order stock) **and** has no open order. A part therefore never has two orders. While an order is open the count is held at zero, so after it is received the part must be low for fresh scans before the next order, which leaves time to restock the shelf. Orders are marked `source: auto`.
 
-**Dealer** (Purchase Orders page): summary tiles (Pending, Accepted, Dispatched, Received), an Open, Completed and All filter kept in the URL (`?status=completed`), and an action queue with Pending first and the oldest first. **Accept Order** (Pending to Accepted), then **Mark Dispatched** ("the goods have left my warehouse"). The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance, and the tab title shows how many are pending.
+**Dealer** (Purchase Orders page): summary tiles (Pending, Accepted, Dispatched, Received), an Open, Completed and All filter kept in the URL (`?status=completed`), and an action queue with Pending first and the oldest first. **Accept Order** (Pending to Accepted), then **Mark Dispatched** ("the goods have left my warehouse"). The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance (see Notifications below).
 
 **Shopkeeper** (Orders tab, with a count badge for orders waiting to be confirmed): the same page, with Dispatched orders first. **Mark Received** confirms the goods arrived and, in the same transaction, adds the order quantity to the part's POS record. Receiving twice is refused.
 
 - `firestore.rules` lets each role make only its own step, touching nothing but the state and that step's server timestamp. Orders are created by the backend, never from the browser.
 - `python -m scripts.seed_orders` (from `backend/`) puts one sample order per state into the real `purchase_orders` collection, marked `seeded`; `--clear` removes them. **Run `--clear` before demonstrating automatic ordering**: an open order for a part, seeded or not, stops a new one being raised for it.
+
+## Notifications
+
+One bell in the header for every role, with a dropdown of what needs that role's attention:
+
+- **Shopkeeper:** open alerts, and dispatched orders waiting to be confirmed. **Dealer:** pending orders waiting for acceptance.
+- Notifications are **derived from live data, never stored**: an item exists exactly while its alert or order still needs attention, so handling or resolving it removes it by itself. An acknowledged alert is already handled, so it leaves the list.
+- **Unread** is personal and **acknowledged** is shared, and they are separate. The bell counts what the signed-in user has not read; the Alerts panel, the Orders tab badge and the order tiles are still the "work waiting" counters, and reading never hides work.
+- Click a notification to read it and go to the Alerts panel or the orders page. **Mark All as Read** marks everything. Unread items are bold with a dot and announced as "Unread" to screen readers; read items are greyed and stay listed until their item is resolved. A refresh of an open alert's numbers does not notify again; a new alert or order does.
+- Read state is one document per user, `notification_reads/{uid}`, holding a capped list of keys (`alert:ID`, `order:ID:Dispatched`). It survives a refresh and follows the user between devices. The rules let a user read and change only their own document. The bell and the browser tab title (like "(2) Smart Inventory") show the **unread** count, and wait for the read state to load so they never flash a wrong number. If the read state cannot be loaded, everything shows as unread and the dropdown says so.
 
 ## Roles
 

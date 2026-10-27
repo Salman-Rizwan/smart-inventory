@@ -22,50 +22,33 @@ const mount = (enabled = true, role: "dealer" | "shopkeeper" = "dealer") =>
   );
 
 describe("OrdersProvider", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    document.title = "Smart Inventory";
-  });
+  beforeEach(() => vi.clearAllMocks());
 
-  it("counts pending orders and shows the count in the browser tab title", () => {
+  it("counts pending orders", () => {
     vi.mocked(subscribeOrders).mockImplementation((onData) => {
       onData([order("a", "Pending"), order("b", "Pending"), order("c", "Accepted"), order("d", "Received")]);
       return () => {};
     });
     mount();
     expect(screen.getByText("pending=2 attention=2 total=4 loading=false error=")).toBeInTheDocument();
-    expect(document.title).toBe("(2) Smart Inventory");
   });
 
-  it("counts dispatched orders for the shopkeeper, and leaves the tab title to the alerts", () => {
+  it("counts dispatched orders as the shopkeeper's attention", () => {
     vi.mocked(subscribeOrders).mockImplementation((onData) => {
       onData([order("a", "Pending"), order("b", "Dispatched"), order("c", "Dispatched")]);
       return () => {};
     });
     mount(true, "shopkeeper");
     expect(screen.getByText("pending=1 attention=2 total=3 loading=false error=")).toBeInTheDocument();
-    expect(document.title).toBe("Smart Inventory");
   });
 
-  it("uses the plain title when nothing is pending", () => {
-    vi.mocked(subscribeOrders).mockImplementation((onData) => {
-      onData([order("c", "Accepted")]);
-      return () => {};
-    });
-    mount();
-    expect(document.title).toBe("Smart Inventory");
-  });
-
-  it("restores the title and unsubscribes on unmount", () => {
+  it("unsubscribes on unmount", () => {
     const unsubscribe = vi.fn();
     vi.mocked(subscribeOrders).mockImplementation((onData) => {
       onData([order("a", "Pending")]);
       return unsubscribe;
     });
-    const { unmount } = mount();
-    expect(document.title).toBe("(1) Smart Inventory");
-    unmount();
-    expect(document.title).toBe("Smart Inventory");
+    mount().unmount();
     expect(unsubscribe).toHaveBeenCalled();
   });
 
@@ -83,6 +66,5 @@ describe("OrdersProvider", () => {
     mount(false);
     expect(subscribeOrders).not.toHaveBeenCalled();
     expect(screen.getByText("pending=0 attention=0 total=0 loading=false error=")).toBeInTheDocument();
-    expect(document.title).toBe("Smart Inventory");
   });
 });
