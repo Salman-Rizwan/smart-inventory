@@ -3,10 +3,16 @@ from pathlib import Path
 
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
+from app.alerts import ACTIVE_STATES, OPEN, RESOLVED, ActiveAlert, AlertPlan
 from app.core.exceptions import StorageError
 
 logger = logging.getLogger(__name__)
+
+
+def _is_count(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
 def init_firebase(key_path: Path) -> None:
@@ -42,7 +48,7 @@ class ScanRepository:
         pos_counts: dict[str, int] = {}
         for doc in docs:
             pos = (doc.to_dict() or {}).get("posCount")
-            if isinstance(pos, int) and not isinstance(pos, bool) and pos >= 0:
+            if _is_count(pos):
                 pos_counts[doc.id] = pos
             else:
                 logger.warning("Ignoring product %s: invalid posCount %r", doc.id, pos)
@@ -59,4 +65,52 @@ class ScanRepository:
             batch.commit()
         except Exception as exc:
             logger.exception("Firestore write of product statuses failed")
+            raise StorageError() from exc
+
+    def get_active_alerts(self) -> list[ActiveAlert]:
+        """Open and Acknowledged alerts, oldest first. Malformed documents are skipped."""
+        try:
+            query = self.db.collection("alerts").where(filter=FieldFilter("state", "in", list(ACTIVE_STATES)))
+            docs = sorted(query.stream(), key=lambda d: d.create_time)
+        except Exception as exc:
+            logger.exception("Firestore read of alerts failed")
+            raise StorageError() from exc
+        alerts: list[ActiveAlert] = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            product, visual, pos = data.get("product"), data.get("visualCount"), data.get("posCount")
+            if isinstance(product, str) and product and _is_count(visual) and _is_count(pos):
+                alerts.append(ActiveAlert(doc.id, product, data["state"], visual, pos))
+            else:
+                logger.warning("Ignoring malformed alert %s", doc.id)
+        return alerts
+
+    def apply_alert_plan(self, plan: AlertPlan) -> None:
+        """Create, refresh and resolve alerts in one atomic batch."""
+        if plan.is_empty:
+            return
+        try:
+            alerts = self.db.collection("alerts")
+            batch = self.db.batch()
+            for new in plan.create:
+                batch.set(
+                    alerts.document(),
+                    {
+                        "product": new.product,
+                        "visualCount": new.visual,
+                        "posCount": new.pos,
+                        "state": OPEN,
+                        "createdAt": firestore.SERVER_TIMESTAMP,
+                    },
+                )
+            for upd in plan.update:
+                batch.update(alerts.document(upd.id), {"visualCount": upd.visual, "posCount": upd.pos})
+            for alert_id in plan.resolve:
+                batch.update(
+                    alerts.document(alert_id),
+                    {"state": RESOLVED, "resolvedAt": firestore.SERVER_TIMESTAMP},
+                )
+            batch.commit()
+        except Exception as exc:
+            logger.exception("Firestore write of alerts failed")
             raise StorageError() from exc

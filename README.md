@@ -41,13 +41,15 @@ backend/
     schemas/         Pydantic request and response models
     core/            config.py (validated settings), exceptions.py, security.py (Firebase token check), logging.py
     camera.py  detector.py  firebase_db.py   adapters for the webcam, YOLO model and Firestore
-    reconcile.py     POS comparison rule (Matched / Mismatch); alerts and orders follow in M8 and M9
+    reconcile.py     POS comparison rule (Matched / Mismatch)
+    alerts.py        alert lifecycle planner (pure); orders follow in M9
   models/            best.pt (trained YOLOv8 weights)
   scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), capture_dataset.py
   tests/             pytest suite (fakes only, no webcam or Firebase needed)
 frontend/
   src/
     features/auth/       login, auth context (user + role profile), route guards, roles, validation
+    features/alerts/     alerts panel, header bell, shared live listener (TypeScript)
     features/inventory/  Stock Check panel (camera vs POS), POS buttons, stock rules (TypeScript)
     features/orders/     dealer purchase-orders page (placeholder until M9)
     features/dashboard/  live dashboard: data layer (repository, scan API, hooks), components, page
@@ -130,6 +132,17 @@ Each part has a mock POS record in `products/{class name}` (`posCount`, `reorder
 - Only a shopkeeper can change `posCount`, as a whole number from 0 to 100000, and nothing else (enforced in `firestore.rules`).
 - **False-detection guard:** the model has no "not a part" class, so people and rooms can score as parts. Detections covering more than `MAX_BOX_AREA_RATIO` (default 25%) of the frame, or whose longest side exceeds `MAX_BOX_SIDE_RATIO` (default 60%), are ignored and logged. This is a mitigation until the model is retrained with background photos.
 
+## Alerts (M8)
+
+After every scan the backend decides what to do with alerts for each part (`app/alerts.py`, a pure function with unit tests):
+
+- First mismatch: one **Open** alert is created.
+- Still mismatched on later scans: no new alert (5 scans give 1 alert); its camera and POS counts are refreshed.
+- Counts match again: the alert becomes **Resolved** automatically. A mismatch that returns opens a new alert, and resolved alerts stay in Firestore as history.
+- An empty shelf raises alerts too, since stock the POS expects is missing.
+
+The shopkeeper dashboard shows an **Active Alerts** panel with an **Acknowledge** button (Open to Acknowledged; the alert stays until the counts match). The header bell shows the open count and jumps to the panel, and the count also appears in the browser tab title, like "(2) Smart Inventory". Alerts are in-app only, and the dealer does not see them. The browser can only acknowledge an alert (enforced in `firestore.rules`); creating and resolving alerts is backend-only.
+
 ## Roles
 
 Each account has a `users/{uid}` document with `name` and `role` (`shopkeeper` or `dealer`). The shopkeeper lands on the shelf dashboard; the dealer lands on Purchase Orders. A route guard sends anyone who opens the other role's page back to their own, and an account with no role sees an "Account Not Ready" page. Create the profile documents with `python -m scripts.seed_users` (from `backend/`).
@@ -161,5 +174,6 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 - [x] M3: FastAPI `/health`, `/scan`, `/snapshot/latest.jpg` writing to Firestore
 - [x] M4: React login, protected dashboard, logout
 - [x] M5: live dashboard (count cards, annotated image, Scan Now, last 10 scans)
-- [ ] M6 to M13 (see the build plan)
+- [ ] M7 POS reconciliation and M8 alerts: built and tested; the live POS-button and Acknowledge checks wait for the updated Firestore rules to be published
+- [ ] M6, M9 to M13 (see the build plan)
 - [ ] `reconcile.py` and `firestore.rules` are still empty

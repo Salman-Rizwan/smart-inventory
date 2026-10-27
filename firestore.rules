@@ -2,10 +2,10 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Interim rules (M7). Signed-in users can read the shared inventory collections, and a
-    // user can read only their own profile. The only browser write is a shopkeeper changing a
-    // product's posCount (the mock POS buttons). The backend uses the Admin SDK and bypasses
-    // these rules. M10 replaces this with the full role-based rule set.
+    // Interim rules (M7 and M8). Signed-in users can read the shared inventory collections, and a
+    // user can read only their own profile. The only browser writes are a shopkeeper changing a
+    // product's posCount (the mock POS buttons) and acknowledging an open alert. The backend uses
+    // the Admin SDK and bypasses these rules. M10 replaces this with the full role-based rule set.
 
     function isShopkeeper() {
       return request.auth != null
@@ -23,6 +23,16 @@ service cloud.firestore {
         && request.resource.data.posCount is int
         && request.resource.data.posCount >= 0
         && request.resource.data.posCount <= 100000;
+    }
+
+    // Acknowledge: Open -> Acknowledged only, touching nothing but state and acknowledgedAt, with
+    // the server's own timestamp. Creating, resolving or deleting alerts is backend-only.
+    match /alerts/{alertId} {
+      allow update: if isShopkeeper()
+        && resource.data.state == 'Open'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'acknowledgedAt'])
+        && request.resource.data.state == 'Acknowledged'
+        && request.resource.data.acknowledgedAt == request.time;
     }
 
     match /{collection}/{document=**} {

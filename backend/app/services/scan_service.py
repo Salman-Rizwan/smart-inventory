@@ -1,11 +1,12 @@
 import logging
 import threading
 
+from app.alerts import plan_alerts
 from app.camera import Camera
 from app.core.exceptions import StorageError
 from app.detector import Detector
 from app.firebase_db import ScanRepository
-from app.reconcile import reconcile
+from app.reconcile import Reconciliation, reconcile
 from app.schemas.scan import ProductCheck, ScanResponse
 from app.services.snapshot_store import SnapshotStore
 
@@ -31,11 +32,15 @@ class ScanService:
             inference_ms = round(detection.inference_ms)
             self.snapshots.save(detection.annotated)
             self.repository.save_scan(detection.counts, inference_ms)
-            products = self._reconcile(detection.counts)
+            results = self._reconcile(detection.counts)
+            self._update_alerts(results)
         logger.info("Scan complete: %s in %d ms", detection.counts, inference_ms)
+        products = {
+            part: ProductCheck(visual=r.visual, pos=r.pos, status=r.status) for part, r in results.items()
+        }
         return ScanResponse(counts=detection.counts, inference_ms=inference_ms, products=products)
 
-    def _reconcile(self, counts: dict[str, int]) -> dict[str, ProductCheck]:
+    def _reconcile(self, counts: dict[str, int]) -> dict[str, Reconciliation]:
         """Compare with the POS. The scan is already saved, so a failure here must not lose it."""
         try:
             pos_counts = self.repository.get_pos_counts()
@@ -46,6 +51,22 @@ class ScanService:
         except StorageError:
             logger.warning("Reconciliation skipped: could not reach the products collection")
             return {}
-        return {
-            part: ProductCheck(visual=r.visual, pos=r.pos, status=r.status) for part, r in results.items()
-        }
+        return results
+
+    def _update_alerts(self, results: dict[str, Reconciliation]) -> None:
+        """Open, refresh and resolve alerts. Like reconciliation, a failure must not lose the scan."""
+        if not results:
+            return
+        try:
+            plan = plan_alerts(results, self.repository.get_active_alerts())
+            self.repository.apply_alert_plan(plan)
+        except StorageError:
+            logger.warning("Alert update skipped: could not reach the alerts collection")
+            return
+        if not plan.is_empty:
+            logger.info(
+                "Alerts: %d opened, %d refreshed, %d resolved",
+                len(plan.create),
+                len(plan.update),
+                len(plan.resolve),
+            )

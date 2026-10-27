@@ -89,3 +89,9 @@ def test_reconciliation_failure_does_not_lose_the_scan(make_client):
     assert res.status_code == 200
     assert res.json()["products"] == {}
     assert len(repo.saved) == 1
+
+
+def test_scan_opens_an_alert_for_a_mismatch(make_client):
+    client, repo = make_client(repository=FakeRepository(pos_counts={"spark_plug": 2, "petrol_filter": 1}))
+    assert client.post("/scan").status_code == 200
+    assert [(a["product"], a["state"]) for a in repo.alerts] == [("spark_plug", "Open")]

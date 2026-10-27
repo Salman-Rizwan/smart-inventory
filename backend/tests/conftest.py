@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
+from app.alerts import ACTIVE_STATES, ActiveAlert
 from app.core.exceptions import CameraError, StorageError
 from app.core.security import get_current_user
 from app.detector import Detection
@@ -29,9 +30,11 @@ class FakeDetector:
 
 
 class FakeRepository:
-    def __init__(self, fail=False, pos_counts=None, products_fail=False):
+    def __init__(self, fail=False, pos_counts=None, products_fail=False, alerts_fail=False):
         self.fail = fail
         self.products_fail = products_fail
+        self.alerts_fail = alerts_fail
+        self.alerts = []  # dicts: id, product, state, visual, pos
         self.pos_counts = {"spark_plug": 3, "petrol_filter": 1} if pos_counts is None else pos_counts
         self.saved = []
         self.statuses = []
@@ -48,6 +51,34 @@ class FakeRepository:
 
     def save_product_statuses(self, statuses):
         self.statuses.append(statuses)
+
+    def get_active_alerts(self):
+        if self.alerts_fail:
+            raise StorageError()
+        return [
+            ActiveAlert(a["id"], a["product"], a["state"], a["visual"], a["pos"])
+            for a in self.alerts
+            if a["state"] in ACTIVE_STATES
+        ]
+
+    def apply_alert_plan(self, plan):
+        if self.alerts_fail:
+            raise StorageError()
+        for new in plan.create:
+            self.alerts.append(
+                {
+                    "id": f"a{len(self.alerts) + 1}",
+                    "product": new.product,
+                    "state": "Open",
+                    "visual": new.visual,
+                    "pos": new.pos,
+                }
+            )
+        by_id = {a["id"]: a for a in self.alerts}
+        for upd in plan.update:
+            by_id[upd.id].update(visual=upd.visual, pos=upd.pos)
+        for alert_id in plan.resolve:
+            by_id[alert_id]["state"] = "Resolved"
 
 
 @pytest.fixture
