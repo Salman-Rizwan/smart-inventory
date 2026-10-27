@@ -46,7 +46,7 @@ backend/
     orders.py        automatic reorder planner (pure)
     products.py      product record read from Firestore
   models/            best.pt (trained YOLOv8 weights)
-  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), seed_orders.py (sample orders), capture_dataset.py
+  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), seed_orders.py (sample orders), demo_reset.py (clean demo state), capture_dataset.py
   tests/             pytest suite (fakes only, no webcam or Firebase needed)
 frontend/
   src/
@@ -191,6 +191,13 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 ```
 
 `POST /scan` and `GET /snapshot/latest.jpg` require a Firebase ID token (`Authorization: Bearer <token>`); the frontend adds it automatically.
+
+## Before a demo or rehearsal
+
+1. **Reset to a clean state:** `python -m scripts.demo_reset` shows what it would change; add `--apply` to do it. It sets 4 spark plugs and 1 filter in the POS, restores the demo reorder settings, and clears orders, alerts and read state (scan history, users and the model are kept). Run it between rehearsals.
+2. **Start the servers**, each in its own VS Code terminal (the backend must run there, where the camera permission is granted): `cd backend && source .venv/bin/activate && uvicorn app.main:app` (leave `--reload` off for a demo) and `cd frontend && npm run dev`. Open http://localhost:5173.
+3. **Set up the shelf:** good, even light and no shadows across the parts; a plain light background; every part fully in frame with space around it; the filter on its side or upright (not end-on) and away from the edges; nobody in the frame. A dark room reads as an empty shelf.
+4. **Press Scan Now once** to refresh the dashboard. Automatic ordering needs **two low scans in a row**, so press it twice after removing a plug.
 
 ## Status
 

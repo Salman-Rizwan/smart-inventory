@@ -50,9 +50,14 @@
 .auth-card form { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-5); }
 
 @media (max-width: 640px) {
-  .app-header__inner { gap: var(--space-2); }
+  .app-header__inner { gap: var(--space-1); padding: 0 var(--space-2); }
   .app-user__identity { display: none; }
   .brand__name { display: none; }
+  /* The nav scrolls rather than widening the page if a role has more tabs than fit. */
+  .app-nav { gap: 0; min-width: 0; overflow-x: auto; }
+  .app-nav a { padding: 0 var(--space-2); white-space: nowrap; }
+  .app-user { gap: var(--space-1); }
+  .app-user .btn { padding: 0 var(--space-2); white-space: nowrap; }
 }
 
 .page-status { padding: var(--space-7) var(--space-4); text-align: center; }
