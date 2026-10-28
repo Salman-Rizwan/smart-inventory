@@ -8,7 +8,7 @@ The shop laptop does all the work. Firebase (free Spark plan) stores and serves 
 
 ```
 Shop laptop                      Firebase (free plan)        Browsers
-USB webcam (photo every 60 s) -> Firestore  ------------->   Shopkeeper view
+USB webcam (Scan Now; every 60 s planned, M6) -> Firestore  ------------->   Shopkeeper view
 FastAPI backend                  Authentication  \            Dealer view
   - loads best.pt (YOLOv8)       Hosting (React)  `---------> Purchase orders
   - counts parts per scan
@@ -92,41 +92,42 @@ python scripts/test_webcam.py
 - Classes: `spark_plug`, `petrol_filter`.
 - Target: inference under 1,000 ms (NFR2). Measured about 410 to 550 ms on the dev laptop.
 
-## Firestore data model (proposed, not yet set up)
+## Firestore data model
 
-Six collections. The backend writes the counts; the browser writes only POS transactions, acknowledgements and order status.
+Seven collections. The backend writes the counts, alerts and orders; the browser writes only POS counts, acknowledgements, order steps and the user's own read state. `firestore.rules` enforces each of these.
 
 | Collection / document | Key fields | Written by | Built in |
 |---|---|---|---|
-| `status/latest` (one document) | `counts` {spark_plug, petrol_filter}, `scannedAt`, `imageThumb` (from M11) | Backend | M3 |
+| `status/latest` (one document) | `counts` {spark_plug, petrol_filter}, `scannedAt`, `imageThumb` (planned, M11) | Backend | M3 |
 | `scans/{auto id}` | `counts`, `scannedAt`, `inferenceMs` | Backend | M3 |
-| `users/{uid}` | `name`, `role` (shopkeeper or dealer) | Added by hand in the console | M4 |
-| `products/{spark_plug}` | `name`, `posCount`, `reorderLevel`, `reorderQty`, `status` (Matched or Mismatch) | Seeded once; dashboard buttons; backend | M7 |
-| `alerts/{auto id}` | `product`, `visualCount`, `posCount`, `state` (Open, Acknowledged, Resolved), `createdAt` | Backend; dashboard (acknowledge) | M8 |
-| `purchase_orders/{auto id}` | `product`, `qty`, `state` (Pending, Accepted, Dispatched, Received), `createdAt` | Backend; dealer; shopkeeper | M9 |
+| `users/{uid}` | `name`, `role` (shopkeeper or dealer) | `seed_users.py` or the console | M4 |
+| `products/{spark_plug}` | `name`, `posCount`, `reorderLevel`, `reorderQty`, `status` (Matched or Mismatch), `lowScanStreak` | Seeded once; shopkeeper (`posCount` only); backend (`status`, `lowScanStreak`) | M7 |
+| `alerts/{auto id}` | `product`, `visualCount`, `posCount`, `state` (Open, Acknowledged, Resolved), `createdAt`, `acknowledgedAt`, `resolvedAt` | Backend; shopkeeper (acknowledge) | M8 |
+| `purchase_orders/{auto id}` | `product`, `qty`, `state` (Pending, Accepted, Dispatched, Received), `createdAt`, `acceptedAt`, `dispatchedAt`, `receivedAt`, `source` (auto), `seeded` (sample data only) | Backend; dealer; shopkeeper | M9 |
+| `notification_reads/{uid}` | `readKeys` (list, at most 500) | The signed-in user, own document only | Notifications |
 
 Product document ids are the model's own class names. Adding a new part later means retraining the model and adding one product document, with no code change (NFR7).
 
 ## Requirements and milestones
 
-| Req | Requirement | Milestone | Evidence |
-|---|---|---|---|
-| FR1 | Capture images periodically (now via webcam) | M1, M6 | Dashboard updating on its own |
-| FR2 | Detect and classify parts | Done; M1 | Annotated webcam image |
-| FR3 | Count units per part | Done; M1, M5 | Count cards on the dashboard |
-| FR4 | Store counts in the cloud | M2, M3 | Documents in the Firestore console |
-| FR5 | Compare with POS records | M7 | Mismatch shown after Record sale |
-| FR6 | Raise discrepancy alerts | M8 | One alert per mismatch |
-| FR7 | Automatic replenishment request | M9 | Order on the dealer screen |
-| FR8 | Web dashboard | M4, M5, M9 | Shopkeeper and dealer pages |
-| FR9 | User authentication | M4, M10 | Login and role-based pages |
-| NFR1 | Accuracy of at least 85% mAP | Done (0.995 mAP50); M12 | Colab results plus live accuracy test |
-| NFR2 | Inference under 1 second | M1, M12 | Measured average time |
-| NFR3 | Free or low-cost services | M2, M6, M11 | Spark plan; usage under limits |
-| NFR4 | Usable by a non-technical shopkeeper | M5, M12 | Usability test |
-| NFR5 | Any webcam works (camera configurable) | M3 | `CAMERA_INDEX` setting |
-| NFR6 | Access restricted to logged-in users | M2, M10 | Security rules; key never committed |
-| NFR7 | New part categories can be added | Data model | Product ids equal class names |
+| Req | Requirement | Milestone | Evidence | Status |
+|---|---|---|---|---|
+| FR1 | Capture images periodically (now via webcam) | M1, M6 | Dashboard updating on its own | Partly (Scan Now; M6 pending) |
+| FR2 | Detect and classify parts | Done; M1 | Annotated webcam image | Done |
+| FR3 | Count units per part | Done; M1, M5 | Count cards on the dashboard | Done |
+| FR4 | Store counts in the cloud | M2, M3 | Documents in the Firestore console | Done |
+| FR5 | Compare with POS records | M7 | Mismatch shown after Record sale | Done |
+| FR6 | Raise discrepancy alerts | M8 | One alert per mismatch | Done |
+| FR7 | Automatic replenishment request | M9 | Order on the dealer screen | Done |
+| FR8 | Web dashboard | M4, M5, M9 | Shopkeeper and dealer pages | Done |
+| FR9 | User authentication | M4, M10 | Login and role-based pages | Done (rules are interim until M10) |
+| NFR1 | Accuracy of at least 85% mAP | Done (0.995 mAP50); M12 | Colab results plus live accuracy test | Done (0.995 mAP50); live test M12 |
+| NFR2 | Inference under 1 second | M1, M12 | Measured average time | Met in M1; measure in M12 |
+| NFR3 | Free or low-cost services | M2, M6, M11 | Spark plan; usage under limits | On Spark plan; Hosting M11 |
+| NFR4 | Usable by a non-technical shopkeeper | M5, M12 | Usability test | Usability test M12 |
+| NFR5 | Any webcam works (camera configurable) | M3 | `CAMERA_INDEX` setting | Done |
+| NFR6 | Access restricted to logged-in users | M2, M10 | Security rules; key never committed | Done (interim rules) |
+| NFR7 | New part categories can be added | Data model | Product ids equal class names | Done |
 
 ## POS reconciliation (M7)
 
@@ -206,7 +207,7 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 - [x] M3: FastAPI `/health`, `/scan`, `/snapshot/latest.jpg` writing to Firestore
 - [x] M4: React login, protected dashboard, logout
 - [x] M5: live dashboard (count cards, annotated image, Scan Now, last 10 scans)
-- [ ] M7 POS reconciliation and M8 alerts: built and tested; the live POS-button and Acknowledge checks wait for the updated Firestore rules to be published
-- [ ] M9 automatic orders, dealer page and shopkeeper Orders tab: built and tested; the live Mark Received check waits for the updated Firestore rules to be published
-- [ ] M6, M10 to M13 (see the build plan)
-- [ ] `reconcile.py` and `firestore.rules` are still empty
+- [x] M7 POS reconciliation, M8 alerts, M9 automatic orders with dealer and shopkeeper flows, and notifications: built, tested and checked live in Chrome with both roles
+- [ ] M6 automatic scanning every 60 s, M10 full role-based rules, M11 Hosting, M12 evaluation, M13 report
+
+What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).
