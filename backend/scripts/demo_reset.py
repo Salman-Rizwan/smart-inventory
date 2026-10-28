@@ -9,8 +9,10 @@ counts, and clears all purchase orders, alerts and notification read state. It k
 history, the users and the model. Scan once afterwards to refresh the dashboard.
 
 Demo values: 4 spark plugs and 1 petrol filter on the shelf, matching the POS. A spark plug reorders
-when 3 or fewer are left, so removing one plug and scanning twice raises an order. The filter only
-reorders when none are left, so it does not raise an order while it sits on the shelf.
+when 3 or fewer are left, so removing one plug and scanning twice raises an order. The order is for
+1 plug, so that when it is "delivered" and the plug you took away is put back, the shelf and the POS
+agree again and the whole loop closes. The filter only reorders when none are left, so it does not
+raise an order while it sits on the shelf.
 """
 
 import argparse
@@ -21,7 +23,7 @@ from app.core.config import get_settings
 from app.firebase_db import init_firebase
 
 DEMO_PRODUCTS: dict[str, dict[str, int]] = {
-    "spark_plug": {"posCount": 4, "reorderLevel": 3, "reorderQty": 10},
+    "spark_plug": {"posCount": 4, "reorderLevel": 3, "reorderQty": 1},
     "petrol_filter": {"posCount": 1, "reorderLevel": 0, "reorderQty": 10},
 }
 CLEARED_COLLECTIONS = ("purchase_orders", "alerts", "notification_reads")

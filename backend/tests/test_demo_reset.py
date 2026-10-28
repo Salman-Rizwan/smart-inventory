@@ -24,15 +24,16 @@ def test_the_demo_shelf_matches_the_pos_and_one_plug_removed_triggers_a_reorder(
     plug = DEMO_PRODUCTS["spark_plug"]
     assert plug["posCount"] == 4 and plug["reorderLevel"] == 3  # 3 plugs left is at the level
     assert DEMO_PRODUCTS["petrol_filter"]["reorderLevel"] == 0  # a filter on the shelf never reorders
+    assert plug["reorderQty"] == 1  # one delivered plug puts the shelf and the POS back in step
 
 
 def test_it_describes_only_what_would_change():
     text = describe_change(
         "spark_plug",
-        {"posCount": 6, "reorderLevel": 3, "reorderQty": 1, "lowScanStreak": 1},
+        {"posCount": 6, "reorderLevel": 3, "reorderQty": 10, "lowScanStreak": 1},
         DEMO_PRODUCTS["spark_plug"],
     )
-    assert "posCount 6 -> 4" in text and "reorderQty 1 -> 10" in text and "lowScanStreak 1 -> 0" in text
+    assert "posCount 6 -> 4" in text and "reorderQty 10 -> 1" in text and "lowScanStreak 1 -> 0" in text
     assert "reorderLevel" not in text
 
 
