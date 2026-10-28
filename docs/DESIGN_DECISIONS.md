@@ -30,7 +30,22 @@ Product ids equal the model's class names. A new part is a retrain plus one docu
 The model has no background class, so a person or room can score as a part. Boxes over 25% of the frame area or 60% of a side are dropped, and confidence is 0.5. The real fix is retraining with negatives.
 
 ## UI
-Carbon-style tokens in `tokens.css`, IBM Plex, one teal accent, status never colour-only. Tailwind and a dark theme were considered and dropped. TypeScript plus Material UI is undecided (see ROADMAP).
+Carbon-style look: IBM Plex, one teal accent, square hairline surfaces, status never colour-only. Tailwind and a dark theme were considered and dropped.
+
+## Material UI, with the theme as the only source
+Decided Oct 28: move fully to Material UI; new files stay TypeScript. Why: a standard, well-documented component library suits an enterprise-style app, and the new History and Insights pages (tables, filters, charts) can use MUI and MUI X Charts directly. How the look is kept: the theme sets radius 0, no shadows or ripple, IBM Plex and the one teal accent, so MUI matches the existing Carbon style. How it stays safe: screens use the shared wrappers (`Button`, `StatusBadge`, `FormField`, `NotificationMenu`), so each wrapper is converted on its own with the same props, and each task passes tests, axe and a screenshot comparison. During the move `tokens.css` only points at the theme's CSS variables, so there is one source of truth and a half-finished move still looks consistent; it is deleted at the end. `NotificationMenu` stays a disclosure because MUI's Menu is an ARIA menu, the wrong pattern for a list of links. Trade-offs: 2 to 4 days of work close to the freeze, and a larger bundle (measured in the trial). A trial converts `Button` first as a go/no-go, and an Oct 31 stop date keeps it from delaying the feedback work.
+
+## Stock changes are logged with the POS change
+The supervisor asked for analytics on sales and received stock, but the POS buttons only overwrote `posCount`, so nothing recorded what sold or arrived. Every POS change now writes a `stock_movements` entry in the same transaction (Record Sale, Receive Stock, Mark Received), and the rules refuse a `posCount` change without its entry. Why one transaction: a log that can drift from the POS would make the analytics wrong. Entries can never be edited or deleted, so the history is trustworthy. Trade-off: one more document per POS change, which is small on the free plan.
+
+## History reads the source records
+The History page lists alerts in every state, orders with each step's time, and stock changes. Notifications stay derived and are never stored; History reads the alerts, orders and stock changes themselves, so there is no second copy that could go stale. The dealer sees only order history.
+
+## Business intelligence in the browser
+Analytics (sales trend, stock flow, shelf stock, days of cover, discrepancies, reorder recommendations) are pure, tested functions run in the browser over the last 7, 30 or 90 days. Why the browser: the data is already in Firestore and the hosted app must work without the shop laptop; Cloud Functions are not on the free plan. Medians, not averages, because with few records one slow order would skew an average. The suggested reorder level (average daily sales x dealer lead time + safety margin) turns the data into a decision. Each chart has a table alternative. The Insights page is lazy-loaded so the main bundle does not grow.
+
+## Seeded demo history
+Sales were never logged before F1, so the charts would start empty. `seed_history` writes about 30 days of demo data, every document marked `seeded: true`, and removes only its own data with `--clear`. `demo_reset` keeps it, and all seeded orders and alerts are closed, so they never block automatic ordering. The Insights page shows "Includes demo data" when seeded records are in the period, and the report says the demo history is synthetic.
 
 ## Layers and errors
 Routes, services, adapters; pure planners for decisions; typed `AppError`s in one envelope. After a scan is saved, reconciliation, alerts and orders each fail softly so a scan is never lost.

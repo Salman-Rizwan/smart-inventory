@@ -208,6 +208,8 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 - [x] M4: React login, protected dashboard, logout
 - [x] M5: live dashboard (count cards, annotated image, Scan Now, last 10 scans)
 - [x] M7 POS reconciliation, M8 alerts, M9 automatic orders with dealer and shopkeeper flows, and notifications: built, tested and checked live in Chrome with both roles
+- [ ] Move to Material UI (theme keeps the Carbon look)
+- [ ] Supervisor feedback: stock change log, History page, business intelligence (dashboard summary and Insights page)
 - [ ] M6 automatic scanning every 60 s, M10 full role-based rules, M11 Hosting, M12 evaluation, M13 report
 
 What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).
