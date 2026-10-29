@@ -43,6 +43,7 @@ Decision: move fully to MUI. The MUI theme becomes the single source of colours,
 | Task | Work | Task-specific tests | Time |
 |---|---|---|---|
 | MUI-0 | Baseline: screenshots of every page, role and width; axe results; bundle size. Fix paths in `.handoff/live-tests`. | Reference for all later comparisons | 1–2 h |
+| MUI-0b | Fix found by MUI-0: the phone-width table scroll boxes cannot be reached by keyboard (axe `scrollable-region-focusable` at 390 px). Shared `TableScroll` wrapper (focusable, labelled region) used by all four tables; correct `docs/TESTING.md`. | axe 0 at 390 px; wrapper unit tests | 0.5 h |
 | MUI-1 | Trial: install exact versions of `@mui/material`, `@emotion/react`, `@emotion/styled`; minimal theme; convert `Button`. | Bundle growth, axe, screenshots. Go/no-go. | 2 h |
 | MUI-2 | Theme: radius 0, no shadows or ripple, Plex, teal accent, focus ring, reduced motion; `cssVariables` on; `tokens.css` points at theme variables. | Theme unit tests; contrast check of every colour pair | 3 h |
 | MUI-3 | `Button`, all variants | Labels, disabled and busy states, keyboard | 1–2 h |

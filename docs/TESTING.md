@@ -25,7 +25,7 @@ Rules for live tests:
 Over REST with real ID tokens: a dealer cannot write products or acknowledge alerts; a shopkeeper cannot accept or dispatch; nobody can create or delete orders or alerts; a user cannot read or write another user's `notification_reads`; wrong timestamps are refused.
 
 ## Accessibility
-axe-core run on each page and role (0 violations at last run), phone widths 390, 375, 360 and 320 px, and review against the Web Interface Guidelines.
+axe-core run on each page and role at desktop and at 390 px, layout checked at phone widths 390, 375, 360 and 320 px, and review against the Web Interface Guidelines. The Oct 29 baseline found `scrollable-region-focusable` at 390 px: the table scroll boxes could not be reached by keyboard (desktop axe was 0). Fixed by the shared `TableScroll` wrapper, which becomes a labelled, focusable region only when the table overflows. Run axe at a phone width as well as desktop; some failures only appear when content overflows.
 
 ## Known flaky or limited
 Detection can flicker on an unchanged shelf (for example 4 then 3); the two-scan rule absorbs it. End-on filters and dark rooms are missed. Latency compensation in Firestore updates the UI before the server confirms, so verify writes in the console too.
