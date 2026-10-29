@@ -44,6 +44,33 @@ export const theme = createTheme({
     button: { fontSize: text.sm, fontWeight: 400, letterSpacing: "0.02em", textTransform: "none", lineHeight: 1.5 },
   },
   components: {
+    // Status badge: tint behind, darker status colour for text, square and compact.
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          height: "auto",
+          gap: "4px",
+          padding: "2px 8px",
+          borderRadius: 0,
+          fontSize: text.xs,
+          fontWeight: 600,
+          letterSpacing: "0.02em",
+          lineHeight: 1.5,
+          whiteSpace: "nowrap",
+          verticalAlign: "baseline",
+          color: color.inkMuted,
+          background: color.surfaceStrong,
+        },
+        label: { padding: 0, overflow: "visible" },
+        icon: { margin: 0, fontSize: "inherit", fontWeight: 700, color: "inherit" },
+      },
+      variants: [
+        { props: { color: "success" }, style: { color: color.success, background: color.successBg } },
+        { props: { color: "warning" }, style: { color: color.warning, background: color.warningBg } },
+        { props: { color: "error" }, style: { color: color.error, background: color.errorBg } },
+        { props: { color: "info" }, style: { color: color.info, background: color.infoBg } },
+      ],
+    },
     MuiButtonBase: {
       defaultProps: { disableRipple: true },
       styleOverrides: {

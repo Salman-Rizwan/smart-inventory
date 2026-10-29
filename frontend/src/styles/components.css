@@ -105,15 +105,6 @@
   user-select: none;
 }
 
-/* ---------- Status badge ---------- */
-.badge { display: inline-flex; align-items: center; gap: var(--space-1); padding: 2px var(--space-2); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
-.badge__icon { font-weight: 700; }
-.badge--success { color: var(--color-success); background: var(--color-success-bg); }
-.badge--warning { color: var(--color-warning); background: var(--color-warning-bg); }
-.badge--error { color: var(--color-error); background: var(--color-error-bg); }
-.badge--info { color: var(--color-info); background: var(--color-info-bg); }
-.badge--neutral { color: var(--color-ink-muted); background: var(--color-surface-strong); }
-
 /* ---------- Panel extras ---------- */
 .panel__header--split { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .panel__header p { font-size: var(--text-sm); }
