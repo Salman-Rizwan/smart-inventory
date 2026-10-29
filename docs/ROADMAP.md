@@ -48,7 +48,7 @@ Decision: move fully to MUI. The MUI theme becomes the single source of colours,
 | MUI-2 | Theme: radius 0, no shadows, 4px spacing, status colours and tints, Plex, teal accent; `cssVariables` on. Values move to `tokens.ts`; the stylesheet variables are generated from the theme and `tokens.css` is deleted. Reduced motion stays with the global rule in `base.css` until MUI-14. | Theme unit tests; contrast check of every colour pair; every `var()` in the stylesheets is defined | 3 h |
 | MUI-3 | `Button`, all variants: done inside MUI-1 (three variants, both sizes, loading and disabled states, with tests) | Covered by `Button.test.tsx` | 0 h |
 | MUI-4 | `StatusBadge` to `Chip` | Icon plus text for every status | 1–2 h |
-| MUI-5 | `FormField` to `TextField` (Login, Receive Stock) | Label association, error text linked to its field, required, validation before submit | 3–4 h |
+| MUI-5 | `FormField` on MUI form parts (label above, never floating) with a Show Password toggle and placeholders on Sign In (added at the user's request); the Receive Stock Qty box becomes a shared `CompactInput` | Label association, error text linked to its field, focus to the first error, toggle by keyboard with `aria-pressed`, toggle never submits | 3–4 h |
 | MUI-6 | `Spinner`, `Notification`, `Avatar`, `ErrorBoundary` | `aria-live` kept; loading, empty, error states | 2 h |
 | MUI-7 | `NotificationMenu` panel styling; stays a disclosure, not an ARIA menu | `aria-expanded`, Escape closes, focus returns to the bell, unread announced | 1–2 h |
 | MUI-8 | App shell: header, nav (links stay `a`), skip link | Phone header overflow (fixed in `544615c`) does not return | 3–4 h |
