@@ -84,7 +84,7 @@ export default function StockRowItem({ row, onChanged }: Props) {
           <div className="stock-actions">
             <Button
               variant="secondary"
-              className="btn--sm"
+              size="small"
               onClick={handleSale}
               loading={busy === "sale"}
               loadingLabel="Saving…"
@@ -112,7 +112,7 @@ export default function StockRowItem({ row, onChanged }: Props) {
               <Button
                 type="submit"
                 variant="secondary"
-                className="btn--sm"
+                size="small"
                 loading={busy === "receive"}
                 loadingLabel="Saving…"
                 disabled={busy !== null}

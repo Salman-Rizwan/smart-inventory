@@ -47,7 +47,7 @@ export default function AlertRowItem({ alert }: { alert: Alert }) {
           {alert.state === "Open" && (
             <Button
               variant="secondary"
-              className="btn--sm"
+              size="small"
               onClick={handleAcknowledge}
               loading={busy}
               loadingLabel="Saving…"

@@ -61,7 +61,7 @@ export default function OrderRowItem({ order, role, onDone }: Props) {
           {action && (
             <Button
               variant="secondary"
-              className="btn--sm"
+              size="small"
               onClick={handleAction}
               loading={busy}
               loadingLabel="Saving…"
