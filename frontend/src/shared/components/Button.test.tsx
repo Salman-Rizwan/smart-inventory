@@ -60,7 +60,7 @@ describe("Button", () => {
     const button = screen.getByRole("button", { name: "Scanning…" });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
-    expect(button.querySelector(".spinner")).not.toBeNull();
+    expect(button.querySelector(".MuiCircularProgress-root")).toHaveAttribute("aria-hidden", "true");
     // MUI also sets pointer-events: none when disabled; click anyway to prove nothing fires.
     await userEvent.setup({ pointerEventsCheck: 0 }).click(button);
     expect(onClick).not.toHaveBeenCalled();

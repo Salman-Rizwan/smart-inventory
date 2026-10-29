@@ -28,36 +28,10 @@
 .btn:disabled { background: var(--color-surface-strong); color: var(--color-ink-muted); border-color: transparent; cursor: not-allowed; }
 @media (pointer: coarse) { .btn { min-height: 48px; } }
 
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: spin 800ms linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
 /* ---------- Surfaces ---------- */
 .panel { background: var(--color-canvas); border: 1px solid var(--color-border); }
 .panel__header { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border); }
 .panel__body { padding: var(--space-5); }
-
-/* ---------- Notifications ---------- */
-.notification {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--text-sm);
-  border-left: 4px solid currentColor;
-}
-.notification__icon { flex: none; font-weight: 600; line-height: 1.5; }
-.notification__text { color: var(--color-ink); }
-.notification--error { color: var(--color-error); background: var(--color-error-bg); }
-.notification--success { color: var(--color-success); background: var(--color-success-bg); }
-.notification--warning { color: var(--color-warning); background: var(--color-warning-bg); }
-.notification--info { color: var(--color-info); background: var(--color-info-bg); }
 
 /* ---------- Tables ---------- */
 .table-scroll { overflow-x: auto; }
@@ -72,21 +46,6 @@
 /* ---------- Empty / loading ---------- */
 .empty-state { padding: var(--space-6) var(--space-5); text-align: center; color: var(--color-ink-muted); }
 .empty-state strong { display: block; margin-bottom: var(--space-1); color: var(--color-ink); font-weight: 600; }
-
-/* ---------- Avatar ---------- */
-.avatar {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--color-accent);
-  border-radius: 50%;
-  background: var(--color-info-bg);
-  color: var(--color-accent-hover);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  user-select: none;
-}
 
 /* ---------- Panel extras ---------- */
 .panel__header--split { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }

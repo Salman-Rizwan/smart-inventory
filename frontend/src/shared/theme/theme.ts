@@ -102,6 +102,47 @@ export const theme = createTheme({
         },
       },
     },
+    // Inline message: tint behind, a 4px bar and icon in the status colour, ink text.
+    MuiAlert: {
+      styleOverrides: {
+        root: {
+          gap: "12px",
+          alignItems: "flex-start",
+          padding: "12px 16px",
+          borderRadius: 0,
+          borderLeft: "4px solid currentColor",
+          fontFamily: "inherit",
+          fontSize: text.sm,
+          lineHeight: 1.5,
+          letterSpacing: "inherit",
+          "& .MuiAlert-icon": { color: "inherit" },
+        },
+        icon: { margin: 0, padding: 0, opacity: 1, fontSize: "inherit", fontWeight: 600, lineHeight: 1.5 },
+        message: { padding: 0, minWidth: 0, overflow: "visible", color: color.ink },
+      },
+      variants: [
+        { props: { severity: "error" }, style: { color: color.error, background: color.errorBg } },
+        { props: { severity: "warning" }, style: { color: color.warning, background: color.warningBg } },
+        { props: { severity: "success" }, style: { color: color.success, background: color.successBg } },
+        { props: { severity: "info" }, style: { color: color.info, background: color.infoBg } },
+      ],
+    },
+    // Initials avatar: teal ring on the info tint.
+    MuiAvatar: {
+      styleOverrides: {
+        root: {
+          flex: "none",
+          border: `2px solid ${color.accent}`,
+          background: color.infoBg,
+          color: color.accentHover,
+          fontFamily: "inherit",
+          fontWeight: 600,
+          lineHeight: 1.5,
+          letterSpacing: "0.02em",
+          userSelect: "none",
+        },
+      },
+    },
     // Status badge: tint behind, darker status colour for text, square and compact.
     MuiChip: {
       styleOverrides: {
