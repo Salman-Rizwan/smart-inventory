@@ -1,4 +1,5 @@
 import Notification from "../../shared/components/Notification";
+import TableScroll from "../../shared/components/TableScroll";
 import { formatDateTime, formatInteger } from "../../shared/format";
 import { partLabel } from "./parts";
 import { partKeys } from "./parsers";
@@ -28,7 +29,7 @@ export default function ScanHistoryTable({ scans, loading, error }) {
         </div>
       )}
       {!loading && !error && scans.length > 0 && (
-        <div className="table-scroll">
+        <TableScroll label="Recent scans table">
           <table className="table">
             <caption className="visually-hidden">The last {scans.length} scans, newest first</caption>
             <thead>
@@ -54,7 +55,7 @@ export default function ScanHistoryTable({ scans, loading, error }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       )}
     </section>
   );

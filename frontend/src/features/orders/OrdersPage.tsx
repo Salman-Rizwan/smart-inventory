@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Notification from "../../shared/components/Notification";
+import TableScroll from "../../shared/components/TableScroll";
 import OrderFilterGroup from "./OrderFilter";
 import OrderRowItem from "./OrderRowItem";
 import OrderSummaryTiles from "./OrderSummaryTiles";
@@ -92,7 +93,7 @@ export default function OrdersPage() {
           </div>
         )}
         {showTable && (
-          <div className="table-scroll">
+          <TableScroll label="Order list table">
             <table className="table">
               <caption className="visually-hidden">Orders, those needing action first</caption>
               <thead>
@@ -111,7 +112,7 @@ export default function OrdersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
         )}
       </section>
     </div>

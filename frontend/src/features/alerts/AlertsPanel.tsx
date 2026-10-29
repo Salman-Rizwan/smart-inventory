@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import Notification from "../../shared/components/Notification";
+import TableScroll from "../../shared/components/TableScroll";
 import StatusBadge from "../../shared/components/StatusBadge";
 import AlertRowItem from "./AlertRowItem";
 import { useAlerts } from "./AlertsContext";
@@ -45,7 +46,7 @@ export default function AlertsPanel() {
         </div>
       )}
       {showTable && (
-        <div className="table-scroll">
+        <TableScroll label="Active alerts table">
           <table className="table">
             <caption className="visually-hidden">Active alerts, open ones first</caption>
             <thead>
@@ -64,7 +65,7 @@ export default function AlertsPanel() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       )}
     </section>
   );

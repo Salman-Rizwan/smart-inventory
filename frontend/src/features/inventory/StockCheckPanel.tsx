@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Notification from "../../shared/components/Notification";
+import TableScroll from "../../shared/components/TableScroll";
 import StatusBadge from "../../shared/components/StatusBadge";
 import { useProducts } from "./hooks";
 import { buildStockRows } from "./reconcile";
@@ -56,7 +57,7 @@ export default function StockCheckPanel({ counts }: Props) {
       )}
       {showTable && (
         <>
-          <div className="table-scroll">
+          <TableScroll label="Stock check table">
             <table className="table">
               <caption className="visually-hidden">Camera count against POS record for each part</caption>
               <thead>
@@ -75,7 +76,7 @@ export default function StockCheckPanel({ counts }: Props) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableScroll>
           <p className="panel__footer muted">
             Difference is shelf minus POS. A negative number means the records show stock that is not on the
             shelf.

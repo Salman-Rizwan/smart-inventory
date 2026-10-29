@@ -78,6 +78,7 @@
 
 /* ---------- Tables ---------- */
 .table-scroll { overflow-x: auto; }
+.table-scroll:focus-visible { outline-offset: -2px; }
 .table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .table caption { text-align: left; }
 .table th, .table td { padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
