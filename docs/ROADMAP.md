@@ -50,10 +50,10 @@ Decision: move fully to MUI. The MUI theme becomes the single source of colours,
 | MUI-4 | `StatusBadge` to `Chip` | Icon plus text for every status | 1–2 h |
 | MUI-5 | `FormField` on MUI form parts (label above, never floating) with a Show Password toggle and placeholders on Sign In (added at the user's request); the Receive Stock Qty box becomes a shared `CompactInput` | Label association, error text linked to its field, focus to the first error, toggle by keyboard with `aria-pressed`, toggle never submits | 3–4 h |
 | MUI-6 | `Spinner`, `Notification`, `Avatar`, `ErrorBoundary` | `aria-live` kept; loading, empty, error states | 2 h |
-| MUI-7 | `NotificationMenu` panel styling; stays a disclosure, not an ARIA menu | `aria-expanded`, Escape closes, focus returns to the bell, unread announced | 1–2 h |
+| MUI-7 | Bell dropdown: the bell becomes an MUI `IconButton` and the footer actions use the shared `Button`, which retires all `.btn` CSS. Stays a disclosure, not an ARIA menu. The panel surface and item rows stay HTML with CSS until MUI-13 (MUI's base styles load after ours and would override their layout) | `aria-expanded`, Escape closes, focus returns to the bell, unread announced; keyboard walk in Chrome for both roles | 1–2 h |
 | MUI-8 | App shell: header, nav (links stay `a`), skip link | Phone header overflow (fixed in `544615c`) does not return | 3–4 h |
 | MUI-9 to 12 | Tables, one per task: Alerts, Stock Check, Orders, Scan History | Table semantics, header scope, monospace numbers, phone widths | 1–2 h each |
-| MUI-13 | Page layout CSS (Login, Dashboard, Orders) to `sx` | Screenshots at every width | 3–4 h |
+| MUI-13 | Page layout CSS (Login, Dashboard, Orders, and the bell dropdown's panel and item rows) to `sx` | Screenshots at every width | 3–4 h |
 | MUI-14 | Delete the generated CSS variables, `base.css` rules MUI now covers (reduced motion moves into the theme) and dead CSS; update UI rules in `CLAUDE.md`, `README.md`, `docs/DESIGN_DECISIONS.md` | No references left; full regression; bundle compared with MUI-0 | 2–3 h |
 
 New pages (History, Insights) are built in MUI from the start.
