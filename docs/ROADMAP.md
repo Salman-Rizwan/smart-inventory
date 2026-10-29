@@ -22,9 +22,9 @@ About 80 working hours from Oct 28 to Nov 6. Must-have work is about 57 to 77 ho
 | Nov 7 | Code freeze | |
 
 ## Checkpoints
-- **Oct 28, MUI trial:** the user decides go or stop after MUI-1. Stop means keep the token CSS; the rest of the plan is unchanged.
+- **Oct 28, MUI trial:** the user decides go or stop after MUI-1. Stop means keep the token CSS; the rest of the plan is unchanged. Decided: go (Oct 29).
 - **Oct 30 evening:** MUI-0 to MUI-8 done. If not, finish them by noon Oct 31 and skip the stretch block.
-- **Oct 31 evening, MUI stop:** whatever is not converted stays on the token bridge (tokens point at the theme, so the look stays consistent) and is finished after submission.
+- **Oct 31 evening, MUI stop:** whatever is not converted keeps its stylesheet, which reads the CSS variables generated from the theme, so the look stays consistent, and is finished after submission.
 - **Nov 3 evening:** F3 core done. The extra Insights sections are dropped if not.
 - **If late, cut in this order:** MUI-9 to MUI-14; the M11 thumbnail; the Insights response and dealer section. Never cut M6, M10, M11 deployment or M12.
 - M6 does not depend on anything else; move it earlier whenever there is a gap.
@@ -38,15 +38,15 @@ About 80 working hours from Oct 28 to Nov 6. Must-have work is about 57 to 77 ho
 6. One commit per task, made by the user.
 
 ## 1. Front-end move to Material UI
-Decision: move fully to MUI. The MUI theme becomes the single source of colours, fonts and spacing, themed to keep the Carbon look (square, hairline borders, no shadows or ripple, one teal accent, IBM Plex). During the move `tokens.css` only points at the theme's CSS variables; MUI-14 deletes it. Screens use the shared wrappers, so each wrapper keeps its props and call sites do not change. See `docs/DESIGN_DECISIONS.md`.
+Decision: move fully to MUI. The MUI theme becomes the single source of colours, fonts and spacing, themed to keep the Carbon look (square, hairline borders, no shadows or ripple, one teal accent, IBM Plex). Design values live once in `shared/theme/tokens.ts`; the theme is built from them and generates the CSS variables the remaining stylesheets use (`tokens.css` was deleted in MUI-2). Screens use the shared wrappers, so each wrapper keeps its props and call sites do not change. See `docs/DESIGN_DECISIONS.md`.
 
 | Task | Work | Task-specific tests | Time |
 |---|---|---|---|
 | MUI-0 | Baseline: screenshots of every page, role and width; axe results; bundle size. Fix paths in `.handoff/live-tests`. | Reference for all later comparisons | 1–2 h |
 | MUI-0b | Fix found by MUI-0: the phone-width table scroll boxes cannot be reached by keyboard (axe `scrollable-region-focusable` at 390 px). Shared `TableScroll` wrapper (focusable, labelled region) used by all four tables; correct `docs/TESTING.md`. | axe 0 at 390 px; wrapper unit tests | 0.5 h |
 | MUI-1 | Trial: install exact versions of `@mui/material`, `@emotion/react`, `@emotion/styled`; minimal theme; convert `Button`. | Bundle growth, axe, screenshots. Go/no-go. | 2 h |
-| MUI-2 | Theme: radius 0, no shadows or ripple, Plex, teal accent, focus ring, reduced motion; `cssVariables` on; `tokens.css` points at theme variables. | Theme unit tests; contrast check of every colour pair | 3 h |
-| MUI-3 | `Button`, all variants | Labels, disabled and busy states, keyboard | 1–2 h |
+| MUI-2 | Theme: radius 0, no shadows, 4px spacing, status colours and tints, Plex, teal accent; `cssVariables` on. Values move to `tokens.ts`; the stylesheet variables are generated from the theme and `tokens.css` is deleted. Reduced motion stays with the global rule in `base.css` until MUI-14. | Theme unit tests; contrast check of every colour pair; every `var()` in the stylesheets is defined | 3 h |
+| MUI-3 | `Button`, all variants: done inside MUI-1 (three variants, both sizes, loading and disabled states, with tests) | Covered by `Button.test.tsx` | 0 h |
 | MUI-4 | `StatusBadge` to `Chip` | Icon plus text for every status | 1–2 h |
 | MUI-5 | `FormField` to `TextField` (Login, Receive Stock) | Label association, error text linked to its field, required, validation before submit | 3–4 h |
 | MUI-6 | `Spinner`, `Notification`, `Avatar`, `ErrorBoundary` | `aria-live` kept; loading, empty, error states | 2 h |
@@ -54,7 +54,7 @@ Decision: move fully to MUI. The MUI theme becomes the single source of colours,
 | MUI-8 | App shell: header, nav (links stay `a`), skip link | Phone header overflow (fixed in `544615c`) does not return | 3–4 h |
 | MUI-9 to 12 | Tables, one per task: Alerts, Stock Check, Orders, Scan History | Table semantics, header scope, monospace numbers, phone widths | 1–2 h each |
 | MUI-13 | Page layout CSS (Login, Dashboard, Orders) to `sx` | Screenshots at every width | 3–4 h |
-| MUI-14 | Delete `tokens.css` and dead CSS; update UI rules in `CLAUDE.md`, `README.md`, `docs/DESIGN_DECISIONS.md` | No references left; full regression; bundle compared with MUI-0 | 2–3 h |
+| MUI-14 | Delete the generated CSS variables, `base.css` rules MUI now covers (reduced motion moves into the theme) and dead CSS; update UI rules in `CLAUDE.md`, `README.md`, `docs/DESIGN_DECISIONS.md` | No references left; full regression; bundle compared with MUI-0 | 2–3 h |
 
 New pages (History, Insights) are built in MUI from the start.
 

@@ -175,7 +175,7 @@ Each account has a `users/{uid}` document with `name` and `role` (`shopkeeper` o
 
 ## Design system
 
-Carbon-style enterprise UI: flat, square, hairline borders, a 4 px grid, IBM Plex Sans (self-hosted), and one deep-teal accent (`#0e6b6f`). Tokens live in `frontend/src/styles/tokens.css`. Text and UI colours meet WCAG AA, status is never colour-only (icon plus text), focus is always visible, and motion respects `prefers-reduced-motion`. Checked with axe (0 violations) and the Web Interface Guidelines.
+Carbon-style enterprise UI: flat, square, hairline borders, a 4 px grid, IBM Plex Sans (self-hosted), and one deep-teal accent (`#0e6b6f`). Design values live in `frontend/src/shared/theme/tokens.ts`; the Material UI theme (`theme.ts`) is built from them and publishes the CSS variables the stylesheets use. Text and UI colours meet WCAG AA, status is never colour-only (icon plus text), focus is always visible, and motion respects `prefers-reduced-motion`. Checked with axe (0 violations) and the Web Interface Guidelines.
 
 ## Run and test
 
