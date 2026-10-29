@@ -1,5 +1,7 @@
+import IconButton from "@mui/material/IconButton";
 import { useEffect, useId, useRef, useState } from "react";
 import { formatDateTime } from "../format";
+import Button from "./Button";
 import Notification from "./Notification";
 
 export interface NotificationItem {
@@ -73,14 +75,13 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
 
   return (
     <div className="notify" ref={rootRef}>
-      <button
+      <IconButton
         ref={bellRef}
-        type="button"
-        className="icon-btn"
         aria-label={label}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={toggle}
+        sx={{ width: 40, height: 40, color: "text.primary", "@media (pointer: coarse)": { width: 44, height: 44 } }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
           <path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
@@ -91,7 +92,7 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
             {count > 9 ? "9+" : count}
           </span>
         )}
-      </button>
+      </IconButton>
 
       {open && (
         <div id={panelId} className="notify__panel" role="region" aria-labelledby={`${panelId}-title`}>
@@ -152,12 +153,12 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
               <div className="notify__footer">
                 {items.length > shown.length && <span className="muted">{`Showing ${shown.length} of ${items.length}`}</span>}
                 <div className="notify__actions">
-                  <button type="button" className="btn btn--ghost btn--sm" onClick={markAll} disabled={count === 0}>
+                  <Button variant="ghost" size="small" onClick={markAll} disabled={count === 0}>
                     Mark All as Read
-                  </button>
-                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => choose(viewAll.onSelect)}>
+                  </Button>
+                  <Button variant="ghost" size="small" onClick={() => choose(viewAll.onSelect)}>
                     {viewAll.label}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </>

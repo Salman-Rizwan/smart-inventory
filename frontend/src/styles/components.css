@@ -1,33 +1,3 @@
-/* ---------- Buttons ---------- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  font: inherit;
-  font-size: var(--text-sm);
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color 120ms, border-color 120ms, color 120ms;
-}
-.btn--primary { background: var(--color-accent); color: var(--color-on-accent); }
-.btn--primary:hover { background: var(--color-accent-hover); }
-.btn--primary:active { background: var(--color-accent-active); }
-.btn--secondary { background: var(--color-canvas); color: var(--color-accent); border-color: var(--color-accent); }
-.btn--secondary:hover { background: var(--color-info-bg); color: var(--color-accent-hover); }
-.btn--ghost { background: transparent; color: var(--color-ink); }
-.btn--ghost:hover { background: var(--color-surface-strong); }
-.btn--block { width: 100%; }
-.btn--sm { min-height: 32px; padding: 0 var(--space-3); }
-.btn:disabled { background: var(--color-surface-strong); color: var(--color-ink-muted); border-color: transparent; cursor: not-allowed; }
-@media (pointer: coarse) { .btn { min-height: 48px; } }
-
 /* ---------- Surfaces ---------- */
 .panel { background: var(--color-canvas); border: 1px solid var(--color-border); }
 .panel__header { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border); }
@@ -58,23 +28,6 @@
 .empty-state--compact { padding: var(--space-4) var(--space-5); }
 #alerts-title { scroll-margin-top: calc(var(--header-height) + var(--space-4)); }
 
-.icon-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--color-ink);
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: background-color 120ms;
-}
-.icon-btn:hover { background: var(--color-surface-strong); }
 .icon-btn__badge {
   position: absolute;
   top: 2px;
@@ -89,7 +42,6 @@
   color: var(--color-on-accent);
   background: var(--color-error);
 }
-@media (pointer: coarse) { .icon-btn { width: 44px; height: 44px; } }
 
 /* ---------- Summary tiles ---------- */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-4); margin: 0; }
