@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from "react";
 import Button from "../../shared/components/Button";
+import CompactInput from "../../shared/components/CompactInput";
 import Notification from "../../shared/components/Notification";
 import StatusBadge, { type BadgeKind } from "../../shared/components/StatusBadge";
 import { formatInteger, formatSigned } from "../../shared/format";
@@ -94,8 +95,7 @@ export default function StockRowItem({ row, onChanged }: Props) {
               Record Sale
             </Button>
             <form className="stock-actions__receive" onSubmit={handleReceive} noValidate>
-              <input
-                className="input-compact"
+              <CompactInput
                 name="quantity"
                 type="text"
                 inputMode="numeric"
@@ -103,7 +103,7 @@ export default function StockRowItem({ row, onChanged }: Props) {
                 spellCheck={false}
                 placeholder="Qty…"
                 aria-label={`Quantity to receive for ${product.name}`}
-                aria-invalid={Boolean(quantityError)}
+                invalid={Boolean(quantityError)}
                 aria-describedby={message ? errorId : undefined}
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}

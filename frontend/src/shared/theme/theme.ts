@@ -44,6 +44,64 @@ export const theme = createTheme({
     button: { fontSize: text.sm, fontWeight: 400, letterSpacing: "0.02em", textTransform: "none", lineHeight: 1.5 },
   },
   components: {
+    // Form fields: label always above (never floating), grey fill, underline only, square.
+    MuiFormLabel: {
+      styleOverrides: {
+        root: {
+          fontSize: text.sm,
+          lineHeight: 1.5,
+          color: color.inkMuted,
+          "&.Mui-focused, &.Mui-error": { color: color.inkMuted },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: { margin: 0, fontSize: text.sm, lineHeight: 1.5, letterSpacing: "inherit", fontFamily: "inherit" },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        root: {
+          minHeight: 44,
+          padding: "0 16px",
+          font: "inherit",
+          letterSpacing: "inherit",
+          color: color.ink,
+          background: color.surface,
+          borderBottom: `1px solid ${color.borderStrong}`,
+          borderRadius: 0,
+          "&.Mui-focused": { outline: `2px solid ${color.accent}`, outlineOffset: "-2px" },
+          "&.Mui-error": { borderBottom: `2px solid ${color.error}` },
+          "&.MuiInputBase-adornedEnd": { paddingRight: "4px" },
+        },
+        input: {
+          height: "auto",
+          padding: 0,
+          "&::placeholder": { color: color.inkMuted, opacity: 1 },
+        },
+        // Compact numeric entry inside table rows (the Qty box).
+        sizeSmall: {
+          width: "5rem",
+          minHeight: 32,
+          padding: "0 8px",
+          fontFamily: font.mono,
+          fontSize: text.sm,
+          [coarse]: { minHeight: 44 },
+          "& .MuiInputBase-input": { textAlign: "right" },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 0,
+          color: color.inkMuted,
+          "&:hover": { background: color.surfaceStrong, color: color.ink },
+          [coarse]: { width: 44, height: 44 },
+        },
+      },
+    },
     // Status badge: tint behind, darker status colour for text, square and compact.
     MuiChip: {
       styleOverrides: {

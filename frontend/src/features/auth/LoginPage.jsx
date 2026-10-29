@@ -60,6 +60,7 @@ export default function LoginPage() {
               inputMode="email"
               autoComplete="username"
               spellCheck={false}
+              placeholder="name@example.com"
               value={values.email}
               onChange={handleChange}
               error={fieldErrors.email}
@@ -69,6 +70,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               autoComplete="current-password"
+              placeholder="Enter your password…"
               value={values.password}
               onChange={handleChange}
               error={fieldErrors.password}
