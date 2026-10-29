@@ -1,35 +1,54 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme, type Shadows } from "@mui/material/styles";
+import { color, font, SPACING_UNIT, text } from "./tokens";
 
-/*
- * MUI theme: the Carbon-style look (flat, square, hairline borders, one teal accent, IBM Plex).
- * MUI-1 trial scope: palette, type and the Button overrides only. MUI-2 extends this and points
- * tokens.css at the theme's CSS variables, so the two never disagree.
- * Values match tokens.css; colour pairs are the WCAG AA pairs checked there.
- */
-const accent = { main: "#0e6b6f", hover: "#0a5558", active: "#073f42", tint: "#e0f2f1" };
-const ink = { main: "#161616", muted: "#525252" };
-const surface = { canvas: "#ffffff", strong: "#e8e8e8" };
-const fontSans = '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif';
+declare module "@mui/material/styles" {
+  interface Palette {
+    accent: { hover: string; active: string };
+    surface: { main: string; strong: string };
+    border: { main: string; strong: string };
+  }
+  interface PaletteOptions {
+    accent?: { hover: string; active: string };
+    surface?: { main: string; strong: string };
+    border?: { main: string; strong: string };
+  }
+}
+
 const coarse = "@media (pointer: coarse)";
 
+/*
+ * MUI theme: the Carbon-style look (flat, square, hairline borders, one teal accent, IBM Plex),
+ * built from tokens.ts. Status colours use `main` for the text or icon and `light` for the tint
+ * behind it. `cssVariables` publishes every value as --mui-* so plain CSS can follow the theme.
+ */
 export const theme = createTheme({
   cssVariables: true,
+  spacing: SPACING_UNIT,
   shape: { borderRadius: 0 },
+  shadows: Array(25).fill("none") as Shadows,
   palette: {
-    primary: { main: accent.main, dark: accent.hover, contrastText: "#ffffff" },
-    text: { primary: ink.main, secondary: ink.muted },
-    background: { default: surface.canvas, paper: surface.canvas },
+    primary: { main: color.accent, dark: color.accentHover, contrastText: color.onAccent },
+    accent: { hover: color.accentHover, active: color.accentActive },
+    success: { main: color.success, light: color.successBg },
+    error: { main: color.error, light: color.errorBg },
+    warning: { main: color.warning, light: color.warningBg },
+    info: { main: color.info, light: color.infoBg },
+    text: { primary: color.ink, secondary: color.inkMuted },
+    background: { default: color.surface, paper: color.canvas },
+    surface: { main: color.surface, strong: color.surfaceStrong },
+    border: { main: color.border, strong: color.borderStrong },
+    divider: color.border,
   },
   typography: {
-    fontFamily: fontSans,
-    button: { fontSize: "0.875rem", fontWeight: 400, letterSpacing: "0.02em", textTransform: "none", lineHeight: 1.5 },
+    fontFamily: font.sans,
+    button: { fontSize: text.sm, fontWeight: 400, letterSpacing: "0.02em", textTransform: "none", lineHeight: 1.5 },
   },
   components: {
     MuiButtonBase: {
       defaultProps: { disableRipple: true },
       styleOverrides: {
         root: {
-          "&.Mui-focusVisible": { outline: `2px solid ${accent.main}`, outlineOffset: "2px" },
+          "&.Mui-focusVisible": { outline: `2px solid ${color.accent}`, outlineOffset: "2px" },
         },
       },
     },
@@ -46,22 +65,22 @@ export const theme = createTheme({
           touchAction: "manipulation",
           transition: "background-color 120ms, border-color 120ms, color 120ms",
           [coarse]: { minHeight: 48 },
-          "&.Mui-disabled": { background: surface.strong, color: ink.muted, borderColor: "transparent" },
+          "&.Mui-disabled": { background: color.surfaceStrong, color: color.inkMuted, borderColor: "transparent" },
         },
-        sizeSmall: { minHeight: 32, padding: "0 12px", fontSize: "0.875rem", [coarse]: { minHeight: 44 } },
+        sizeSmall: { minHeight: 32, padding: "0 12px", fontSize: text.sm, [coarse]: { minHeight: 44 } },
         contained: {
-          "&:hover": { background: accent.hover, boxShadow: "none" },
-          "&:active": { background: accent.active },
+          "&:hover": { background: color.accentHover, boxShadow: "none" },
+          "&:active": { background: color.accentActive },
         },
         outlined: {
-          background: surface.canvas,
-          color: accent.main,
-          borderColor: accent.main,
-          "&:hover": { background: accent.tint, color: accent.hover, borderColor: accent.main },
+          background: color.canvas,
+          color: color.accent,
+          borderColor: color.accent,
+          "&:hover": { background: color.infoBg, color: color.accentHover, borderColor: color.accent },
         },
         text: {
-          color: ink.main,
-          "&:hover": { background: surface.strong },
+          color: color.ink,
+          "&:hover": { background: color.surfaceStrong },
         },
       },
     },
