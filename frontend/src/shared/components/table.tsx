@@ -31,9 +31,9 @@ export function DataTable({ caption, head, children }: { caption: string; head: 
 export { TableRow as Row };
 
 /** Column header. `numeric` right-aligns it over a column of numbers. */
-export function HeadCell({ numeric: isNumeric = false, children }: { numeric?: boolean; children: ReactNode }) {
+export function HeadCell({ numeric: isNumeric = false, children, ...rest }: TableCellProps & { numeric?: boolean }) {
   return (
-    <TableCell scope="col" sx={isNumeric ? numeric : undefined}>
+    <TableCell scope="col" sx={isNumeric ? numeric : undefined} {...rest}>
       {children}
     </TableCell>
   );

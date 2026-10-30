@@ -70,6 +70,19 @@ describe("table parts", () => {
     expect(getComputedStyle(header).fontWeight).toBe("700");
   });
 
+  it("passes other attributes through to a column header", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <DataTable caption="Scans" head={<HeadCell numeric translate="no">Spark Plug</HeadCell>}>
+          <Row>
+            <NumCell>4</NumCell>
+          </Row>
+        </DataTable>
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole("columnheader", { name: "Spark Plug" })).toHaveAttribute("translate", "no");
+  });
+
   it("renders an error row spanning the table, addressable by id", () => {
     render(<Sample error="Could not save." />);
     const cell = screen.getByText("Could not save.");

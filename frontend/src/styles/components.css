@@ -6,12 +6,6 @@
 /* ---------- Tables ---------- */
 .table-scroll { overflow-x: auto; }
 .table-scroll:focus-visible { outline-offset: -2px; }
-.table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.table caption { text-align: left; }
-.table th, .table td { padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
-.table thead th { font-weight: 600; background: var(--color-surface); border-bottom: 1px solid var(--color-border-strong); }
-.table .num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.table tbody tr:hover { background: var(--color-surface); }
 
 /* ---------- Empty / loading ---------- */
 .empty-state { padding: var(--space-6) var(--space-5); text-align: center; color: var(--color-ink-muted); }
@@ -21,7 +15,6 @@
 .panel__header--split { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .panel__header p { font-size: var(--text-sm); }
 .panel__footer { padding: var(--space-3) var(--space-5); border-top: 1px solid var(--color-border); font-size: var(--text-sm); }
-.table .table__error td { padding: 0; }
 
 /* ---------- Alerts ---------- */
 .panel--alert { border-left: 4px solid var(--color-warning); }
