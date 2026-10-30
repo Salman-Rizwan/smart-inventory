@@ -2,6 +2,8 @@
 
 Deadlines: code freeze Nov 7, 2026; submit Nov 8; final submission Nov 9. Done so far: M1 to M5, M7, M8, M9 and notifications Stage A (see `README.md` Status).
 
+**Progress (Oct 30):** MUI-0 to MUI-12 done, so the Oct 30 checkpoint is met and all four table tasks from the Oct 31 stretch block are already finished. Also done: clearer messages when two people act on the same order at once (see `docs/DESIGN_DECISIONS.md`). Left for Oct 31: MUI-13, MUI-14. From Nov 1 the plan runs unchanged.
+
 Plan agreed on Oct 28 after the interim viva. It covers the supervisor's feedback (a history of past alerts, and business intelligence analytics on the dashboard) and the move to Material UI.
 
 ## Time budget
@@ -11,8 +13,8 @@ About 80 working hours from Oct 28 to Nov 6. Must-have work is about 57 to 77 ho
 |---|---|---|
 | Oct 28 | MUI-0 baseline, MUI-1 trial (go/no-go), MUI-2 theme | Must |
 | Oct 29 | MUI-3 Button, MUI-4 StatusBadge, MUI-5 FormField | Must |
-| Oct 30 | MUI-6 feedback components, MUI-7 NotificationMenu, MUI-8 app shell | Must |
-| Oct 31 | MUI-9 to MUI-12 tables, MUI-13 page layout, MUI-14 remove tokens | Stretch |
+| Oct 30 | MUI-6 feedback components, MUI-7 NotificationMenu, MUI-8 app shell; done early: MUI-9 to MUI-12 tables | Must |
+| Oct 31 | MUI-13 page layout, MUI-14 remove tokens | Stretch |
 | Nov 1 | F1 stock change log, seed script, `demo_reset` change (user publishes the rules) | Must |
 | Nov 2 | F2 History page; F3 pure analytics functions | Must |
 | Nov 3 | F3 dashboard summary and Insights page | Must (extra sections stretch) |
@@ -23,7 +25,7 @@ About 80 working hours from Oct 28 to Nov 6. Must-have work is about 57 to 77 ho
 
 ## Checkpoints
 - **Oct 28, MUI trial:** the user decides go or stop after MUI-1. Stop means keep the token CSS; the rest of the plan is unchanged. Decided: go (Oct 29).
-- **Oct 30 evening:** MUI-0 to MUI-8 done. If not, finish them by noon Oct 31 and skip the stretch block.
+- **Oct 30 evening:** MUI-0 to MUI-8 done. If not, finish them by noon Oct 31 and skip the stretch block. Met, with MUI-9 to MUI-12 also done.
 - **Oct 31 evening, MUI stop:** whatever is not converted keeps its stylesheet, which reads the CSS variables generated from the theme, so the look stays consistent, and is finished after submission.
 - **Nov 3 evening:** F3 core done. The extra Insights sections are dropped if not.
 - **If late, cut in this order:** MUI-9 to MUI-14; the M11 thumbnail; the Insights response and dealer section. Never cut M6, M10, M11 deployment or M12.
@@ -52,8 +54,8 @@ Decision: move fully to MUI. The MUI theme becomes the single source of colours,
 | MUI-6 | `Spinner`, `Notification`, `Avatar`, `ErrorBoundary` | `aria-live` kept; loading, empty, error states | 2 h |
 | MUI-7 | Bell dropdown: the bell becomes an MUI `IconButton` and the footer actions use the shared `Button`, which retires all `.btn` CSS. Stays a disclosure, not an ARIA menu. The panel surface and item rows stay HTML with CSS until MUI-13 (MUI's base styles load after ours and would override their layout) | `aria-expanded`, Escape closes, focus returns to the bell, unread announced; keyboard walk in Chrome for both roles | 1–2 h |
 | MUI-8 | App shell on MUI `Box`/`styled` (header, brand, `PrimaryNav` with real links, user block, skip link, main); header CSS and the last button bridge removed. Fixes the clipped tabs on narrow phones: the avatar hides below 390 px and the logo link below 360 px (measured per role, with and without an Orders count badge) | Tabs fit at 320 to 1360 px for both roles, with a badge; skip link and tab order by keyboard; `PrimaryNav` tests; full regression | 3–4 h |
-| MUI-9 to 12 | Tables, one per task: Alerts, Stock Check, Orders, Scan History | Table semantics, header scope, monospace numbers, phone widths | 1–2 h each |
-| MUI-13 | Page layout CSS (Login, Dashboard, Orders, and the bell dropdown's panel and item rows) to `sx` | Screenshots at every width | 3–4 h |
+| MUI-9 to 12 | Tables, one per task: Alerts, Stock Check, Orders, Scan History, on shared parts in `shared/components/table.tsx`. All four done; the old `.table` CSS is deleted | Table semantics, header scope, monospace numbers, phone widths, each table's inline error row in Chrome | 1–2 h each |
+| MUI-13 | Page layout CSS (Login, Dashboard, Orders, the Stock Check action cell, and the bell dropdown's panel and item rows) to `sx`. Also fix a phone issue found in MUI-10: at 390 px a row's error message sits at the left of a table scrolled to the right, so it is off-screen; keep it pinned to the visible part of the scroll box | Screenshots at every width; the error message visible at 390 px | 3–4 h |
 | MUI-14 | Delete the generated CSS variables, `base.css` rules MUI now covers (reduced motion moves into the theme) and dead CSS; update UI rules in `CLAUDE.md`, `README.md`, `docs/DESIGN_DECISIONS.md` | No references left; full regression; bundle compared with MUI-0 | 2–3 h |
 
 New pages (History, Insights) are built in MUI from the start.
@@ -121,7 +123,7 @@ Read cost: at most 90 days of records for two parts, a few hundred reads per vis
 - Include filters end-on and near the frame edge.
 
 ## 7. M12: evaluation (needed for the report)
-- 20 shelf arrangements under 3 lighting conditions; average of 50 scans for inference time; 10 sync-latency trials; free-tier usage; functional test cases for FR1 to FR9 plus History and Insights; usability test with 3 people.
+- 20 shelf arrangements under 3 lighting conditions; average of 50 scans for inference time and for Scan Now click-to-result (live runs on Oct 30 measured 2.8 to 5.4 s against the 3 s target, with model inference under 40 ms, so the time is in camera capture or the Firestore writes; if the average is over, find which step is slow before changing anything); 10 sync-latency trials; free-tier usage; functional test cases for FR1 to FR9 plus History and Insights; usability test with 3 people.
 - The detection and lighting trials do not depend on the new UI; the user can start them earlier.
 
 ## 8. M13: report
