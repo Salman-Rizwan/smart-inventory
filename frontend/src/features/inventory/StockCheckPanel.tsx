@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Notification from "../../shared/components/Notification";
 import TableScroll from "../../shared/components/TableScroll";
+import { DataTable, HeadCell } from "../../shared/components/table";
 import StatusBadge from "../../shared/components/StatusBadge";
 import { useProducts } from "./hooks";
 import { buildStockRows } from "./reconcile";
@@ -58,24 +59,23 @@ export default function StockCheckPanel({ counts }: Props) {
       {showTable && (
         <>
           <TableScroll label="Stock check table">
-            <table className="table">
-              <caption className="visually-hidden">Camera count against POS record for each part</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Part</th>
-                  <th scope="col" className="num">On Shelf</th>
-                  <th scope="col" className="num">POS Record</th>
-                  <th scope="col" className="num">Difference</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">POS Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <StockRowItem key={row.product.id} row={row} onChanged={setAnnouncement} />
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              caption="Camera count against POS record for each part"
+              head={
+                <>
+                  <HeadCell>Part</HeadCell>
+                  <HeadCell numeric>On Shelf</HeadCell>
+                  <HeadCell numeric>POS Record</HeadCell>
+                  <HeadCell numeric>Difference</HeadCell>
+                  <HeadCell>Status</HeadCell>
+                  <HeadCell>POS Actions</HeadCell>
+                </>
+              }
+            >
+              {rows.map((row) => (
+                <StockRowItem key={row.product.id} row={row} onChanged={setAnnouncement} />
+              ))}
+            </DataTable>
           </TableScroll>
           <p className="panel__footer muted">
             Difference is shelf minus POS. A negative number means the records show stock that is not on the

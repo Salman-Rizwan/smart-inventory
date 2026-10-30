@@ -3,6 +3,7 @@ import Button from "../../shared/components/Button";
 import CompactInput from "../../shared/components/CompactInput";
 import Notification from "../../shared/components/Notification";
 import StatusBadge, { type BadgeKind } from "../../shared/components/StatusBadge";
+import { Cell, ErrorRow, NumCell, Row, RowHeader } from "../../shared/components/table";
 import { formatInteger, formatSigned } from "../../shared/format";
 import { receiveStock, recordSale } from "./stockActions";
 import { stockErrorMessage } from "./stockErrors";
@@ -71,17 +72,15 @@ export default function StockRowItem({ row, onChanged }: Props) {
 
   return (
     <>
-      <tr>
-        <th scope="row" translate="no">
-          {product.name}
-        </th>
-        <td className="num">{visual === null ? "—" : formatInteger(visual)}</td>
-        <td className="num">{formatInteger(product.posCount)}</td>
-        <td className="num">{difference === null ? "—" : formatSigned(difference)}</td>
-        <td>
+      <Row>
+        <RowHeader translate="no">{product.name}</RowHeader>
+        <NumCell>{visual === null ? "—" : formatInteger(visual)}</NumCell>
+        <NumCell>{formatInteger(product.posCount)}</NumCell>
+        <NumCell>{difference === null ? "—" : formatSigned(difference)}</NumCell>
+        <Cell>
           <StatusBadge kind={badge.kind}>{badge.label}</StatusBadge>
-        </td>
-        <td>
+        </Cell>
+        <Cell>
           <div className="stock-actions">
             <Button
               variant="secondary"
@@ -122,14 +121,12 @@ export default function StockRowItem({ row, onChanged }: Props) {
               </Button>
             </form>
           </div>
-        </td>
-      </tr>
+        </Cell>
+      </Row>
       {message && (
-        <tr className="table__error">
-          <td colSpan={6} id={errorId}>
-            <Notification kind="error">{message}</Notification>
-          </td>
-        </tr>
+        <ErrorRow id={errorId} colSpan={6}>
+          <Notification kind="error">{message}</Notification>
+        </ErrorRow>
       )}
     </>
   );
