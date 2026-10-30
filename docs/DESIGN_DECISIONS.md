@@ -12,7 +12,7 @@ Record Sale and Receive Stock only change the mock POS. An order is raised when 
 While an order is open, `lowScanStreak` is held at 0. After Received, the shelf must be low for fresh scans before the next order. This leaves time to restock.
 
 ## Mark Received is one transaction
-`receiveOrder` changes the order state and adds the quantity to `posCount` together. A half-done receipt would leave stock and orders disagreeing. Receiving twice is refused.
+`receiveOrder` changes the order state and adds the quantity to `posCount` together. A half-done receipt would leave stock and orders disagreeing. Receiving twice is refused. When two people act on the same order at once, the rules refuse the second write; the app then reads the order once to say what happened ("has already been received", "no longer exists") instead of a vague "could not be updated". Only an order that has not moved is reported as a permission problem.
 
 ## Reconciliation lives in two places
 `backend/app/reconcile.py` persists status on every scan; `frontend/src/features/inventory/reconcile.ts` shows it live as the shopkeeper edits the POS. The rule is trivial (equal means Matched), and a live display needs it in the browser. Both have tests; change them together.
