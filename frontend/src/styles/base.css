@@ -23,17 +23,6 @@ a:hover { color: var(--color-accent-hover); }
 
 :focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 
-.skip-link {
-  position: absolute;
-  left: var(--space-2);
-  top: -100px;
-  z-index: 100;
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-ink);
-  color: var(--color-canvas);
-}
-.skip-link:focus { top: var(--space-2); }
-
 .visually-hidden {
   position: absolute;
   width: 1px;

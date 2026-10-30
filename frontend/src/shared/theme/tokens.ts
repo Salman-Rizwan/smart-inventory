@@ -51,3 +51,13 @@ export const layout = {
   headerHeight: "56px",
   contentMax: "1200px",
 } as const;
+
+/** Width breakpoints used in media queries (max-width). */
+export const breakpoint = {
+  /** Phones and small tablets: compact header, name and role hidden. */
+  narrow: "640px",
+  /** Below this the header avatar is hidden so the nav tabs fit (measured: 320 px needs it, 390 px with a count badge does not). */
+  avatarHidden: "389.98px",
+  /** Below this the logo link is hidden too (it goes where the first tab goes); 320 px with a count badge needs it. */
+  brandHidden: "359.98px",
+} as const;
