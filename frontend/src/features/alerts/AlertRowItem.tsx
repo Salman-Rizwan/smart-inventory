@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import Button from "../../shared/components/Button";
 import Notification from "../../shared/components/Notification";
 import StatusBadge from "../../shared/components/StatusBadge";
+import { Cell, ErrorRow, NumCell, Row, RowHeader } from "../../shared/components/table";
 import { formatDateTime, formatInteger } from "../../shared/format";
 import { partLabel } from "../dashboard/parts";
 import { acknowledgeAlert } from "./alertRepository";
@@ -29,21 +30,19 @@ export default function AlertRowItem({ alert }: { alert: Alert }) {
 
   return (
     <>
-      <tr>
-        <th scope="row" translate="no">
-          {name}
-        </th>
-        <td className="num">{formatInteger(alert.visualCount)}</td>
-        <td className="num">{formatInteger(alert.posCount)}</td>
-        <td className="mono">{formatDateTime(alert.createdAt)}</td>
-        <td>
+      <Row>
+        <RowHeader translate="no">{name}</RowHeader>
+        <NumCell>{formatInteger(alert.visualCount)}</NumCell>
+        <NumCell>{formatInteger(alert.posCount)}</NumCell>
+        <Cell mono>{formatDateTime(alert.createdAt)}</Cell>
+        <Cell>
           {alert.state === "Open" ? (
             <StatusBadge kind="warning">Open</StatusBadge>
           ) : (
             <StatusBadge kind="neutral">Acknowledged</StatusBadge>
           )}
-        </td>
-        <td>
+        </Cell>
+        <Cell>
           {alert.state === "Open" && (
             <Button
               variant="secondary"
@@ -57,14 +56,12 @@ export default function AlertRowItem({ alert }: { alert: Alert }) {
               Acknowledge
             </Button>
           )}
-        </td>
-      </tr>
+        </Cell>
+      </Row>
       {error && (
-        <tr className="table__error">
-          <td colSpan={6} id={errorId}>
-            <Notification kind="error">{error}</Notification>
-          </td>
-        </tr>
+        <ErrorRow id={errorId} colSpan={6}>
+          <Notification kind="error">{error}</Notification>
+        </ErrorRow>
       )}
     </>
   );

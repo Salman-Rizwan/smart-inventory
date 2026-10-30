@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import Notification from "../../shared/components/Notification";
 import TableScroll from "../../shared/components/TableScroll";
+import { DataTable, HeadCell } from "../../shared/components/table";
 import StatusBadge from "../../shared/components/StatusBadge";
 import AlertRowItem from "./AlertRowItem";
 import { useAlerts } from "./AlertsContext";
@@ -47,24 +48,23 @@ export default function AlertsPanel() {
       )}
       {showTable && (
         <TableScroll label="Active alerts table">
-          <table className="table">
-            <caption className="visually-hidden">Active alerts, open ones first</caption>
-            <thead>
-              <tr>
-                <th scope="col">Part</th>
-                <th scope="col" className="num">On Shelf</th>
-                <th scope="col" className="num">POS Record</th>
-                <th scope="col">Raised At</th>
-                <th scope="col">Status</th>
-                <th scope="col">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((alert) => (
-                <AlertRowItem key={alert.id} alert={alert} />
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            caption="Active alerts, open ones first"
+            head={
+              <>
+                <HeadCell>Part</HeadCell>
+                <HeadCell numeric>On Shelf</HeadCell>
+                <HeadCell numeric>POS Record</HeadCell>
+                <HeadCell>Raised At</HeadCell>
+                <HeadCell>Status</HeadCell>
+                <HeadCell>Action</HeadCell>
+              </>
+            }
+          >
+            {sorted.map((alert) => (
+              <AlertRowItem key={alert.id} alert={alert} />
+            ))}
+          </DataTable>
         </TableScroll>
       )}
     </section>

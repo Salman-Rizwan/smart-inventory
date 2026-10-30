@@ -102,6 +102,33 @@ export const theme = createTheme({
         },
       },
     },
+    // Data tables: dense, hairline rows, grey header row, grey hover.
+    MuiTable: {
+      styleOverrides: {
+        root: { width: "100%", borderCollapse: "collapse", fontSize: text.sm, "& caption": { textAlign: "left" } },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          padding: "12px 16px",
+          textAlign: "left",
+          borderBottom: `1px solid ${color.border}`,
+          whiteSpace: "nowrap",
+          fontFamily: "inherit",
+          fontSize: text.sm,
+          lineHeight: 1.5,
+          letterSpacing: "inherit",
+          color: color.ink,
+        },
+        head: { fontWeight: 600, background: color.surface, borderBottom: `1px solid ${color.borderStrong}` },
+      },
+    },
+    MuiTableBody: {
+      styleOverrides: {
+        root: { "& .MuiTableRow-root:hover": { background: color.surface } },
+      },
+    },
     // Inline message: tint behind, a 4px bar and icon in the status colour, ink text.
     MuiAlert: {
       styleOverrides: {
