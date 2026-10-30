@@ -39,10 +39,10 @@ export function HeadCell({ numeric: isNumeric = false, children }: { numeric?: b
   );
 }
 
-/** The first cell of a body row, naming the row (for example the part). */
-export function RowHeader({ children, ...rest }: TableCellProps) {
+/** The first cell of a body row, naming the row (for example the part). `mono` for ids. */
+export function RowHeader({ mono: isMono = false, children, ...rest }: TableCellProps & { mono?: boolean }) {
   return (
-    <TableCell component="th" scope="row" sx={{ fontWeight: 700 }} {...rest}>
+    <TableCell component="th" scope="row" sx={{ fontWeight: 700, ...(isMono && mono) }} {...rest}>
       {children}
     </TableCell>
   );

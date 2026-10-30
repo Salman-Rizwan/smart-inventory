@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import Button from "../../shared/components/Button";
 import Notification from "../../shared/components/Notification";
 import StatusBadge, { type BadgeKind } from "../../shared/components/StatusBadge";
+import { Cell, ErrorRow, NumCell, Row, RowHeader } from "../../shared/components/table";
 import { formatDateTime, formatInteger } from "../../shared/format";
 import { partLabel } from "../dashboard/parts";
 import { performOrderAction } from "./orderActions";
@@ -47,17 +48,15 @@ export default function OrderRowItem({ order, role, onDone }: Props) {
 
   return (
     <>
-      <tr>
-        <th scope="row" className="mono">
-          {id}
-        </th>
-        <td translate="no">{part}</td>
-        <td className="num">{formatInteger(order.qty)}</td>
-        <td className="mono">{formatDateTime(order.createdAt)}</td>
-        <td>
+      <Row>
+        <RowHeader mono>{id}</RowHeader>
+        <Cell translate="no">{part}</Cell>
+        <NumCell>{formatInteger(order.qty)}</NumCell>
+        <Cell mono>{formatDateTime(order.createdAt)}</Cell>
+        <Cell>
           <StatusBadge kind={BADGES[order.state]}>{order.state}</StatusBadge>
-        </td>
-        <td>
+        </Cell>
+        <Cell>
           {action && (
             <Button
               variant="secondary"
@@ -71,14 +70,12 @@ export default function OrderRowItem({ order, role, onDone }: Props) {
               {action.label}
             </Button>
           )}
-        </td>
-      </tr>
+        </Cell>
+      </Row>
       {error && (
-        <tr className="table__error">
-          <td colSpan={6} id={errorId}>
-            <Notification kind="error">{error}</Notification>
-          </td>
-        </tr>
+        <ErrorRow id={errorId} colSpan={6}>
+          <Notification kind="error">{error}</Notification>
+        </ErrorRow>
       )}
     </>
   );

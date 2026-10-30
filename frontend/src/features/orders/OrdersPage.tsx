@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Notification from "../../shared/components/Notification";
 import TableScroll from "../../shared/components/TableScroll";
+import { DataTable, HeadCell } from "../../shared/components/table";
 import OrderFilterGroup from "./OrderFilter";
 import OrderRowItem from "./OrderRowItem";
 import OrderSummaryTiles from "./OrderSummaryTiles";
@@ -94,24 +95,23 @@ export default function OrdersPage() {
         )}
         {showTable && (
           <TableScroll label="Order list table">
-            <table className="table">
-              <caption className="visually-hidden">Orders, those needing action first</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Order</th>
-                  <th scope="col">Part</th>
-                  <th scope="col" className="num">Quantity</th>
-                  <th scope="col">Requested At</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((order) => (
-                  <OrderRowItem key={order.id} order={order} role={role} onDone={setOutcome} />
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              caption="Orders, those needing action first"
+              head={
+                <>
+                  <HeadCell>Order</HeadCell>
+                  <HeadCell>Part</HeadCell>
+                  <HeadCell numeric>Quantity</HeadCell>
+                  <HeadCell>Requested At</HeadCell>
+                  <HeadCell>Status</HeadCell>
+                  <HeadCell>Action</HeadCell>
+                </>
+              }
+            >
+              {rows.map((order) => (
+                <OrderRowItem key={order.id} order={order} role={role} onDone={setOutcome} />
+              ))}
+            </DataTable>
           </TableScroll>
         )}
       </section>

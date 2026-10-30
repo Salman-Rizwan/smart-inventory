@@ -55,6 +55,21 @@ describe("table parts", () => {
     expect(within(bodyGroup).getByRole("cell", { name: "4" })).toBeInTheDocument();
   });
 
+  it("sets a row header in the monospace face when it is an id", () => {
+    render(
+      <ThemeProvider theme={theme}>
+        <DataTable caption="Orders" head={<HeadCell>Order</HeadCell>}>
+          <Row>
+            <RowHeader mono>#AB12</RowHeader>
+          </Row>
+        </DataTable>
+      </ThemeProvider>,
+    );
+    const header = screen.getByRole("rowheader", { name: "#AB12" });
+    expect(getComputedStyle(header).fontFamily).toContain("Plex Mono");
+    expect(getComputedStyle(header).fontWeight).toBe("700");
+  });
+
   it("renders an error row spanning the table, addressable by id", () => {
     render(<Sample error="Could not save." />);
     const cell = screen.getByText("Could not save.");
