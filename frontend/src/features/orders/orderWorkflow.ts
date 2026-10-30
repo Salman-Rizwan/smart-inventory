@@ -24,16 +24,32 @@ export const actionFor = (role: OrderRole, state: OrderState): OrderAction | und
 /** The state in which an order is waiting for this role to act. */
 export const attentionState = (role: OrderRole): OrderState => (role === "dealer" ? "Pending" : "Dispatched");
 
-export type OrderErrorCode = "not_found" | "not_dispatched" | "product_missing";
+export type OrderErrorCode = "not_found" | "moved_on" | "product_missing";
 
 export class OrderError extends Error {
   readonly code: OrderErrorCode;
+  /** For "moved_on": the state the order is in now. */
+  readonly state?: OrderState;
 
-  constructor(code: OrderErrorCode) {
+  constructor(code: OrderErrorCode, state?: OrderState) {
     super(code);
     this.name = "OrderError";
     this.code = code;
+    this.state = state;
   }
+}
+
+/**
+ * Why the rules refused an order step, judged from the order as it is now. An order already at or
+ * past the requested step has moved on (someone got there first); a missing one was deleted. Null
+ * means it has not moved, so the refusal was about the account's permission.
+ */
+export function explainRefusal(action: OrderAction, current: Order | null): OrderError | null {
+  if (!current) return new OrderError("not_found");
+  if (ORDER_STATES.indexOf(current.state) >= ORDER_STATES.indexOf(action.next)) {
+    return new OrderError("moved_on", current.state);
+  }
+  return null;
 }
 
 export type OrderFilter = "open" | "completed" | "all";

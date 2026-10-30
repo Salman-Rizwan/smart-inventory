@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../firebase", () => ({ db: {} }));
 vi.mock("firebase/firestore", () => ({
   collection: vi.fn(),
+  getDoc: vi.fn(),
   doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
   limit: vi.fn(),
   onSnapshot: vi.fn(),
@@ -60,6 +61,7 @@ describe("receiveOrder", () => {
     const tx = { get: vi.fn(async () => snap("order1", { ...dispatched, state })), update: vi.fn() };
     vi.mocked(runTransaction).mockImplementation(((_db: unknown, fn: (t: typeof tx) => Promise<void>) => fn(tx)) as never);
     await expect(receiveOrder("order1")).rejects.toBeInstanceOf(OrderError);
+    await expect(receiveOrder("order1")).rejects.toMatchObject({ code: "moved_on", state });
     expect(tx.update).not.toHaveBeenCalled();
   });
 

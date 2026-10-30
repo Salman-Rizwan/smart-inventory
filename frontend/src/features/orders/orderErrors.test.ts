@@ -4,8 +4,25 @@ import { orderErrorMessage } from "./orderErrors";
 import { OrderError } from "./orderWorkflow";
 
 describe("orderErrorMessage", () => {
-  it("explains a refused update and says what to try", () => {
-    expect(orderErrorMessage({ code: "permission-denied" }, "#ABC123")).toMatch(/#ABC123.*already have moved on.*Refresh/);
+  it("explains a refusal that is about the account, and says what to try", () => {
+    expect(orderErrorMessage({ code: "permission-denied" }, "#ABC123")).toMatch(/account.*#ABC123.*Refresh.*administrator/);
+  });
+
+  it("says an order received by someone else was counted once, with nothing left to do", () => {
+    expect(orderErrorMessage(new OrderError("moved_on", "Received"), "#ABC123")).toBe(
+      "Order #ABC123 has already been received. Its quantity was added to the POS record once, so there is nothing more to do.",
+    );
+  });
+
+  it.each([
+    ["Accepted", "Order #ABC123 has already been accepted. The list shows its latest status."],
+    ["Dispatched", "Order #ABC123 has already been dispatched. The list shows its latest status."],
+  ] as const)("says an order already %s moved on", (state, message) => {
+    expect(orderErrorMessage(new OrderError("moved_on", state), "#ABC123")).toBe(message);
+  });
+
+  it("falls back to a general moved-on message", () => {
+    expect(orderErrorMessage(new OrderError("moved_on"), "#ABC123")).toMatch(/changed since you opened it/);
   });
 
   it("explains an unreachable database", () => {
@@ -14,7 +31,6 @@ describe("orderErrorMessage", () => {
 
   it.each([
     ["not_found", /no longer exists.*Refresh/],
-    ["not_dispatched", /already been received.*Refresh/],
     ["product_missing", /stock record.*Ask your administrator/],
   ] as const)("explains %s with a next step", (code, pattern) => {
     expect(orderErrorMessage(new OrderError(code), "#ABC123")).toMatch(pattern);

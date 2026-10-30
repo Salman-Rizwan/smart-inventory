@@ -6,6 +6,7 @@ import {
   describeAttention,
   describeOutcome,
   filterOrders,
+  explainRefusal,
   OrderError,
   parseFilter,
   shortId,
@@ -144,9 +145,34 @@ describe("labels", () => {
 });
 
 describe("OrderError", () => {
-  it("carries its code", () => {
-    const error = new OrderError("not_dispatched");
-    expect(error.code).toBe("not_dispatched");
+  it("carries its code, and the current state when the order moved on", () => {
+    const error = new OrderError("moved_on", "Received");
+    expect(error.code).toBe("moved_on");
+    expect(error.state).toBe("Received");
     expect(error).toBeInstanceOf(Error);
+  });
+});
+
+describe("explainRefusal", () => {
+  const at = (state: OrderState): Order => ({ id: "a1", product: "spark_plug", qty: 2, state, createdAt: null });
+  const accept = actionFor("dealer", "Pending")!;
+  const receive = actionFor("shopkeeper", "Dispatched")!;
+
+  it("says the order moved on when it is already at the requested step", () => {
+    expect(explainRefusal(receive, at("Received"))).toMatchObject({ code: "moved_on", state: "Received" });
+    expect(explainRefusal(accept, at("Accepted"))).toMatchObject({ code: "moved_on", state: "Accepted" });
+  });
+
+  it("says the order moved on when it is past the requested step", () => {
+    expect(explainRefusal(accept, at("Dispatched"))).toMatchObject({ code: "moved_on", state: "Dispatched" });
+  });
+
+  it("says the order is gone when it no longer exists", () => {
+    expect(explainRefusal(receive, null)).toMatchObject({ code: "not_found" });
+  });
+
+  it("has no explanation when the order has not moved, so the refusal was about permission", () => {
+    expect(explainRefusal(accept, at("Pending"))).toBeNull();
+    expect(explainRefusal(receive, at("Dispatched"))).toBeNull();
   });
 });

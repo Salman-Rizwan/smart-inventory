@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   limit,
   onSnapshot,
   orderBy,
@@ -29,6 +30,12 @@ export function subscribeOrders(onData: (orders: Order[]) => void, onError: (err
   );
 }
 
+/** One order as it is now, or null if it no longer exists. */
+export async function fetchOrder(orderId: string): Promise<Order | null> {
+  const snap = await getDoc(doc(db, "purchase_orders", orderId));
+  return snap.exists() ? parseOrder(snap.id, snap.data()) : null;
+}
+
 /** Moves an order one step forward. The rules allow only the next step, with a server timestamp. */
 export function advanceOrder(orderId: string, action: OrderAction): Promise<void> {
   return updateDoc(doc(db, "purchase_orders", orderId), {
@@ -47,7 +54,7 @@ export function receiveOrder(orderId: string): Promise<void> {
     const orderSnap = await tx.get(orderRef);
     const order = orderSnap.exists() ? parseOrder(orderSnap.id, orderSnap.data()) : null;
     if (!order) throw new OrderError("not_found");
-    if (order.state !== "Dispatched") throw new OrderError("not_dispatched");
+    if (order.state !== "Dispatched") throw new OrderError("moved_on", order.state);
 
     const productRef = doc(db, "products", order.product);
     const productSnap = await tx.get(productRef);

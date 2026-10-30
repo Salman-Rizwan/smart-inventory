@@ -257,12 +257,12 @@ describe("OrdersPage", () => {
     it("explains a refusal, such as receiving twice, and keeps the button", async () => {
       provide(ORDERS, {}, "shopkeeper");
       const { OrderError } = await import("./orderWorkflow");
-      vi.mocked(performOrderAction).mockRejectedValue(new OrderError("not_dispatched"));
+      vi.mocked(performOrderAction).mockRejectedValue(new OrderError("moved_on", "Received"));
       renderPage();
 
       await userEvent.click(screen.getByRole("button", { name: /Mark Received: order #CCCCCC/ }));
 
-      expect(await screen.findByRole("alert")).toHaveTextContent(/already been received.*Refresh/);
+      expect(await screen.findByRole("alert")).toHaveTextContent(/already been received.*added to the POS record once/);
       expect(screen.getByRole("button", { name: /Mark Received: order #CCCCCC/ })).toBeEnabled();
     });
 
