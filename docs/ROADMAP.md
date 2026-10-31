@@ -2,7 +2,7 @@
 
 Deadlines: code freeze Nov 7, 2026; submit Nov 8; final submission Nov 9. Done so far: M1 to M5, M7, M8, M9 and notifications Stage A (see `README.md` Status).
 
-**Progress (Oct 30):** MUI-0 to MUI-13 done, so the Oct 30 checkpoint is met and most of the Oct 31 stretch block is already finished. Also done: clearer messages when two people act on the same order at once (see `docs/DESIGN_DECISIONS.md`). Left for Oct 31: MUI-14. From Nov 1 the plan runs unchanged.
+**Progress (Oct 31):** the move to Material UI is complete (MUI-0 to MUI-14), on schedule. Also done: clearer messages when two people act on the same order at once (see `docs/DESIGN_DECISIONS.md`). Next: F1 (can start Oct 31). From Nov 1 the plan runs unchanged.
 
 Plan agreed on Oct 28 after the interim viva. It covers the supervisor's feedback (a history of past alerts, and business intelligence analytics on the dashboard) and the move to Material UI.
 
@@ -14,7 +14,7 @@ About 80 working hours from Oct 28 to Nov 6. Must-have work is about 57 to 77 ho
 | Oct 28 | MUI-0 baseline, MUI-1 trial (go/no-go), MUI-2 theme | Must |
 | Oct 29 | MUI-3 Button, MUI-4 StatusBadge, MUI-5 FormField | Must |
 | Oct 30 | MUI-6 feedback components, MUI-7 NotificationMenu, MUI-8 app shell; done early: MUI-9 to MUI-12 tables, MUI-13 page layout | Must |
-| Oct 31 | MUI-14 remove the generated variables and `base.css`; then start F1 early if time allows | Stretch |
+| Oct 31 | MUI-14 remove the generated variables and `base.css` (done); then start F1 early | Stretch |
 | Nov 1 | F1 stock change log, seed script, `demo_reset` change (user publishes the rules) | Must |
 | Nov 2 | F2 History page; F3 pure analytics functions | Must |
 | Nov 3 | F3 dashboard summary and Insights page | Must (extra sections stretch) |
@@ -56,7 +56,7 @@ Decision: move fully to MUI. The MUI theme becomes the single source of colours,
 | MUI-8 | App shell on MUI `Box`/`styled` (header, brand, `PrimaryNav` with real links, user block, skip link, main); header CSS and the last button bridge removed. Fixes the clipped tabs on narrow phones: the avatar hides below 390 px and the logo link below 360 px (measured per role, with and without an Orders count badge) | Tabs fit at 320 to 1360 px for both roles, with a badge; skip link and tab order by keyboard; `PrimaryNav` tests; full regression | 3–4 h |
 | MUI-9 to 12 | Tables, one per task: Alerts, Stock Check, Orders, Scan History, on shared parts in `shared/components/table.tsx`. All four done; the old `.table` CSS is deleted | Table semantics, header scope, monospace numbers, phone widths, each table's inline error row in Chrome | 1–2 h each |
 | MUI-13 | Page layout CSS (Login, Dashboard, Orders, the Stock Check action cell, and the bell dropdown's panel and item rows) to `sx`. Also fix a phone issue found in MUI-10: at 390 px a row's error message sits at the left of a table scrolled to the right, so it is off-screen; keep it pinned to the visible part of the scroll box. Done: shared `Panel`, `EmptyState`, `Page`, `CardPage`; only `base.css` is left | Screenshots at every width; the error message visible at 390 px | 3–4 h |
-| MUI-14 | Delete the generated CSS variables, `base.css` rules MUI now covers (reduced motion moves into the theme) and dead CSS; update UI rules in `CLAUDE.md`, `README.md`, `docs/DESIGN_DECISIONS.md` | No references left; full regression; bundle compared with MUI-0 | 2–3 h |
+| MUI-14 | Delete the generated CSS variables, `base.css` rules MUI now covers (reduced motion moves into the theme) and dead CSS; update UI rules in `CLAUDE.md`, `README.md`, `docs/DESIGN_DECISIONS.md` | No references left; full regression; bundle compared with MUI-0. Done: page-wide rules in `globalStyles.ts`, `Muted` and `VisuallyHidden` replace the utility classes, no stylesheets left; JS 1,064 KB (327 KB gz) vs 881 KB (264 KB) at MUI-0, CSS 8 KB vs 23 KB | 2–3 h |
 
 New pages (History, Insights) are built in MUI from the start.
 

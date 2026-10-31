@@ -7,18 +7,19 @@ python -m pytest                      # 108 tests, fakes only
 ruff check . && ruff format --check .
 
 # frontend (from frontend/)
-npm run typecheck && npm test && npx oxlint && npm run build   # 327 tests
+npm run typecheck && npm test && npx oxlint && npm run build   # 436 tests
 ```
 Backend tests use fakes from `tests/conftest.py` (no webcam, no Firebase). `oxlint` matters: `tsc` skips `.js`/`.jsx`, and it caught a removed component still imported in `AppShell.jsx`.
 
 ## Live checks (real Firebase, real Chrome)
-Scripts are kept locally in `.handoff/live-tests/` (not committed): `regress.mjs` (44-check full regression), `nfull.mjs` (notification flow), `phone.mjs` (phone widths), `live4.mjs`, and `ntest.py` (temporary-data helper: setup, teardown, snapshot, restore, verify). They use Playwright with installed Chrome and axe-core against `http://localhost:5173`, hard-code absolute paths and the Firebase web API key from the scratch session, so adjust paths before reuse. Never put the test password in a script that is committed.
+Scripts are kept locally in `.handoff/live-tests/` (not committed): `regress.mjs` (41-check full regression across both roles, including a real Scan Now), `baseline.mjs` and `compare.py` (30 screenshots per run, 6 views at 5 widths, with axe, compared pixel by pixel), `states.mjs` (43 states the screenshots miss: loading, Scan Now result and error, image errors, filters, hover and keyboard focus, tablet widths, Firestore unavailable; it fakes backend replies and writes nothing), keyboard walks (`bellkeys.mjs`, `shellkeys.mjs`, `keyscroll.mjs`, `login.mjs`), inline error checks (`stockerr.mjs`, and `orderr.mjs` for two people receiving one order at once), and `ntest.py` and `realdata.py` (temporary `zz` data, and snapshot, restore and verify of the real data). Each UI task during the Material UI move was compared against the previous task's screenshots on the same data. They use Playwright with installed Chrome and axe-core against `http://localhost:5173`, hard-code absolute paths and the Firebase web API key from the scratch session, so adjust paths before reuse. Never put the test password in a script that is committed.
 
 Rules for live tests:
 1. Snapshot the real data first; use clearly named `zz-*` temporary data; restore and verify identical afterwards.
 2. Before testing anything that depends on a Firestore rule, read the deployed ruleset through the Firebase Rules API (service account) and compare it with `firestore.rules`.
 3. Use a normal window and an incognito window for the two roles (one browser shares one sign-in across tabs).
 4. Use port 5173 (backend CORS).
+6. Do not run a snapshot and restore while someone is scanning: the restore would delete their scans. Check `status/latest.scannedAt` first.
 5. Python Firebase subprocesses can segfault when spawned from Node; use REST with a service-account token.
 
 ## Rules attack checks

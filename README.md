@@ -57,8 +57,7 @@ frontend/
     features/orders/     orders page for dealer and shopkeeper: summary tiles, filter, action queue, Mark Received (TypeScript)
     features/dashboard/  live dashboard: data layer (repository, scan API, hooks), components, page
     layouts/             app shell (header, navigation, skip link)
-    styles/              design tokens, base, shared component and layout CSS
-    shared/              api/httpClient.js (token + error handling), reusable components
+    shared/              api/httpClient.js (token + error handling), reusable components and layout parts, theme (tokens, MUI theme, page-wide rules)
     firebase.js          Firebase web config
 firestore.rules          Firestore security rules
 ```
@@ -175,7 +174,7 @@ Each account has a `users/{uid}` document with `name` and `role` (`shopkeeper` o
 
 ## Design system
 
-Carbon-style enterprise UI: flat, square, hairline borders, a 4 px grid, IBM Plex Sans (self-hosted), and one deep-teal accent (`#0e6b6f`). Design values live in `frontend/src/shared/theme/tokens.ts`; the Material UI theme (`theme.ts`) is built from them and styles every component; a small global stylesheet (`styles/base.css`) holds the reset and headings. Text and UI colours meet WCAG AA, status is never colour-only (icon plus text), focus is always visible, and motion respects `prefers-reduced-motion`. Checked with axe (0 violations) and the Web Interface Guidelines.
+Carbon-style enterprise UI: flat, square, hairline borders, a 4 px grid, IBM Plex Sans (self-hosted), and one deep-teal accent (`#0e6b6f`). Design values live in `frontend/src/shared/theme/tokens.ts`; the Material UI theme (`theme.ts`) is built from them and styles every component, and `globalStyles.ts` holds the page-wide rules (reset, headings, focus ring, reduced motion). There are no stylesheets. Text and UI colours meet WCAG AA, status is never colour-only (icon plus text), focus is always visible, and motion respects `prefers-reduced-motion`. Checked with axe (0 violations) and the Web Interface Guidelines.
 
 ## Run and test
 
