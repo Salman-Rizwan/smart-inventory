@@ -1,53 +1,65 @@
-import { useId, useState } from "react";
+import { useId, type Ref } from "react";
 import Button from "../../shared/components/Button";
 import Notification from "../../shared/components/Notification";
-import StatusBadge from "../../shared/components/StatusBadge";
+import StatusBadge, { type BadgeKind } from "../../shared/components/StatusBadge";
 import { Cell, ErrorRow, NumCell, Row, RowHeader } from "../../shared/components/table";
+import { VisuallyHidden } from "../../shared/components/text";
 import { formatDateTime, formatInteger } from "../../shared/format";
+import { color } from "../../shared/theme/tokens";
 import { partLabel } from "../dashboard/parts";
-import { acknowledgeAlert } from "./alertRepository";
-import { alertErrorMessage } from "./alertErrors";
-import type { Alert } from "./types";
+import type { Alert, AlertState } from "./types";
+import { useAcknowledge } from "./useAcknowledge";
 
-export default function AlertRowItem({ alert }: { alert: Alert }) {
+export const ALERT_COLUMNS = 8;
+
+const BADGES: Record<AlertState, BadgeKind> = { Open: "warning", Acknowledged: "neutral", Resolved: "success" };
+
+/** Teal tint and a bar on the left: the row a notification opened. */
+const highlighted = {
+  "& > *": { background: color.infoBg },
+  "& > th": { boxShadow: `inset 4px 0 0 ${color.accent}` },
+  "&:focus-visible": { outlineOffset: -2 },
+} as const;
+
+interface Props {
+  alert: Alert;
+  /** This is the alert a notification opened: highlighted, and focusable so focus can move to it. */
+  target?: boolean;
+  ref?: Ref<HTMLTableRowElement>;
+  onAcknowledged?: (message: string) => void;
+}
+
+export default function AlertRowItem({ alert, target = false, ref, onAcknowledged }: Props) {
   const errorId = useId();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const name = partLabel(alert.product);
-
-  async function handleAcknowledge() {
-    setBusy(true);
-    setError("");
-    try {
-      await acknowledgeAlert(alert.id);
-    } catch (err) {
-      console.error("Acknowledge failed", err);
-      setError(alertErrorMessage(err, name));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { busy, error, acknowledge } = useAcknowledge(alert.id, name, onAcknowledged);
 
   return (
     <>
-      <Row>
-        <RowHeader translate="no">{name}</RowHeader>
+      <Row ref={ref} tabIndex={target ? -1 : undefined} sx={target ? highlighted : undefined}>
+        <RowHeader translate="no">
+          {name}
+          {target && (
+            <>
+              {" "}
+              <VisuallyHidden>(opened from a notification)</VisuallyHidden>
+            </>
+          )}
+        </RowHeader>
         <NumCell>{formatInteger(alert.visualCount)}</NumCell>
         <NumCell>{formatInteger(alert.posCount)}</NumCell>
         <Cell mono>{formatDateTime(alert.createdAt)}</Cell>
+        <Cell mono>{formatDateTime(alert.acknowledgedAt)}</Cell>
+        <Cell mono>{formatDateTime(alert.resolvedAt)}</Cell>
         <Cell>
-          {alert.state === "Open" ? (
-            <StatusBadge kind="warning">Open</StatusBadge>
-          ) : (
-            <StatusBadge kind="neutral">Acknowledged</StatusBadge>
-          )}
+          <StatusBadge kind={BADGES[alert.state]}>{alert.state}</StatusBadge>
         </Cell>
         <Cell>
           {alert.state === "Open" && (
             <Button
               variant="secondary"
               size="small"
-              onClick={handleAcknowledge}
+              onClick={acknowledge}
               loading={busy}
               loadingLabel="Saving…"
               aria-label={`Acknowledge ${name} alert`}
@@ -59,7 +71,7 @@ export default function AlertRowItem({ alert }: { alert: Alert }) {
         </Cell>
       </Row>
       {error && (
-        <ErrorRow id={errorId} colSpan={6}>
+        <ErrorRow id={errorId} colSpan={ALERT_COLUMNS}>
           <Notification kind="error">{error}</Notification>
         </ErrorRow>
       )}

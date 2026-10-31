@@ -64,7 +64,7 @@ const Panel = styled("div")({
   boxShadow: "0 6px 16px rgb(0 0 0 / 16%)",
   [narrow]: {
     position: "fixed",
-    top: `calc(${layout.headerHeight} + ${space(2)})`,
+    top: `calc(${layout.headerHeightNarrow} + ${space(2)})`,
     left: space(4),
     right: space(4),
     width: "auto",

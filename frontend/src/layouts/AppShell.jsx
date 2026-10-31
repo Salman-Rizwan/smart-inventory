@@ -1,11 +1,11 @@
 import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { AlertsProvider } from "../features/alerts/AlertsContext";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { AlertsProvider, useAlerts } from "../features/alerts/AlertsContext";
 import { useAuth } from "../features/auth/AuthContext";
 import { logout } from "../features/auth/authService";
-import { ROLES } from "../features/auth/roles";
+import { pageLabel, ROLES } from "../features/auth/roles";
 import NotificationBell from "../features/notifications/NotificationBell";
 import { NotificationsProvider } from "../features/notifications/NotificationsContext";
 import { OrdersProvider, useOrders } from "../features/orders/OrdersContext";
@@ -17,6 +17,7 @@ import { breakpoint, color, layout, text } from "../shared/theme/tokens";
 import PrimaryNav from "./PrimaryNav";
 
 const narrow = `@media (max-width: ${breakpoint.narrow})`;
+const tabsRow = `@media (max-width: ${breakpoint.tabsRow})`;
 
 const Brand = styled(NavLink)({
   display: "flex",
@@ -26,7 +27,6 @@ const Brand = styled(NavLink)({
   textDecoration: "none",
   fontWeight: 600,
   "&:hover": { color: color.ink },
-  [`@media (max-width: ${breakpoint.brandHidden})`]: { display: "none" },
 });
 
 /** Visually hidden until focused, then shown at the top left. */
@@ -43,12 +43,14 @@ const SkipLink = styled("a")({
 
 function NavWithCounts({ items }) {
   const { attentionCount } = useOrders();
-  return <PrimaryNav items={items} attentionCount={attentionCount} />;
+  const { openCount } = useAlerts();
+  return <PrimaryNav items={items} counts={{ alerts: openCount, orders: attentionCount }} />;
 }
 
 export default function AppShell() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const role = ROLES[profile.role];
@@ -68,7 +70,7 @@ export default function AppShell() {
   return (
     <AlertsProvider enabled={role.alerts}>
       <OrdersProvider enabled={role.orders} role={profile.role}>
-        <NotificationsProvider uid={user.uid} role={profile.role}>
+        <NotificationsProvider uid={user.uid} role={profile.role} page={pageLabel(role.nav, pathname)}>
           <SkipLink href="#main">Skip to Main Content</SkipLink>
           <Box
             component="header"
@@ -83,7 +85,9 @@ export default function AppShell() {
                 minHeight: layout.headerHeight,
                 mx: "auto",
                 px: 4,
-                [narrow]: { gap: 1, px: 2 },
+                // Narrower than a laptop, the tabs wrap onto a full-width second row (PrimaryNav), so four tabs with counts fit even at 320 px.
+                [tabsRow]: { flexWrap: "wrap", rowGap: 0 },
+                [narrow]: { columnGap: 1, px: 2 },
               }}
             >
               <Brand to={role.home} aria-label="Smart Inventory home">
@@ -98,8 +102,10 @@ export default function AppShell() {
                   display: "flex",
                   alignItems: "center",
                   gap: 3,
+                  minHeight: layout.headerHeight,
                   fontSize: text.sm,
-                  [narrow]: { gap: 1, "& .MuiButton-root": { px: 2, whiteSpace: "nowrap" } },
+                  [tabsRow]: { ml: "auto" },
+                  [narrow]: { gap: 2, "& .MuiButton-root": { px: 2, whiteSpace: "nowrap" } },
                 }}
               >
                 <NotificationBell />
@@ -123,10 +129,7 @@ export default function AppShell() {
                     {role.label}
                   </Box>
                 </Box>
-                <Box
-                  component="span"
-                  sx={{ display: "inline-flex", [`@media (max-width: ${breakpoint.avatarHidden})`]: { display: "none" } }}
-                >
+                <Box component="span" sx={{ display: "inline-flex" }}>
                   <Avatar name={profile.name} />
                 </Box>
                 <Button variant="ghost" onClick={handleLogout} loading={busy} loadingLabel="Logging out…">
@@ -146,6 +149,7 @@ export default function AppShell() {
               px: 4,
               pb: 12,
               scrollMarginTop: layout.headerHeight,
+              [tabsRow]: { scrollMarginTop: layout.headerHeightNarrow },
             }}
           >
             {error && <Notification kind="error">{error}</Notification>}

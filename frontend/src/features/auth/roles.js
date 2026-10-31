@@ -3,11 +3,13 @@ export const ROLES = {
   shopkeeper: {
     label: "Shopkeeper",
     home: "/dashboard",
-    alerts: true, // sees discrepancy alerts (bell and panel)
+    alerts: true, // sees discrepancy alerts (bell, dashboard summary and the Alerts page)
     orders: true, // sees the orders page and confirms receipt
+    // badge: the count of work waiting on that tab (open alerts; orders waiting for this role to act)
     nav: [
       { to: "/dashboard", label: "Dashboard" },
-      { to: "/orders", label: "Orders", badge: "orders" }, // badge: orders waiting for this role to act
+      { to: "/alerts", label: "Alerts", badge: "alerts" },
+      { to: "/orders", label: "Orders", badge: "orders" },
     ],
   },
   dealer: {
@@ -20,3 +22,6 @@ export const ROLES = {
 };
 
 export const isRole = (value) => Object.hasOwn(ROLES, value);
+
+/** The nav label of the page at `pathname`, used in the browser tab title; undefined off the nav. */
+export const pageLabel = (nav, pathname) => nav.find((item) => pathname === item.to || pathname.startsWith(`${item.to}/`))?.label;

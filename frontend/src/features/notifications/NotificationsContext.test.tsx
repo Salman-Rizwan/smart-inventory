@@ -19,6 +19,8 @@ const alert = (id: string, state: Alert["state"] = "Open"): Alert => ({
   visualCount: 3,
   posCount: 4,
   createdAt: new Date("2026-10-27T05:00:00Z"),
+  acknowledgedAt: null,
+  resolvedAt: null,
 });
 const order = (id: string, state: OrderState): Order => ({
   id,
@@ -78,9 +80,9 @@ function Probe() {
   );
 }
 
-const mount = (role: OrderRole = "shopkeeper") =>
+const mount = (role: OrderRole = "shopkeeper", page?: string) =>
   render(
-    <NotificationsProvider uid="u1" role={role}>
+    <NotificationsProvider uid="u1" role={role} page={page}>
       <Probe />
     </NotificationsProvider>,
   );
@@ -114,6 +116,12 @@ describe("NotificationsProvider", () => {
     mount();
     expect(summary()).toBe("ready=true unread=3 total=3 degraded=false");
     expect(document.title).toBe("(3) Smart Inventory");
+  });
+
+  it("names the current page in the tab title, after the count", () => {
+    arrange({ alerts: [alert("a1")] });
+    mount("shopkeeper", "Alerts");
+    expect(document.title).toBe("(1) Alerts · Smart Inventory");
   });
 
   it("lists only what needs the role's attention", () => {

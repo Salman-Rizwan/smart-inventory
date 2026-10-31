@@ -51,6 +51,9 @@ export const text = {
 
 export const layout = {
   headerHeight: "56px",
+  /** Below breakpoint.tabsRow the tabs get a second header row of their own, so the header is taller. */
+  navRowHeight: "44px",
+  headerHeightNarrow: "101px", // 56 + 44 + the 1px line between the rows
   contentMax: "1200px",
 } as const;
 
@@ -58,8 +61,6 @@ export const layout = {
 export const breakpoint = {
   /** Phones and small tablets: compact header, name and role hidden. */
   narrow: "640px",
-  /** Below this the header avatar is hidden so the nav tabs fit (measured: 320 px needs it, 390 px with a count badge does not). */
-  avatarHidden: "389.98px",
-  /** Below this the logo link is hidden too (it goes where the first tab goes); 320 px with a count badge needs it. */
-  brandHidden: "359.98px",
+  /** Below this the header tabs move to a full-width second row (measured: four tabs with counts need 377 px of nav, which a single row has from about 932 px). */
+  tabsRow: "959.98px",
 } as const;

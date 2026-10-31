@@ -13,13 +13,16 @@ export default function NotificationBell() {
   const navigate = useNavigate();
 
   const goToAlerts = () => {
-    if (!focusSection("alerts-title")) navigate("/dashboard");
+    navigate("/alerts");
+    window.requestAnimationFrame(() => focusSection("alerts-title"));
   };
+  // The Alerts page highlights the alert and moves focus to its row.
+  const goToAlert = (alertId: string) => navigate(`/alerts?alert=${encodeURIComponent(alertId)}`);
   const goToOrders = () => {
     navigate("/orders");
     window.requestAnimationFrame(() => focusSection("orders-title"));
   };
-  const goTo = (target: NotificationTarget) => (target.kind === "alert" ? goToAlerts() : goToOrders());
+  const goTo = (target: NotificationTarget) => (target.kind === "alert" ? goToAlert(target.id) : goToOrders());
 
   const menuItems = useMemo<NotificationItem[]>(
     () =>

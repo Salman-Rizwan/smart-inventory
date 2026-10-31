@@ -7,14 +7,15 @@ import PrimaryNav, { type NavItem } from "./PrimaryNav";
 
 const ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/alerts", label: "Alerts", badge: "alerts" },
   { to: "/orders", label: "Orders", badge: "orders" },
 ];
 
-const renderNav = (path: string, attentionCount: number, items = ITEMS) =>
+const renderNav = (path: string, attentionCount: number, items = ITEMS, openAlerts = 0) =>
   render(
     <ThemeProvider theme={theme}>
       <MemoryRouter initialEntries={[path]}>
-        <PrimaryNav items={items} attentionCount={attentionCount} />
+        <PrimaryNav items={items} counts={{ orders: attentionCount, alerts: openAlerts }} />
       </MemoryRouter>
     </ThemeProvider>,
   );
@@ -25,7 +26,7 @@ describe("PrimaryNav", () => {
     const nav = screen.getByRole("navigation", { name: "Primary" });
     const links = screen.getAllByRole("link");
     expect(nav).toContainElement(links[0]);
-    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/dashboard", "/orders"]);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/dashboard", "/alerts", "/orders"]);
   });
 
   it("marks the current page", () => {
@@ -47,7 +48,18 @@ describe("PrimaryNav", () => {
     expect(screen.queryByText(/need your action/)).toBeNull();
   });
 
-  it("only counts on items that carry the orders badge", () => {
+  it("shows the open alert count on the Alerts tab, separately from orders", () => {
+    renderNav("/dashboard", 1, ITEMS, 3);
+    expect(screen.getByRole("link", { name: "Alerts, 3 open" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Orders, 1 need your action" })).toBeInTheDocument();
+  });
+
+  it("shows no alert count when none are open", () => {
+    renderNav("/dashboard", 0, ITEMS, 0);
+    expect(screen.getByRole("link", { name: "Alerts" })).toBeInTheDocument();
+  });
+
+  it("only counts on items that carry a badge", () => {
     renderNav("/orders", 3, [{ to: "/orders", label: "Purchase Orders" }]);
     expect(screen.getByRole("link", { name: "Purchase Orders" })).toBeInTheDocument();
     expect(screen.queryByText("3")).toBeNull();

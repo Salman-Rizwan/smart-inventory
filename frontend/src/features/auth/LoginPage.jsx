@@ -9,6 +9,7 @@ import { space } from "../../shared/theme/tokens";
 import { useAuth } from "./AuthContext";
 import { login } from "./authService";
 import { validateLogin } from "./validation";
+import { useDocumentTitle } from "../../shared/hooks/useDocumentTitle";
 import { Muted } from "../../shared/components/text";
 
 export default function LoginPage() {
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
+  useDocumentTitle("Sign In");
 
   if (!loading && user) return <Navigate to="/" replace />;
 

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSubscription, type Subscribe } from "../../shared/hooks/useSubscription";
-import { useTitleCount } from "../../shared/hooks/useTitleCount";
+import { useDocumentTitle } from "../../shared/hooks/useDocumentTitle";
 import { useAlerts } from "../alerts/AlertsContext";
 import { useOrders } from "../orders/OrdersContext";
 import type { OrderRole } from "../orders/types";
@@ -28,9 +28,19 @@ const NotificationsContext = createContext<NotificationsValue | null>(null);
 /**
  * The notification bell's data: what needs this role's attention (derived from alerts and orders) plus
  * which of it this user has already read (stored in Firestore, so it survives a refresh and follows the
- * user between devices). Also puts the unread count in the browser tab title.
+ * user between devices). Also owns the browser tab title: the unread count and the current page.
  */
-export function NotificationsProvider({ uid, role, children }: { uid: string; role: OrderRole; children: ReactNode }) {
+export function NotificationsProvider({
+  uid,
+  role,
+  page,
+  children,
+}: {
+  uid: string;
+  role: OrderRole;
+  page?: string; // the current page's name for the tab title, e.g. "Alerts"
+  children: ReactNode;
+}) {
   const { alerts, loading: alertsLoading } = useAlerts();
   const { orders, loading: ordersLoading } = useOrders();
   const subscribe = useCallback<Subscribe<string[]>>((onData, onError) => subscribeReadKeys(uid, onData, onError), [uid]);
@@ -48,7 +58,7 @@ export function NotificationsProvider({ uid, role, children }: { uid: string; ro
   const ready = !alertsLoading && !ordersLoading && !read.loading;
   const unreadCount = ready ? items.filter((n) => n.unread).length : 0;
 
-  useTitleCount(unreadCount, true);
+  useDocumentTitle(page, unreadCount);
 
   // Keep the read list from growing for ever: forget keys whose notifications are long gone.
   useEffect(() => {

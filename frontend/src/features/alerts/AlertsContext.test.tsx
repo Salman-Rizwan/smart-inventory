@@ -14,6 +14,8 @@ const alert = (id: string, state: Alert["state"]): Alert => ({
   visualCount: 3,
   posCount: 4,
   createdAt: null,
+  acknowledgedAt: null,
+  resolvedAt: null,
 });
 
 function Probe() {

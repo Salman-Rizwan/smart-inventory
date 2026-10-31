@@ -6,6 +6,7 @@ import ProtectedRoute from "./features/auth/ProtectedRoute";
 import RoleRoute from "./features/auth/RoleRoute";
 import DashboardPage from "./features/dashboard/DashboardPage";
 import OrdersPage from "./features/orders/OrdersPage";
+import AlertsPage from "./features/alerts/AlertsPage";
 import AppShell from "./layouts/AppShell";
 import ErrorBoundary from "./shared/components/ErrorBoundary";
 
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="/" element={<HomeRedirect />} />
               <Route element={<RoleRoute allow={["shopkeeper"]} />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/alerts" element={<AlertsPage />} />
               </Route>
               <Route element={<RoleRoute allow={["dealer", "shopkeeper"]} />}>
                 <Route path="/orders" element={<OrdersPage />} />

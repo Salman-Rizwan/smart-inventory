@@ -11,6 +11,8 @@ const alert = (id: string, state: Alert["state"], product = "spark_plug", visual
   visualCount,
   posCount,
   createdAt: new Date("2026-10-27T05:00:00Z"),
+  acknowledgedAt: null,
+  resolvedAt: null,
 });
 const order = (id: string, state: OrderState, extra: Partial<Order> = {}): Order => ({
   id,
@@ -34,6 +36,10 @@ describe("deriveNotifications: shopkeeper", () => {
 
   it("leaves out acknowledged alerts: they are already handled", () => {
     expect(deriveNotifications("shopkeeper", [alert("a1", "Acknowledged")], [])).toEqual([]);
+  });
+
+  it("leaves out resolved alerts: nothing is left to do", () => {
+    expect(deriveNotifications("shopkeeper", [alert("a1", "Resolved")], [])).toEqual([]);
   });
 
   it("lists dispatched orders waiting to be confirmed, timed from when they were sent", () => {

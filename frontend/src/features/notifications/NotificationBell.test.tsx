@@ -44,7 +44,8 @@ function provide(items: NotificationView[], extra: Partial<ReturnType<typeof use
 }
 
 function Where() {
-  return <p data-testid="where">{useLocation().pathname}</p>;
+  const { pathname, search } = useLocation();
+  return <p data-testid="where">{pathname + search}</p>;
 }
 
 const renderBell = () =>
@@ -53,7 +54,8 @@ const renderBell = () =>
       <NotificationBell />
       <Where />
       <Routes>
-        <Route path="/dashboard" element={<h2 id="alerts-title" tabIndex={-1}>Active Alerts</h2>} />
+        <Route path="/dashboard" element={<h1>Shelf Overview</h1>} />
+        <Route path="/alerts" element={<h1 id="alerts-title" tabIndex={-1}>Alerts</h1>} />
         <Route path="/orders" element={<h1 id="orders-title" tabIndex={-1}>Purchase Orders</h1>} />
       </Routes>
     </MemoryRouter>,
@@ -90,7 +92,7 @@ describe("NotificationBell", () => {
   });
 
   describe("choosing a notification", () => {
-    it("marks it read, closes the menu and moves focus to the alerts panel", async () => {
+    it("marks it read, closes the menu and opens that alert on the Alerts page", async () => {
       provide([alertItem("a1")]);
       renderBell();
       await userEvent.click(screen.getByRole("button", { name: /^Notifications/ }));
@@ -98,7 +100,15 @@ describe("NotificationBell", () => {
 
       expect(markRead).toHaveBeenCalledWith(["alert:a1"]);
       expect(screen.queryByRole("region", { name: "Notifications" })).not.toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Active Alerts" })).toHaveFocus();
+      expect(screen.getByTestId("where")).toHaveTextContent("/alerts?alert=a1");
+    });
+
+    it("keeps an odd alert id from changing the address", async () => {
+      provide([alertItem("a&status=all")]);
+      renderBell();
+      await userEvent.click(screen.getByRole("button", { name: /^Notifications/ }));
+      await userEvent.click(screen.getByRole("button", { name: /Spark Plug mismatch/ }));
+      expect(screen.getByTestId("where")).toHaveTextContent("/alerts?alert=a%26status%3Dall");
     });
 
     it("marks an order read and opens the orders page", async () => {
@@ -117,7 +127,7 @@ describe("NotificationBell", () => {
       renderBell();
       await userEvent.click(screen.getByRole("button", { name: /^Notifications/ }));
       await userEvent.click(screen.getByRole("button", { name: /Spark Plug mismatch/ }));
-      expect(screen.getByRole("heading", { name: "Active Alerts" })).toHaveFocus();
+      expect(screen.getByTestId("where")).toHaveTextContent("/alerts?alert=a1");
     });
   });
 
@@ -133,12 +143,13 @@ describe("NotificationBell", () => {
   });
 
   describe("by role", () => {
-    it("offers the shopkeeper View Alerts", async () => {
+    it("offers the shopkeeper View Alerts, which opens the Alerts page", async () => {
       provide([alertItem("a1")]);
       renderBell();
       await userEvent.click(screen.getByRole("button", { name: /^Notifications/ }));
       await userEvent.click(screen.getByRole("button", { name: "View Alerts" }));
-      expect(screen.getByRole("heading", { name: "Active Alerts" })).toHaveFocus();
+      expect(screen.getByTestId("where")).toHaveTextContent(/^\/alerts$/);
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Alerts" })).toHaveFocus());
     });
 
     it("offers the dealer View Orders", async () => {

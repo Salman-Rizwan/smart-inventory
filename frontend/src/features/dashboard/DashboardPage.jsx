@@ -1,7 +1,7 @@
 import { Page, PageHead } from "../../shared/components/Page";
 import { formatDateTime } from "../../shared/format";
 import CountsGrid from "./CountsGrid";
-import AlertsPanel from "../alerts/AlertsPanel";
+import AlertsSummary from "../alerts/AlertsSummary";
 import StockCheckPanel from "../inventory/StockCheckPanel";
 import { useLatestStatus, useRecentScans } from "./hooks";
 import ScanControl from "./ScanControl";
@@ -29,7 +29,7 @@ export default function DashboardPage() {
         <ScanControl />
       </PageHead>
 
-      <AlertsPanel />
+      <AlertsSummary />
 
       <section aria-labelledby="counts-title">
         <VisuallyHidden component="h2" id="counts-title">
