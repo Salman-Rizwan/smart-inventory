@@ -9,6 +9,7 @@ import { space } from "../../shared/theme/tokens";
 import { useAuth } from "./AuthContext";
 import { login } from "./authService";
 import { validateLogin } from "./validation";
+import { Muted } from "../../shared/components/text";
 
 export default function LoginPage() {
   const { user, loading } = useAuth();
@@ -48,7 +49,7 @@ export default function LoginPage() {
     <CardPage>
       <CardBrand />
       <h1>Sign In</h1>
-      <p className="muted">Use the account your shop administrator gave you.</p>
+      <Muted>Use the account your shop administrator gave you.</Muted>
       <Box
         component="form"
         onSubmit={handleSubmit}

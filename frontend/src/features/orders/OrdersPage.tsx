@@ -12,6 +12,7 @@ import OrderSummaryTiles from "./OrderSummaryTiles";
 import { useOrders } from "./OrdersContext";
 import { countByState, describeAttention, filterOrders, parseFilter, sortOrders, type OrderFilter } from "./orderWorkflow";
 import type { OrderRole } from "./types";
+import { Muted, VisuallyHidden } from "../../shared/components/text";
 
 const EMPTY: Record<OrderFilter, { title: string; hint: string }> = {
   open: { title: "No open orders", hint: "An order appears here automatically when a part stays low on the shelf." },
@@ -58,13 +59,13 @@ export default function OrdersPage() {
           <h1 id="orders-title" tabIndex={-1}>
             {COPY[role].title}
           </h1>
-          <p className="muted">{COPY[role].subtitle}</p>
+          <Muted>{COPY[role].subtitle}</Muted>
         </div>
       </PageHead>
 
-      <p className="visually-hidden" role="status" aria-live="polite">
+      <VisuallyHidden component="p" role="status" aria-live="polite">
         {announcement}
-      </p>
+      </VisuallyHidden>
 
       {outcome && <Notification kind="success">{outcome}</Notification>}
 

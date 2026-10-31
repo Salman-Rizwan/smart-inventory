@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import { NavLink } from "react-router-dom";
+import { VisuallyHidden } from "../shared/components/text";
 import { breakpoint, color, font, layout, text } from "../shared/theme/tokens";
 
 export interface NavItem {
@@ -60,7 +61,7 @@ export default function PrimaryNav({ items, attentionCount }: { items: NavItem[]
           {item.badge === "orders" && attentionCount > 0 && (
             <>
               <CountBadge aria-hidden="true">{attentionCount}</CountBadge>
-              <span className="visually-hidden">, {attentionCount} need your action</span>
+              <VisuallyHidden>, {attentionCount} need your action</VisuallyHidden>
             </>
           )}
         </Tab>

@@ -10,6 +10,7 @@ import { layout, space } from "../../shared/theme/tokens";
 import AlertRowItem from "./AlertRowItem";
 import { useAlerts } from "./AlertsContext";
 import { describeOpenCount, sortAlerts } from "./alertSummary";
+import { Muted, VisuallyHidden } from "../../shared/components/text";
 
 /** Active alerts for the shopkeeper: a part whose camera count differs from its POS record. */
 export default function AlertsPanel() {
@@ -31,14 +32,14 @@ export default function AlertsPanel() {
           >
             Active Alerts
           </Box>
-          <p className="muted">Raised when the camera count differs from the POS record.</p>
+          <Muted>Raised when the camera count differs from the POS record.</Muted>
         </div>
         {openCount > 0 && <StatusBadge kind="warning">{`${openCount} Open`}</StatusBadge>}
       </PanelHeader>
 
-      <p className="visually-hidden" role="status" aria-live="polite">
+      <VisuallyHidden component="p" role="status" aria-live="polite">
         {announcement}
-      </p>
+      </VisuallyHidden>
 
       {error && (
         <PanelBody>

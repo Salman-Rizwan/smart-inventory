@@ -8,6 +8,7 @@ import StatusBadge from "../../shared/components/StatusBadge";
 import { useProducts } from "./hooks";
 import { buildStockRows } from "./reconcile";
 import StockRowItem from "./StockRowItem";
+import { Muted, VisuallyHidden } from "../../shared/components/text";
 
 interface Props {
   counts: Record<string, number> | null;
@@ -28,7 +29,7 @@ export default function StockCheckPanel({ counts }: Props) {
       <PanelHeader split>
         <div>
           <h2 id="stock-title">Stock Check</h2>
-          <p className="muted">Camera count against the POS record for each part.</p>
+          <Muted>Camera count against the POS record for each part.</Muted>
         </div>
         {scanned.length > 0 &&
           (mismatches === 0 ? (
@@ -38,9 +39,9 @@ export default function StockCheckPanel({ counts }: Props) {
           ))}
       </PanelHeader>
 
-      <p className="visually-hidden" role="status" aria-live="polite">
+      <VisuallyHidden component="p" role="status" aria-live="polite">
         {announcement}
-      </p>
+      </VisuallyHidden>
 
       {products.error && (
         <PanelBody>

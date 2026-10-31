@@ -1,8 +1,7 @@
 /*
  * Design tokens: the one place design values live. Carbon-style enterprise UI: flat, square,
- * hairline borders, 4px spacing grid, one teal accent, IBM Plex. The MUI theme is built from
- * these, and the legacy CSS variables (--color-*, --space-*, ...) are generated from the theme
- * (see cssVariables.ts). Colour pairs are checked against WCAG AA in tokens.test.ts
+ * hairline borders, 4px spacing grid, one teal accent, IBM Plex. The MUI theme (theme.ts), the
+ * page-wide rules (globalStyles.ts) and component styles are all built from these. Colour pairs are checked against WCAG AA in tokens.test.ts
  * (text >= 4.5:1, UI boundaries >= 3:1).
  */
 export const color = {
@@ -29,11 +28,11 @@ export const color = {
   infoBg: "#e0f2f1",
 } as const;
 
-/** 4px grid: space(n) = n * 4px. The legacy steps map to these multiples. */
+/** 4px grid. The named spacing steps 1 to 7 used across the app, as multiples of the 4px unit. */
 export const SPACING_UNIT = 4;
 export const spaceSteps = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 6, 6: 8, 7: 12 } as const;
 
-/** A legacy spacing step in px, for styles that must match the old --space-N exactly: space(5) = "24px". */
+/** A spacing step in px: space(3) = "12px", space(5) = "24px". */
 export const space = (step: keyof typeof spaceSteps): string => `${spaceSteps[step] * SPACING_UNIT}px`;
 
 export const font = {

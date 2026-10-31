@@ -6,6 +6,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import type { ReactNode } from "react";
 import { font } from "../theme/tokens";
+import { VisuallyHidden } from "./text";
 
 /*
  * Data table parts on MUI Table. The look (padding, borders, header row, hover) lives in the theme;
@@ -20,7 +21,7 @@ const mono = { fontFamily: font.mono, fontVariantNumeric: "tabular-nums" } as co
 export function DataTable({ caption, head, children }: { caption: string; head: ReactNode; children: ReactNode }) {
   return (
     <Table>
-      <caption className="visually-hidden">{caption}</caption>
+      <VisuallyHidden component="caption">{caption}</VisuallyHidden>
       <TableHead>
         <TableRow>{head}</TableRow>
       </TableHead>

@@ -19,7 +19,7 @@ const coarse = "@media (pointer: coarse)";
 /*
  * MUI theme: the Carbon-style look (flat, square, hairline borders, one teal accent, IBM Plex),
  * built from tokens.ts. Status colours use `main` for the text or icon and `light` for the tint
- * behind it. `cssVariables` publishes every value as --mui-* so plain CSS can follow the theme.
+ * behind it. `cssVariables` makes MUI style its components through --mui-* variables.
  */
 export const theme = createTheme({
   cssVariables: true,

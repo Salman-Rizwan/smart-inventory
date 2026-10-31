@@ -5,6 +5,7 @@ import { formatDateTime } from "../format";
 import { breakpoint, color, font, layout, space, text } from "../theme/tokens";
 import Button from "./Button";
 import Notification from "./Notification";
+import { Muted, VisuallyHidden } from "./text";
 
 export interface NotificationItem {
   id: string;
@@ -211,9 +212,9 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
             {count > 0 && <NewCount>{`${count} new`}</NewCount>}
           </Header>
 
-          <p className="visually-hidden" role="status" aria-live="polite">
+          <VisuallyHidden component="p" role="status" aria-live="polite">
             {status}
-          </p>
+          </VisuallyHidden>
 
           {notice && (
             <NoticeBox>
@@ -239,7 +240,7 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
                         {item.unread && (
                           <>
                             <Dot aria-hidden="true" />
-                            <span className="visually-hidden">Unread:</span>{" "}
+                            <VisuallyHidden>Unread:</VisuallyHidden>{" "}
                           </>
                         )}
                         {item.title}
@@ -251,7 +252,7 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
                 ))}
               </List>
               <Footer>
-                {items.length > shown.length && <span className="muted">{`Showing ${shown.length} of ${items.length}`}</span>}
+                {items.length > shown.length && <Muted component="span">{`Showing ${shown.length} of ${items.length}`}</Muted>}
                 <Actions>
                   <Button variant="ghost" size="small" onClick={markAll} disabled={count === 0}>
                     Mark All as Read

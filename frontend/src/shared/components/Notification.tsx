@@ -1,5 +1,6 @@
 import Alert from "@mui/material/Alert";
 import type { ReactNode } from "react";
+import { VisuallyHidden } from "./text";
 
 type Kind = "error" | "warning" | "success" | "info";
 
@@ -22,7 +23,7 @@ export default function Notification({ kind = "info", announce = true, children 
   return (
     <Alert severity={kind} role={role} icon={<span aria-hidden="true">{ICONS[kind]}</span>}>
       <p>
-        <span className="visually-hidden">{LABELS[kind]}: </span>
+        <VisuallyHidden>{LABELS[kind]}: </VisuallyHidden>
         {children}
       </p>
     </Alert>
