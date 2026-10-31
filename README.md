@@ -51,7 +51,7 @@ backend/
 frontend/
   src/
     features/auth/       login, auth context (user + role profile), route guards, roles, validation
-    features/alerts/     alerts panel and shared live listener (TypeScript)
+    features/alerts/     Alerts page (history), dashboard summary and shared live listener (TypeScript)
     features/notifications/  the bell: derived notifications, per-user read state, dropdown wiring (TypeScript)
     features/inventory/  Stock Check panel (camera vs POS), POS buttons, stock rules (TypeScript)
     features/orders/     orders page for dealer and shopkeeper: summary tiles, filter, action queue, Mark Received (TypeScript)
@@ -145,7 +145,7 @@ After every scan the backend decides what to do with alerts for each part (`app/
 - Counts match again: the alert becomes **Resolved** automatically. A mismatch that returns opens a new alert, and resolved alerts stay in Firestore as history.
 - An empty shelf raises alerts too, since stock the POS expects is missing.
 
-The shopkeeper dashboard shows an **Active Alerts** panel with an **Acknowledge** button (Open to Acknowledged; the alert stays until the counts match). The header bell opens a **Notifications** dropdown (see Notifications below); selecting an alert there jumps to this panel. Alerts are in-app only, and the dealer does not see them. The browser can only acknowledge an alert (enforced in `firestore.rules`); creating and resolving alerts is backend-only.
+The shopkeeper has an **Alerts** tab (`/alerts`, with a badge for open alerts): summary tiles (Open, Acknowledged, Resolved), a filter kept in the URL (Open, Acknowledged, Resolved, All; `?status=resolved`), and one table showing when each alert was raised, acknowledged and resolved, with **Acknowledge** on open ones (Open to Acknowledged; the alert stays until the counts match). Open and acknowledged alerts come from the live list and are always complete; past alerts load 50 at a time with **Load More**. A resolved alert keeps the last mismatch the camera saw. The dashboard shows a compact **Active Alerts** summary instead: up to 5 active alerts, open first, each acknowledgeable in one click, and **View All Alerts**. Selecting an alert in the bell (see Notifications below) opens that alert's row on the Alerts page, highlighted and focused. Alerts are in-app only, and the dealer does not see them. The browser can only acknowledge an alert (enforced in `firestore.rules`); creating and resolving alerts is backend-only.
 
 ## Purchase orders (M9)
 
@@ -164,9 +164,9 @@ One bell in the header for every role, with a dropdown of what needs that role's
 
 - **Shopkeeper:** open alerts, and dispatched orders waiting to be confirmed. **Dealer:** pending orders waiting for acceptance.
 - Notifications are **derived from live data, never stored**: an item exists exactly while its alert or order still needs attention, so handling or resolving it removes it by itself. An acknowledged alert is already handled, so it leaves the list.
-- **Unread** is personal and **acknowledged** is shared, and they are separate. The bell counts what the signed-in user has not read; the Alerts panel, the Orders tab badge and the order tiles are still the "work waiting" counters, and reading never hides work.
-- Click a notification to read it and go to the Alerts panel or the orders page. **Mark All as Read** marks everything. Unread items are bold with a dot and announced as "Unread" to screen readers; read items are greyed and stay listed until their item is resolved. A refresh of an open alert's numbers does not notify again; a new alert or order does.
-- Read state is one document per user, `notification_reads/{uid}`, holding a capped list of keys (`alert:ID`, `order:ID:Dispatched`). It survives a refresh and follows the user between devices. The rules let a user read and change only their own document. The bell and the browser tab title (like "(2) Smart Inventory") show the **unread** count, and wait for the read state to load so they never flash a wrong number. If the read state cannot be loaded, everything shows as unread and the dropdown says so.
+- **Unread** is personal and **acknowledged** is shared, and they are separate. The bell counts what the signed-in user has not read; the Alerts and Orders tab badges and the summary tiles are still the "work waiting" counters, and reading never hides work.
+- Click a notification to read it and go there: an alert opens its row on the Alerts page (`/alerts?alert=ID`), highlighted and focused; an order opens the orders page. **Mark All as Read** marks everything. Unread items are bold with a dot and announced as "Unread" to screen readers; read items are greyed and stay listed until their item is resolved. A refresh of an open alert's numbers does not notify again; a new alert or order does.
+- Read state is one document per user, `notification_reads/{uid}`, holding a capped list of keys (`alert:ID`, `order:ID:Dispatched`). It survives a refresh and follows the user between devices. The rules let a user read and change only their own document. The bell and the browser tab title (like "(2) Alerts · Smart Inventory", which also names the page) show the **unread** count, and wait for the read state to load so they never flash a wrong number. If the read state cannot be loaded, everything shows as unread and the dropdown says so.
 
 ## Roles
 
@@ -208,7 +208,8 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 - [x] M5: live dashboard (count cards, annotated image, Scan Now, last 10 scans)
 - [x] M7 POS reconciliation, M8 alerts, M9 automatic orders with dealer and shopkeeper flows, and notifications: built, tested and checked live in Chrome with both roles
 - [ ] Move to Material UI (theme keeps the Carbon look)
-- [ ] Supervisor feedback: stock change log, History page, business intelligence (dashboard summary and Insights page)
+- [x] Supervisor feedback, part 1: alert history on the Alerts tab (Oct 31)
+- [ ] Supervisor feedback, part 2: stock change log, business intelligence (dashboard summary and Insights page, with stock history)
 - [ ] M6 automatic scanning every 60 s, M10 full role-based rules, M11 Hosting, M12 evaluation, M13 report
 
 What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).

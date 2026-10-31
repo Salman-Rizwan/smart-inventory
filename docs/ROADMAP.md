@@ -2,7 +2,7 @@
 
 Deadlines: code freeze Nov 7, 2026; submit Nov 8; final submission Nov 9. Done so far: M1 to M5, M7, M8, M9 and notifications Stage A (see `README.md` Status).
 
-**Progress (Oct 31):** the move to Material UI is complete (MUI-0 to MUI-14), on schedule. Also done: clearer messages when two people act on the same order at once (see `docs/DESIGN_DECISIONS.md`). Next: F1 (can start Oct 31). From Nov 1 the plan runs unchanged.
+**Progress (Oct 31):** the move to Material UI is complete (MUI-0 to MUI-14), on schedule. Also done: clearer messages when two people act on the same order at once (see `docs/DESIGN_DECISIONS.md`), and the UI and usability phase UX-1 to UX-4 (section 1b): the Alerts tab with alert history, which replaces most of F2. Next: F1 on Nov 1.
 
 Plan agreed on Oct 28 after the interim viva. It covers the supervisor's feedback (a history of past alerts, and business intelligence analytics on the dashboard) and the move to Material UI.
 
@@ -14,9 +14,9 @@ About 80 working hours from Oct 28 to Nov 6. Must-have work is about 57 to 77 ho
 | Oct 28 | MUI-0 baseline, MUI-1 trial (go/no-go), MUI-2 theme | Must |
 | Oct 29 | MUI-3 Button, MUI-4 StatusBadge, MUI-5 FormField | Must |
 | Oct 30 | MUI-6 feedback components, MUI-7 NotificationMenu, MUI-8 app shell; done early: MUI-9 to MUI-12 tables, MUI-13 page layout | Must |
-| Oct 31 | MUI-14 remove the generated variables and `base.css` (done); then start F1 early | Stretch |
+| Oct 31 | MUI-14 remove the generated variables and `base.css` (done); UX-1 to UX-4 Alerts tab, dashboard summary, notification links, header and page titles (done) | Must |
 | Nov 1 | F1 stock change log, seed script, `demo_reset` change (user publishes the rules) | Must |
-| Nov 2 | F2 History page; F3 pure analytics functions | Must |
+| Nov 2 | F3 pure analytics functions; stock history section (what is left of F2) | Must |
 | Nov 3 | F3 dashboard summary and Insights page | Must (extra sections stretch) |
 | Nov 4 | M6 automatic scanning | Must |
 | Nov 5 | M10 final rules and role checks; M11 Hosting (thumbnail stretch) | Must |
@@ -58,7 +58,19 @@ Decision: move fully to MUI. The MUI theme becomes the single source of colours,
 | MUI-13 | Page layout CSS (Login, Dashboard, Orders, the Stock Check action cell, and the bell dropdown's panel and item rows) to `sx`. Also fix a phone issue found in MUI-10: at 390 px a row's error message sits at the left of a table scrolled to the right, so it is off-screen; keep it pinned to the visible part of the scroll box. Done: shared `Panel`, `EmptyState`, `Page`, `CardPage`; only `base.css` is left | Screenshots at every width; the error message visible at 390 px | 3–4 h |
 | MUI-14 | Delete the generated CSS variables, `base.css` rules MUI now covers (reduced motion moves into the theme) and dead CSS; update UI rules in `CLAUDE.md`, `README.md`, `docs/DESIGN_DECISIONS.md` | No references left; full regression; bundle compared with MUI-0. Done: page-wide rules in `globalStyles.ts`, `Muted` and `VisuallyHidden` replace the utility classes, no stylesheets left; JS 1,064 KB (327 KB gz) vs 881 KB (264 KB) at MUI-0, CSS 8 KB vs 23 KB | 2–3 h |
 
-New pages (History, Insights) are built in MUI from the start.
+New pages (Alerts, Insights) are built in MUI from the start.
+
+## 1b. UI and usability phase (Oct 31, done)
+Agreed Oct 31 before F1. Alerts get their own tab so acknowledged and resolved alerts keep a history, and the dashboard stops repeating the Stock Check mismatches as a full table.
+
+| Task | Change | Status |
+|---|---|---|
+| UX-1 | Alerts tab `/alerts` (shopkeeper): Open, Acknowledged and Resolved tiles; filter in the URL; raised, acknowledged and resolved times; Acknowledge; past alerts 50 at a time with Load More; open-count badge on the tab. No backend or rules change (`resolvedAt` was already stored, and the rules already allowed the read) | Done |
+| UX-2 | Dashboard: compact Active Alerts summary (up to 5, open first, one-click Acknowledge, View All Alerts) instead of the full table | Done |
+| UX-3 | A notification opens its alert's row on the Alerts page, highlighted and focused; the bell's View Alerts opens the page | Done |
+| UX-4 | Header: tabs move to a full-width second row below 960 px, so four tabs with counts fit at 320 px (measured); every page names itself in the browser tab title | Done |
+
+Not taken (offered, optional): scan-age warning, Receive Stock renamed Receive Delivery, smaller shelf image.
 
 ## 2. Supervisor feedback: history and business intelligence
 The analytics decides what history is needed. Alerts, orders and scans are already stored; sales and receipts are not (Record Sale, Receive Stock and Mark Received only overwrite `posCount`), so F1 adds a log.
@@ -71,12 +83,11 @@ The analytics decides what history is needed. Alerts, orders and scans are alrea
 - `demo_reset` keeps seeded documents (they are all closed, so they never block automatic ordering).
 - Tests: transaction logic, parsers, seed planning, rules attack checks (dealer writes, edits, deletes, mismatched counts, unlogged POS change).
 
-### F2. History page `/history` (about 0.5 to 1 day)
-- Alerts in every state, purchase orders with each step's time, and stock changes. Filters by part, type and date; 50 at a time with Load More.
-- Shopkeeper sees everything; the dealer sees order history only (read-only).
-- Clicking a notification opens its row here, highlighted. This replaces Notifications Stage B.
-- Notifications stay derived and are never stored; History reads the source records.
-- Tests: queries and parsers, filters, paging, empty and error states, axe.
+### F2. History (revised Oct 31: mostly done by UX-1)
+- Alert history: done, on the Alerts tab (UX-1), including a notification opening its row (this replaced Notifications Stage B).
+- Order history: already on the Orders page (Completed and All filters).
+- Stock changes: a section of the Insights page (F3) over the F1 log, instead of a separate History page. The header stays at four tabs (Dashboard, Alerts, Orders, Insights).
+- Notifications stay derived and are never stored; history reads the source records.
 
 ### F3. Business intelligence: dashboard summary and Insights page (about 2 days)
 Shopkeeper only. Calculations are pure, tested functions in `features/insights/analytics.ts`, run in the browser so they also work on the hosted app. Medians, not averages (small numbers). Every chart has a table alternative. The Insights page is lazy-loaded so the main bundle does not grow. Charts use MUI X Charts (free MIT version). A visible "Includes demo data" label appears when the period contains seeded records.

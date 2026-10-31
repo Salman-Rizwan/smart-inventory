@@ -7,20 +7,21 @@ python -m pytest                      # 108 tests, fakes only
 ruff check . && ruff format --check .
 
 # frontend (from frontend/)
-npm run typecheck && npm test && npx oxlint && npm run build   # 436 tests
+npm run typecheck && npm test && npx oxlint && npm run build   # 498 tests
 ```
 Backend tests use fakes from `tests/conftest.py` (no webcam, no Firebase). `oxlint` matters: `tsc` skips `.js`/`.jsx`, and it caught a removed component still imported in `AppShell.jsx`.
 
 ## Live checks (real Firebase, real Chrome)
-Scripts are kept locally in `.handoff/live-tests/` (not committed): `regress.mjs` (41-check full regression across both roles, including a real Scan Now), `baseline.mjs` and `compare.py` (30 screenshots per run, 6 views at 5 widths, with axe, compared pixel by pixel), `states.mjs` (43 states the screenshots miss: loading, Scan Now result and error, image errors, filters, hover and keyboard focus, tablet widths, Firestore unavailable; it fakes backend replies and writes nothing), keyboard walks (`bellkeys.mjs`, `shellkeys.mjs`, `keyscroll.mjs`, `login.mjs`), inline error checks (`stockerr.mjs`, and `orderr.mjs` for two people receiving one order at once), and `ntest.py` and `realdata.py` (temporary `zz` data, and snapshot, restore and verify of the real data). Each UI task during the Material UI move was compared against the previous task's screenshots on the same data. They use Playwright with installed Chrome and axe-core against `http://localhost:5173`, hard-code absolute paths and the Firebase web API key from the scratch session, so adjust paths before reuse. Never put the test password in a script that is committed.
+Scripts are kept locally in `.handoff/live-tests/` (not committed): `regress.mjs` (55-check full regression across both roles, including a real Scan Now and the Alerts page), `alerts.mjs` and `alerts_zz.py` (62 checks on the Alerts page and dashboard summary with 60 temporary `zz-u` alerts: filters, Load More past one page, focus, a notification opening its row, page titles, header fit from 320 to 1360 px with a simulated fourth tab), `baseline.mjs` and `compare.py` (30 screenshots per run, 6 views at 5 widths, with axe, compared pixel by pixel), `states.mjs` (43 states the screenshots miss: loading, Scan Now result and error, image errors, filters, hover and keyboard focus, tablet widths, Firestore unavailable; it fakes backend replies and writes nothing), keyboard walks (`bellkeys.mjs`, `shellkeys.mjs`, `keyscroll.mjs`, `login.mjs`), inline error checks (`stockerr.mjs`, and `orderr.mjs` for two people receiving one order at once), and `ntest.py` and `realdata.py` (temporary `zz` data, and snapshot, restore and verify of the real data). Each UI task during the Material UI move was compared against the previous task's screenshots on the same data. They use Playwright with installed Chrome and axe-core against `http://localhost:5173`, hard-code absolute paths and the Firebase web API key from the scratch session, so adjust paths before reuse. Never put the test password in a script that is committed.
 
 Rules for live tests:
 1. Snapshot the real data first; use clearly named `zz-*` temporary data; restore and verify identical afterwards.
 2. Before testing anything that depends on a Firestore rule, read the deployed ruleset through the Firebase Rules API (service account) and compare it with `firestore.rules`.
 3. Use a normal window and an incognito window for the two roles (one browser shares one sign-in across tabs).
 4. Use port 5173 (backend CORS).
-6. Do not run a snapshot and restore while someone is scanning: the restore would delete their scans. Check `status/latest.scannedAt` first.
 5. Python Firebase subprocesses can segfault when spawned from Node; use REST with a service-account token.
+6. Do not run a snapshot and restore while someone is scanning: the restore would delete their scans. Check `status/latest.scannedAt` first.
+7. After a click that changes the URL, wait for the new state (for example `aria-pressed="true"`), not for the URL: React Router renders a long table as a low-priority update, a few tens of milliseconds after the URL changes.
 
 ## Rules attack checks
 Over REST with real ID tokens: a dealer cannot write products or acknowledge alerts; a shopkeeper cannot accept or dispatch; nobody can create or delete orders or alerts; a user cannot read or write another user's `notification_reads`; wrong timestamps are refused.
