@@ -1,8 +1,12 @@
+import Box from "@mui/material/Box";
 import { useMemo } from "react";
+import EmptyState from "../../shared/components/EmptyState";
 import Notification from "../../shared/components/Notification";
+import { Panel, PanelBody, PanelHeader } from "../../shared/components/Panel";
 import TableScroll from "../../shared/components/TableScroll";
 import { DataTable, HeadCell } from "../../shared/components/table";
 import StatusBadge from "../../shared/components/StatusBadge";
+import { layout, space } from "../../shared/theme/tokens";
 import AlertRowItem from "./AlertRowItem";
 import { useAlerts } from "./AlertsContext";
 import { describeOpenCount, sortAlerts } from "./alertSummary";
@@ -15,36 +19,41 @@ export default function AlertsPanel() {
   const announcement = loading || error ? "" : describeOpenCount(openCount);
 
   return (
-    <section id="alerts" className={openCount > 0 ? "panel panel--alert" : "panel"} aria-labelledby="alerts-title">
-      <div className="panel__header panel__header--split">
+    <Panel id="alerts" tone={openCount > 0 ? "alert" : undefined} aria-labelledby="alerts-title">
+      <PanelHeader split>
         <div>
-          <h2 id="alerts-title" tabIndex={-1}>
+          {/* Focused when a notification opens this panel: keep it clear of the sticky header. */}
+          <Box
+            component="h2"
+            id="alerts-title"
+            tabIndex={-1}
+            sx={{ scrollMarginTop: `calc(${layout.headerHeight} + ${space(4)})` }}
+          >
             Active Alerts
-          </h2>
+          </Box>
           <p className="muted">Raised when the camera count differs from the POS record.</p>
         </div>
         {openCount > 0 && <StatusBadge kind="warning">{`${openCount} Open`}</StatusBadge>}
-      </div>
+      </PanelHeader>
 
       <p className="visually-hidden" role="status" aria-live="polite">
         {announcement}
       </p>
 
       {error && (
-        <div className="panel__body">
+        <PanelBody>
           <Notification kind="error">{error}</Notification>
-        </div>
+        </PanelBody>
       )}
       {loading && (
-        <p className="empty-state empty-state--compact" role="status">
+        <EmptyState component="p" role="status" compact>
           Loading alerts…
-        </p>
+        </EmptyState>
       )}
       {!loading && !error && sorted.length === 0 && (
-        <div className="empty-state empty-state--compact">
-          <strong>No active alerts</strong>
+        <EmptyState title="No active alerts" compact>
           Everything on the shelf matches the POS records.
-        </div>
+        </EmptyState>
       )}
       {showTable && (
         <TableScroll label="Active alerts table">
@@ -67,6 +76,6 @@ export default function AlertsPanel() {
           </DataTable>
         </TableScroll>
       )}
-    </section>
+    </Panel>
   );
 }

@@ -1,4 +1,6 @@
+import EmptyState from "../../shared/components/EmptyState";
 import Notification from "../../shared/components/Notification";
+import { Panel, PanelBody, PanelHeader } from "../../shared/components/Panel";
 import TableScroll from "../../shared/components/TableScroll";
 import { DataTable, HeadCell, NumCell, Row, RowHeader } from "../../shared/components/table";
 import { formatDateTime, formatInteger } from "../../shared/format";
@@ -23,25 +25,22 @@ export default function ScanHistoryTable({ scans, loading, error }: Props) {
   const columns = partKeys(...(scans ?? []).map((s) => s.counts));
 
   return (
-    <section className="panel" aria-labelledby="history-title">
-      <div className="panel__header">
+    <Panel aria-labelledby="history-title">
+      <PanelHeader>
         <h2 id="history-title">Recent Scans</h2>
-      </div>
+      </PanelHeader>
       {error && (
-        <div className="panel__body">
+        <PanelBody>
           <Notification kind="error">{error}</Notification>
-        </div>
+        </PanelBody>
       )}
       {loading && (
-        <p className="empty-state" role="status">
+        <EmptyState component="p" role="status">
           Loading scans…
-        </p>
+        </EmptyState>
       )}
       {!loading && !error && scans.length === 0 && (
-        <div className="empty-state">
-          <strong>No scans yet</strong>
-          Each scan you run is listed here, newest first.
-        </div>
+        <EmptyState title="No scans yet">Each scan you run is listed here, newest first.</EmptyState>
       )}
       {!loading && !error && scans.length > 0 && (
         <TableScroll label="Recent scans table">
@@ -71,6 +70,6 @@ export default function ScanHistoryTable({ scans, loading, error }: Props) {
           </DataTable>
         </TableScroll>
       )}
-    </section>
+    </Panel>
   );
 }

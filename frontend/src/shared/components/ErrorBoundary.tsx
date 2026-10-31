@@ -1,6 +1,7 @@
 import Typography from "@mui/material/Typography";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import Button from "./Button";
+import CardPage from "./CardPage";
 
 interface ErrorBoundaryState {
   failed: boolean;
@@ -21,17 +22,13 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, Er
   render() {
     if (!this.state.failed) return this.props.children;
     return (
-      <main className="auth-page">
-        <div className="panel auth-card" role="alert">
-          <div className="panel__body">
-            <h1>Something Went Wrong</h1>
-            <Typography color="text.secondary" sx={{ mt: 3, mb: 6 }}>
-              Reload the page to continue. If this keeps happening, contact your administrator.
-            </Typography>
-            <Button onClick={() => window.location.reload()}>Reload Page</Button>
-          </div>
-        </div>
-      </main>
+      <CardPage role="alert">
+        <h1>Something Went Wrong</h1>
+        <Typography color="text.secondary" sx={{ mt: 3, mb: 6 }}>
+          Reload the page to continue. If this keeps happening, contact your administrator.
+        </Typography>
+        <Button onClick={() => window.location.reload()}>Reload Page</Button>
+      </CardPage>
     );
   }
 }

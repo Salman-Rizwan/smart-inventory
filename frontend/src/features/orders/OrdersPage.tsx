@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import EmptyState from "../../shared/components/EmptyState";
 import Notification from "../../shared/components/Notification";
+import { Page, PageHead } from "../../shared/components/Page";
+import { Panel, PanelBody, PanelHeader } from "../../shared/components/Panel";
 import TableScroll from "../../shared/components/TableScroll";
 import { DataTable, HeadCell } from "../../shared/components/table";
 import OrderFilterGroup from "./OrderFilter";
@@ -49,15 +52,15 @@ export default function OrdersPage() {
   const announcement = loading || error ? "" : describeAttention(role, attentionCount);
 
   return (
-    <div className="dashboard">
-      <div className="dashboard__head">
+    <Page>
+      <PageHead>
         <div>
           <h1 id="orders-title" tabIndex={-1}>
             {COPY[role].title}
           </h1>
           <p className="muted">{COPY[role].subtitle}</p>
         </div>
-      </div>
+      </PageHead>
 
       <p className="visually-hidden" role="status" aria-live="polite">
         {announcement}
@@ -67,31 +70,28 @@ export default function OrdersPage() {
 
       {!loading && !error && <OrderSummaryTiles counts={counts} role={role} />}
 
-      <section className="panel" aria-labelledby="orders-list-title">
-        <div className="panel__header panel__header--split">
+      <Panel aria-labelledby="orders-list-title">
+        <PanelHeader split>
           <h2 id="orders-list-title">Order List</h2>
           <OrderFilterGroup
             value={filter}
             counts={filterCounts}
             onChange={(next) => setParams(next === "open" ? {} : { status: next }, { replace: true })}
           />
-        </div>
+        </PanelHeader>
 
         {error && (
-          <div className="panel__body">
+          <PanelBody>
             <Notification kind="error">{error}</Notification>
-          </div>
+          </PanelBody>
         )}
         {loading && (
-          <p className="empty-state" role="status">
+          <EmptyState component="p" role="status">
             Loading orders…
-          </p>
+          </EmptyState>
         )}
         {!loading && !error && rows.length === 0 && (
-          <div className="empty-state">
-            <strong>{EMPTY[filter].title}</strong>
-            {EMPTY[filter].hint}
-          </div>
+          <EmptyState title={EMPTY[filter].title}>{EMPTY[filter].hint}</EmptyState>
         )}
         {showTable && (
           <TableScroll label="Order list table">
@@ -114,7 +114,7 @@ export default function OrdersPage() {
             </DataTable>
           </TableScroll>
         )}
-      </section>
-    </div>
+      </Panel>
+    </Page>
   );
 }

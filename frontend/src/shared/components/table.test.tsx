@@ -85,8 +85,15 @@ describe("table parts", () => {
 
   it("renders an error row spanning the table, addressable by id", () => {
     render(<Sample error="Could not save." />);
-    const cell = screen.getByText("Could not save.");
+    const cell = screen.getByRole("cell", { name: "Could not save." });
     expect(cell).toHaveAttribute("id", "row-error");
     expect(cell).toHaveAttribute("colspan", "3");
+  });
+
+  it("pins the error message to the visible part of a scrolled table", () => {
+    render(<Sample error="Could not save." />);
+    const message = screen.getByText("Could not save.");
+    expect(getComputedStyle(message).position).toBe("sticky");
+    expect(getComputedStyle(message).left).toBe("0px");
   });
 });

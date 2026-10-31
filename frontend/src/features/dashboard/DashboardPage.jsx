@@ -1,3 +1,4 @@
+import { Page, PageHead } from "../../shared/components/Page";
 import { formatDateTime } from "../../shared/format";
 import CountsGrid from "./CountsGrid";
 import AlertsPanel from "../alerts/AlertsPanel";
@@ -15,8 +16,8 @@ export default function DashboardPage() {
   const scannedAt = status.data?.scannedAt ?? null;
 
   return (
-    <div className="dashboard">
-      <div className="dashboard__head">
+    <Page>
+      <PageHead>
         <div>
           <h1>Shelf Overview</h1>
           <p className="muted">
@@ -25,7 +26,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <ScanControl />
-      </div>
+      </PageHead>
 
       <AlertsPanel />
 
@@ -38,6 +39,6 @@ export default function DashboardPage() {
 
       <SnapshotPanel scannedAt={scannedAt} />
       <ScanHistoryTable scans={scans.data ?? []} loading={scans.loading} error={scans.error} />
-    </div>
+    </Page>
   );
 }

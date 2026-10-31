@@ -1,8 +1,0 @@
-/* ---------- Auth ---------- */
-.auth-page { display: grid; place-items: center; min-height: 100vh; padding: var(--space-4); }
-.auth-card { width: 100%; max-width: 400px; }
-.auth-card__brand { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); font-weight: 600; }
-.auth-card form { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-5); }
-
-.page-status { padding: var(--space-7) var(--space-4); text-align: center; }
-.stack { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); }

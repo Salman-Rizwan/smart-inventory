@@ -1,6 +1,8 @@
 import IconButton from "@mui/material/IconButton";
+import { styled } from "@mui/material/styles";
 import { useEffect, useId, useRef, useState } from "react";
 import { formatDateTime } from "../format";
+import { breakpoint, color, font, layout, space, text } from "../theme/tokens";
 import Button from "./Button";
 import Notification from "./Notification";
 
@@ -24,6 +26,116 @@ interface Props {
 }
 
 const MAX_ITEMS = 5;
+
+const narrow = `@media (max-width: ${breakpoint.narrow})`;
+
+const Root = styled("div")({ position: "relative", [narrow]: { position: "static" } });
+
+/** Unread count on the bell. */
+const CountBadge = styled("span")({
+  position: "absolute",
+  top: 2,
+  right: 0,
+  minWidth: 18,
+  padding: "0 4px",
+  fontFamily: font.mono,
+  fontSize: text.xs,
+  fontWeight: 600,
+  lineHeight: "18px",
+  textAlign: "center",
+  color: color.onAccent,
+  background: color.error,
+});
+
+/** The dropdown: under the bell on wide screens, full width under the header on phones. */
+const Panel = styled("div")({
+  position: "absolute",
+  top: `calc(100% + ${space(2)})`,
+  right: 0,
+  zIndex: 20,
+  width: `min(380px, calc(100vw - 2 * ${space(4)}))`,
+  maxHeight: "70vh",
+  overflowY: "auto",
+  overscrollBehavior: "contain",
+  background: color.canvas,
+  border: `1px solid ${color.borderStrong}`,
+  // The one raised surface in the app: it floats over the page, so it needs to read as on top.
+  boxShadow: "0 6px 16px rgb(0 0 0 / 16%)",
+  [narrow]: {
+    position: "fixed",
+    top: `calc(${layout.headerHeight} + ${space(2)})`,
+    left: space(4),
+    right: space(4),
+    width: "auto",
+  },
+});
+
+const Header = styled("div")({
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  gap: space(3),
+  padding: `${space(3)} ${space(4)}`,
+  background: color.surface,
+  borderBottom: `1px solid ${color.border}`,
+});
+
+const Title = styled("h2")({ fontSize: text.md, fontWeight: 600 });
+const NewCount = styled("span")({ fontSize: text.sm, fontWeight: 600, color: color.info });
+const NoticeBox = styled("div")({ padding: `${space(3)} ${space(4)}`, borderBottom: `1px solid ${color.border}` });
+
+const Empty = styled("div")({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: space(3),
+  padding: `${space(6)} ${space(4)}`,
+  color: color.inkMuted,
+  textAlign: "center",
+});
+
+const List = styled("ul")({ margin: 0, padding: 0, listStyle: "none" });
+
+/** One notification: unread ones sit on the info tint. */
+const Item = styled("button", { shouldForwardProp: (prop) => prop !== "unread" })<{ unread: boolean }>(({ unread }) => ({
+  display: "grid",
+  gap: 2,
+  width: "100%",
+  padding: `${space(3)} ${space(4)}`,
+  border: 0,
+  borderBottom: `1px solid ${color.border}`,
+  background: unread ? color.infoBg : color.canvas,
+  color: color.ink,
+  font: "inherit",
+  textAlign: "left",
+  cursor: "pointer",
+  touchAction: "manipulation",
+  "&:hover": { background: color.surfaceStrong },
+  "&:focus-visible": { outlineOffset: "-2px" },
+}));
+
+/** Bold when unread; read ones are greyed. */
+const ItemTitle = styled("span", { shouldForwardProp: (prop) => prop !== "unread" })<{ unread: boolean }>(({ unread }) => ({
+  fontSize: text.sm,
+  fontWeight: unread ? 600 : 400,
+  color: unread ? undefined : color.inkMuted,
+}));
+
+const Dot = styled("span")({ display: "inline-block", width: 8, height: 8, marginRight: space(2), background: color.accent });
+const ItemDetail = styled("span")({ fontSize: text.sm, color: color.inkMuted });
+const ItemTime = styled("time")({ fontSize: text.xs, color: color.inkMuted, fontFamily: font.mono, fontVariantNumeric: "tabular-nums" });
+
+const Footer = styled("div")({
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: `${space(2)} ${space(3)}`,
+  padding: `${space(2)} ${space(4)}`,
+  fontSize: text.sm,
+});
+
+const Actions = styled("div")({ display: "flex", flexWrap: "wrap", gap: space(1), marginLeft: "auto" });
 
 /**
  * Header bell with a dropdown of what needs attention. A disclosure, not a menu: Tab moves through
@@ -74,7 +186,7 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
   };
 
   return (
-    <div className="notify" ref={rootRef}>
+    <Root ref={rootRef}>
       <IconButton
         ref={bellRef}
         aria-label={label}
@@ -88,83 +200,71 @@ export default function NotificationMenu({ label, count, items, emptyText, viewA
           <path d="M10 19a2 2 0 0 0 4 0" />
         </svg>
         {count > 0 && (
-          <span className="icon-btn__badge" aria-hidden="true">
-            {count > 9 ? "9+" : count}
-          </span>
+          <CountBadge aria-hidden="true">{count > 9 ? "9+" : count}</CountBadge>
         )}
       </IconButton>
 
       {open && (
-        <div id={panelId} className="notify__panel" role="region" aria-labelledby={`${panelId}-title`}>
-          <div className="notify__header">
-            <h2 id={`${panelId}-title`} className="notify__title">
-              Notifications
-            </h2>
-            {count > 0 && <span className="notify__new">{`${count} new`}</span>}
-          </div>
+        <Panel id={panelId} role="region" aria-labelledby={`${panelId}-title`}>
+          <Header>
+            <Title id={`${panelId}-title`}>Notifications</Title>
+            {count > 0 && <NewCount>{`${count} new`}</NewCount>}
+          </Header>
 
           <p className="visually-hidden" role="status" aria-live="polite">
             {status}
           </p>
 
           {notice && (
-            <div className="notify__notice">
+            <NoticeBox>
               <Notification kind="warning">{notice}</Notification>
-            </div>
+            </NoticeBox>
           )}
 
           {shown.length === 0 ? (
-            <div className="notify__empty">
+            <Empty>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" focusable="false">
                 <path d="M6 9a6 6 0 0 1 9.5-4.9M18 9c0 5 2 6 2 6H8" />
                 <path d="M10 19a2 2 0 0 0 4 0M3 3l18 18" />
               </svg>
               <p>{emptyText}</p>
-            </div>
+            </Empty>
           ) : (
             <>
-              <ul className="notify__list">
+              <List>
                 {shown.map((item) => (
                   <li key={item.id}>
-                    <button
-                      type="button"
-                      className={item.unread ? "notify__item notify__item--unread" : "notify__item"}
-                      onClick={() => choose(item.onSelect)}
-                    >
-                      <span className="notify__item-title">
+                    <Item type="button" unread={item.unread} onClick={() => choose(item.onSelect)}>
+                      <ItemTitle unread={item.unread}>
                         {item.unread && (
                           <>
-                            <span className="notify__dot" aria-hidden="true" />
+                            <Dot aria-hidden="true" />
                             <span className="visually-hidden">Unread:</span>{" "}
                           </>
                         )}
                         {item.title}
-                      </span>{" "}
-                      <span className="notify__item-detail">{item.detail}</span>{" "}
-                      {item.time && (
-                        <time className="notify__item-time mono" dateTime={item.time.toISOString()}>
-                          {formatDateTime(item.time)}
-                        </time>
-                      )}
-                    </button>
+                      </ItemTitle>{" "}
+                      <ItemDetail>{item.detail}</ItemDetail>{" "}
+                      {item.time && <ItemTime dateTime={item.time.toISOString()}>{formatDateTime(item.time)}</ItemTime>}
+                    </Item>
                   </li>
                 ))}
-              </ul>
-              <div className="notify__footer">
+              </List>
+              <Footer>
                 {items.length > shown.length && <span className="muted">{`Showing ${shown.length} of ${items.length}`}</span>}
-                <div className="notify__actions">
+                <Actions>
                   <Button variant="ghost" size="small" onClick={markAll} disabled={count === 0}>
                     Mark All as Read
                   </Button>
                   <Button variant="ghost" size="small" onClick={() => choose(viewAll.onSelect)}>
                     {viewAll.label}
                   </Button>
-                </div>
-              </div>
+                </Actions>
+              </Footer>
             </>
           )}
-        </div>
+        </Panel>
       )}
-    </div>
+    </Root>
   );
 }

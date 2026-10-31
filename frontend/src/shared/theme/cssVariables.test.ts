@@ -18,7 +18,7 @@ describe("legacyCssVariables", () => {
     for (const css of stylesheets) {
       for (const match of css.matchAll(/var\((--[a-z0-9-]+)/g)) used.add(match[1]);
     }
-    expect(used.size).toBeGreaterThan(20);
+    expect(used.size).toBeGreaterThan(0); // only base.css is left; MUI-14 removes it and this file
     const missing = [...used].filter((name) => !name.startsWith("--mui-") && !(name in variables));
     expect(missing).toEqual([]);
   });

@@ -1,15 +1,19 @@
+import Box from "@mui/material/Box";
+import EmptyState from "../../shared/components/EmptyState";
 import Notification from "../../shared/components/Notification";
+import { Panel, PanelHeader } from "../../shared/components/Panel";
+import { color, space } from "../../shared/theme/tokens";
 import { useSnapshot } from "./hooks";
 
 export default function SnapshotPanel({ scannedAt }) {
   const { url, status } = useSnapshot(scannedAt ? scannedAt.getTime() : null);
 
   return (
-    <section className="panel" aria-labelledby="snapshot-title">
-      <div className="panel__header">
+    <Panel aria-labelledby="snapshot-title">
+      <PanelHeader>
         <h2 id="snapshot-title">Latest Shelf Image</h2>
-      </div>
-      <div className="snapshot">
+      </PanelHeader>
+      <Box sx={{ background: color.surface, "& img": { display: "block", width: "100%", height: "auto" } }}>
         {status === "ready" && (
           <img
             src={url}
@@ -19,24 +23,21 @@ export default function SnapshotPanel({ scannedAt }) {
           />
         )}
         {status === "loading" && (
-          <p className="empty-state" role="status">
+          <EmptyState component="p" role="status">
             Loading image…
-          </p>
+          </EmptyState>
         )}
         {status === "empty" && (
-          <div className="empty-state">
-            <strong>No image yet</strong>
-            The annotated photo appears here after the first scan.
-          </div>
+          <EmptyState title="No image yet">The annotated photo appears here after the first scan.</EmptyState>
         )}
         {status === "error" && (
-          <div className="snapshot__error">
+          <Box sx={{ padding: space(5) }}>
             <Notification kind="error">
               The image could not be loaded. Make sure the backend is running, then refresh the page.
             </Notification>
-          </div>
+          </Box>
         )}
-      </div>
-    </section>
+      </Box>
+    </Panel>
   );
 }

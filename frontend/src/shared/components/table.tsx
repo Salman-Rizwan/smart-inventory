@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell, { type TableCellProps } from "@mui/material/TableCell";
@@ -62,12 +63,16 @@ export function NumCell({ children }: { children: ReactNode }) {
   return <TableCell sx={numeric}>{children}</TableCell>;
 }
 
-/** A full-width row under a row, holding that row's error message (its id is the row control's aria-describedby). */
+/**
+ * A full-width row under a row, holding that row's error message (its id is the row control's
+ * aria-describedby). On a phone the table is wider than its scroll box and often scrolled right to
+ * reach the actions, so the message is pinned to the left edge at the box's visible width.
+ */
 export function ErrorRow({ id, colSpan, children }: { id: string; colSpan: number; children: ReactNode }) {
   return (
     <TableRow>
-      <TableCell id={id} colSpan={colSpan} sx={{ p: 0 }}>
-        {children}
+      <TableCell id={id} colSpan={colSpan} sx={{ p: 0, whiteSpace: "normal" }}>
+        <Box sx={{ position: "sticky", left: 0, width: "var(--table-scroll-width, 100%)", maxWidth: "100%" }}>{children}</Box>
       </TableCell>
     </TableRow>
   );

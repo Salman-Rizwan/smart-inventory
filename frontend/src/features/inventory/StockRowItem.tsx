@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import { useId, useState, type FormEvent } from "react";
 import Button from "../../shared/components/Button";
 import CompactInput from "../../shared/components/CompactInput";
@@ -5,6 +6,7 @@ import Notification from "../../shared/components/Notification";
 import StatusBadge, { type BadgeKind } from "../../shared/components/StatusBadge";
 import { Cell, ErrorRow, NumCell, Row, RowHeader } from "../../shared/components/table";
 import { formatInteger, formatSigned } from "../../shared/format";
+import { space } from "../../shared/theme/tokens";
 import { receiveStock, recordSale } from "./stockActions";
 import { stockErrorMessage } from "./stockErrors";
 import type { StockRow, StockState } from "./types";
@@ -81,7 +83,7 @@ export default function StockRowItem({ row, onChanged }: Props) {
           <StatusBadge kind={badge.kind}>{badge.label}</StatusBadge>
         </Cell>
         <Cell>
-          <div className="stock-actions">
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: space(3) }}>
             <Button
               variant="secondary"
               size="small"
@@ -93,7 +95,12 @@ export default function StockRowItem({ row, onChanged }: Props) {
             >
               Record Sale
             </Button>
-            <form className="stock-actions__receive" onSubmit={handleReceive} noValidate>
+            <Box
+              component="form"
+              onSubmit={handleReceive}
+              noValidate
+              sx={{ display: "flex", alignItems: "center", gap: space(2) }}
+            >
               <CompactInput
                 name="quantity"
                 type="text"
@@ -119,8 +126,8 @@ export default function StockRowItem({ row, onChanged }: Props) {
               >
                 Receive Stock
               </Button>
-            </form>
-          </div>
+            </Box>
+          </Box>
         </Cell>
       </Row>
       {message && (

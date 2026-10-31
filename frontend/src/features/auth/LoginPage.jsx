@@ -1,9 +1,11 @@
+import Box from "@mui/material/Box";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Button from "../../shared/components/Button";
+import CardPage, { CardBrand } from "../../shared/components/CardPage";
 import FormField from "../../shared/components/FormField";
-import Logo from "../../shared/components/Logo";
 import Notification from "../../shared/components/Notification";
+import { space } from "../../shared/theme/tokens";
 import { useAuth } from "./AuthContext";
 import { login } from "./authService";
 import { validateLogin } from "./validation";
@@ -43,45 +45,43 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="auth-page">
-      <div className="panel auth-card">
-        <div className="panel__body">
-          <div className="auth-card__brand">
-            <Logo />
-            <span translate="no">Smart Inventory</span>
-          </div>
-          <h1>Sign In</h1>
-          <p className="muted">Use the account your shop administrator gave you.</p>
-          <form onSubmit={handleSubmit} noValidate>
-            <FormField
-              label="Email"
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="username"
-              spellCheck={false}
-              placeholder="name@example.com"
-              value={values.email}
-              onChange={handleChange}
-              error={fieldErrors.email}
-            />
-            <FormField
-              label="Password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Enter your password…"
-              value={values.password}
-              onChange={handleChange}
-              error={fieldErrors.password}
-            />
-            {formError && <Notification kind="error">{formError}</Notification>}
-            <Button type="submit" block loading={busy} loadingLabel="Signing in…">
-              Sign In
-            </Button>
-          </form>
-        </div>
-      </div>
-    </main>
+    <CardPage>
+      <CardBrand />
+      <h1>Sign In</h1>
+      <p className="muted">Use the account your shop administrator gave you.</p>
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        noValidate
+        sx={{ display: "flex", flexDirection: "column", gap: space(4), marginTop: space(5) }}
+      >
+        <FormField
+          label="Email"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="username"
+          spellCheck={false}
+          placeholder="name@example.com"
+          value={values.email}
+          onChange={handleChange}
+          error={fieldErrors.email}
+        />
+        <FormField
+          label="Password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          placeholder="Enter your password…"
+          value={values.password}
+          onChange={handleChange}
+          error={fieldErrors.password}
+        />
+        {formError && <Notification kind="error">{formError}</Notification>}
+        <Button type="submit" block loading={busy} loadingLabel="Signing in…">
+          Sign In
+        </Button>
+      </Box>
+    </CardPage>
   );
 }

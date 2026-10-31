@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import NotificationMenu, { type NotificationItem } from "./NotificationMenu";
@@ -93,9 +93,14 @@ describe("NotificationMenu", () => {
     it("styles unread items differently from read ones, and does not rely on colour alone", async () => {
       const { bell } = setup([item(1, true), item(2, false)]);
       await userEvent.click(bell);
-      expect(screen.getByRole("button", { name: /Item 1/ })).toHaveClass("notify__item--unread");
-      expect(screen.getByRole("button", { name: /Item 2/ })).not.toHaveClass("notify__item--unread");
-      expect(document.querySelectorAll(".notify__dot")).toHaveLength(1);
+      const unread = screen.getByRole("button", { name: /Item 1/ });
+      const read = screen.getByRole("button", { name: /Item 2/ });
+      expect(getComputedStyle(unread).backgroundColor).not.toBe(getComputedStyle(read).backgroundColor);
+      expect(getComputedStyle(within(unread).getByText(/Item 1$/)).fontWeight).toBe("600");
+      expect(getComputedStyle(within(read).getByText("Item 2")).fontWeight).toBe("400");
+      // The dot (a shape, not just a colour) marks unread items only.
+      expect(unread.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
+      expect(read.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
     });
 
     it("says how many are new in the header, and nothing when all are read", async () => {

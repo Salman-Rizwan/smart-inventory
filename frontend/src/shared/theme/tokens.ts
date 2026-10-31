@@ -33,6 +33,9 @@ export const color = {
 export const SPACING_UNIT = 4;
 export const spaceSteps = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 6, 6: 8, 7: 12 } as const;
 
+/** A legacy spacing step in px, for styles that must match the old --space-N exactly: space(5) = "24px". */
+export const space = (step: keyof typeof spaceSteps): string => `${spaceSteps[step] * SPACING_UNIT}px`;
+
 export const font = {
   sans: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif',
   mono: '"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace',

@@ -35,6 +35,12 @@ describe("TableScroll", () => {
     expect(screen.getByRole("region", { name: "Active alerts" })).toHaveAttribute("tabindex", "0");
   });
 
+  it("publishes its visible width so row messages can stay in view", () => {
+    stubWidths(640, 320);
+    renderTable();
+    expect(screen.getByRole("region", { name: "Active alerts" }).style.getPropertyValue("--table-scroll-width")).toBe("320px");
+  });
+
   it("stays out of the tab order when nothing overflows", () => {
     stubWidths(300, 300);
     renderTable();

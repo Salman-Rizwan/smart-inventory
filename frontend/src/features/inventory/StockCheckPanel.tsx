@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import EmptyState from "../../shared/components/EmptyState";
 import Notification from "../../shared/components/Notification";
+import { Panel, PanelBody, PanelFooter, PanelHeader } from "../../shared/components/Panel";
 import TableScroll from "../../shared/components/TableScroll";
 import { DataTable, HeadCell } from "../../shared/components/table";
 import StatusBadge from "../../shared/components/StatusBadge";
@@ -22,8 +24,8 @@ export default function StockCheckPanel({ counts }: Props) {
   const showTable = !products.loading && !products.error && rows.length > 0;
 
   return (
-    <section className="panel" aria-labelledby="stock-title">
-      <div className="panel__header panel__header--split">
+    <Panel aria-labelledby="stock-title">
+      <PanelHeader split>
         <div>
           <h2 id="stock-title">Stock Check</h2>
           <p className="muted">Camera count against the POS record for each part.</p>
@@ -34,27 +36,24 @@ export default function StockCheckPanel({ counts }: Props) {
           ) : (
             <StatusBadge kind="warning">{`${mismatches} ${mismatches === 1 ? "Mismatch" : "Mismatches"}`}</StatusBadge>
           ))}
-      </div>
+      </PanelHeader>
 
       <p className="visually-hidden" role="status" aria-live="polite">
         {announcement}
       </p>
 
       {products.error && (
-        <div className="panel__body">
+        <PanelBody>
           <Notification kind="error">{products.error}</Notification>
-        </div>
+        </PanelBody>
       )}
       {products.loading && (
-        <p className="empty-state" role="status">
+        <EmptyState component="p" role="status">
           Loading stock records…
-        </p>
+        </EmptyState>
       )}
       {!products.loading && !products.error && rows.length === 0 && (
-        <div className="empty-state">
-          <strong>No products yet</strong>
-          Ask your administrator to add a stock record for each part.
-        </div>
+        <EmptyState title="No products yet">Ask your administrator to add a stock record for each part.</EmptyState>
       )}
       {showTable && (
         <>
@@ -77,12 +76,12 @@ export default function StockCheckPanel({ counts }: Props) {
               ))}
             </DataTable>
           </TableScroll>
-          <p className="panel__footer muted">
+          <PanelFooter component="p">
             Difference is shelf minus POS. A negative number means the records show stock that is not on the
             shelf.
-          </p>
+          </PanelFooter>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

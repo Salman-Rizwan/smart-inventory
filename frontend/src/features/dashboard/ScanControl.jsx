@@ -1,7 +1,9 @@
+import Box from "@mui/material/Box";
 import { useState } from "react";
 import Button from "../../shared/components/Button";
 import Notification from "../../shared/components/Notification";
 import { formatInteger } from "../../shared/format";
+import { breakpoint, space } from "../../shared/theme/tokens";
 import { partLabel } from "./parts";
 import { runScan, scanErrorMessage } from "./scanApi";
 
@@ -30,14 +32,28 @@ export default function ScanControl() {
   }
 
   return (
-    <div className="scan-control">
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        gap: space(3),
+        maxWidth: "100%",
+        // On a phone the button and its result take the full width.
+        [`@media (max-width: ${breakpoint.narrow})`]: {
+          alignItems: "stretch",
+          width: "100%",
+          "& .MuiButton-root": { width: "100%" },
+        },
+      }}
+    >
       <Button onClick={handleScan} loading={busy} loadingLabel="Scanning…">
         Scan Now
       </Button>
-      <div className="scan-control__message" aria-live="polite">
+      <Box aria-live="polite" sx={{ "&:empty": { display: "none" } }}>
         {result && <Notification kind="success" announce={false}>{summary(result)}</Notification>}
-      </div>
+      </Box>
       {error && <Notification kind="error">{error}</Notification>}
-    </div>
+    </Box>
   );
 }
