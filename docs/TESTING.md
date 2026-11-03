@@ -3,11 +3,11 @@
 ## Automated (run before any hand-off)
 ```bash
 # backend (from backend/, venv on)
-python -m pytest                      # 108 tests, fakes only
+python -m pytest                      # 111 tests, fakes only
 ruff check . && ruff format --check .
 
 # frontend (from frontend/)
-npm run typecheck && npm test && npx oxlint && npm run build   # 498 tests
+npm run typecheck && npm test && npx oxlint && npm run build   # 598 tests
 ```
 Backend tests use fakes from `tests/conftest.py` (no webcam, no Firebase). `oxlint` matters: `tsc` skips `.js`/`.jsx`, and it caught a removed component still imported in `AppShell.jsx`.
 
@@ -23,8 +23,11 @@ Rules for live tests:
 6. Do not run a snapshot and restore while someone is scanning: the restore would delete their scans. Check `status/latest.scannedAt` first.
 7. After a click that changes the URL, wait for the new state (for example `aria-pressed="true"`), not for the URL: React Router renders a long table as a low-priority update, a few tens of milliseconds after the URL changes.
 
+## Rules checks
+`rules_test.py` (in `.handoff/live-tests/`, 65 cases) sends `firestore.rules` with mocked documents to the Firebase Rules API test endpoint, so a rule change is checked before the user publishes it and nothing is deployed or written. It covers the stock change log (every field, every type, the link to the product through `lastMovementId`, edits and deletes), Part Settings, who acknowledged and who received, and the unchanged rules. The service account needs the `firebaserules.rulesets.test` permission (for example the Firebase Rules Viewer role); without it the API answers 403.
+
 ## Rules attack checks
-Over REST with real ID tokens: a dealer cannot write products or acknowledge alerts; a shopkeeper cannot accept or dispatch; nobody can create or delete orders or alerts; a user cannot read or write another user's `notification_reads`; wrong timestamps are refused.
+Over REST with real ID tokens, after the user publishes: a dealer cannot write products or acknowledge alerts; a shopkeeper cannot accept or dispatch; nobody can create or delete orders or alerts; a user cannot read or write another user's `notification_reads`; wrong timestamps are refused; a POS change without its log entry, a log entry by the dealer, and any edit or delete of a log entry are refused.
 
 ## Accessibility
 axe-core run on each page and role at desktop and at 390 px, layout checked at phone widths 390, 375, 360 and 320 px, and review against the Web Interface Guidelines. The Oct 29 baseline found `scrollable-region-focusable` at 390 px: the table scroll boxes could not be reached by keyboard (desktop axe was 0). Fixed by the shared `TableScroll` wrapper, which becomes a labelled, focusable region only when the table overflows. Run axe at a phone width as well as desktop; some failures only appear when content overflows.

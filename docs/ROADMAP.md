@@ -1,34 +1,38 @@
 # Roadmap
 
-Deadlines: code freeze Nov 7, 2026; submit Nov 8; final submission Nov 9. Done so far: M1 to M5, M7, M8, M9 and notifications Stage A (see `README.md` Status).
+Deadlines (moved Nov 4): final submission Nov 15, 2026; code freeze Nov 13, submit Nov 14. Earlier: freeze Nov 7, final Nov 9. Done so far: M1 to M5, M7, M8, M9 and notifications Stage A (see `README.md` Status).
 
-**Progress (Oct 31):** the move to Material UI is complete (MUI-0 to MUI-14), on schedule. Also done: clearer messages when two people act on the same order at once (see `docs/DESIGN_DECISIONS.md`), and the UI and usability phase UX-1 to UX-4 (section 1b): the Alerts tab with alert history, which replaces most of F2. Next: F1 on Nov 1.
+**Progress (Nov 4):** the move to Material UI (MUI-0 to MUI-14) and the UI and usability phase UX-1 to UX-4 (section 1b) were done on Oct 31. Nov 1 to 3 were lost; with the deadline moved to Nov 15, the plan below keeps every item, stretch ones included. F1 (stock change log, Adjust Stock, Part Settings) is built and tested on Nov 4; its live check waits for the user to publish the rules.
+
+**Decided Nov 4 (from the shopkeeper review on Oct 31):** money in LKR (`VITE_CURRENCY`); the stock change log gets its own **Stock Log** tab; an alert waits `ALERT_DELAY_SECONDS` (a `.env` setting, default 180) before it is raised; frames that are too dark are skipped; the dashboard shows when the camera last scanned. Future work and limitations for the report are kept in `docs/FUTURE_WORK.md`.
 
 Plan agreed on Oct 28 after the interim viva. It covers the supervisor's feedback (a history of past alerts, and business intelligence analytics on the dashboard) and the move to Material UI.
 
 ## Time budget
-About 80 working hours from Oct 28 to Nov 6. Must-have work is about 57 to 77 hours; stretch work is about 15 to 20 hours and is done only when ahead of schedule. The report (M13) is written alongside from about Nov 3.
+Planned Oct 28: about 80 working hours to Nov 6. Re-planned Nov 4 for the Nov 15 deadline: about 70 working hours to the Nov 13 freeze for about 45 hours of work, so nothing is cut and two days are kept for measurements and fixes. The report (M13) is written alongside and after the freeze.
 
 | Date | Work | Kind |
 |---|---|---|
-| Oct 28 | MUI-0 baseline, MUI-1 trial (go/no-go), MUI-2 theme | Must |
-| Oct 29 | MUI-3 Button, MUI-4 StatusBadge, MUI-5 FormField | Must |
-| Oct 30 | MUI-6 feedback components, MUI-7 NotificationMenu, MUI-8 app shell; done early: MUI-9 to MUI-12 tables, MUI-13 page layout | Must |
-| Oct 31 | MUI-14 remove the generated variables and `base.css` (done); UX-1 to UX-4 Alerts tab, dashboard summary, notification links, header and page titles (done) | Must |
-| Nov 1 | F1 stock change log, seed script, `demo_reset` change (user publishes the rules) | Must |
-| Nov 2 | F3 pure analytics functions; stock history section (what is left of F2) | Must |
-| Nov 3 | F3 dashboard summary and Insights page | Must (extra sections stretch) |
-| Nov 4 | M6 automatic scanning | Must |
-| Nov 5 | M10 final rules and role checks; M11 Hosting (thumbnail stretch) | Must |
-| Nov 6 | M12 measurements and screenshots, full regression, demo rehearsal | Must |
-| Nov 7 | Code freeze | |
+| Oct 28 to 31 | MUI-0 to MUI-14; UX-1 to UX-4 (done) | Must |
+| Nov 1 to 3 | Lost | |
+| Nov 4 | F1: stock change log, Adjust Stock, Part Settings, delivery guard, who-did-it stamps (built); user publishes the rules; live check | Must |
+| Nov 5 | M6: automatic scanning, alert delay, dark-frame skip, camera status | Must |
+| Nov 6 | Stock Log tab; undo on Record Sale | Must |
+| Nov 7 | `seed_history`; F3 analytics functions (pure, tested) | Must |
+| Nov 8 | F3 dashboard tiles; Insights core sections (sales, shrinkage, days of cover, recommendations) | Must |
+| Nov 9 | Insights: stock flow, stock value, stockouts, Apply, response and dealer | Must |
+| Nov 10 | M10 final rules (user publishes) and backend role check; M11 Hosting and thumbnail | Must |
+| Nov 11 | M12 measurements: detection under 3 lighting conditions, Scan Now timing, sync latency, usability test with 3 people | Must |
+| Nov 12 | Fixes from M12; full regression; screenshots for the report; demo rehearsal | Must |
+| Nov 13 | Code freeze. `package.json` 1.0.0, PR dev to main (merge commit), tag `v1.0.0`, deploy Hosting from it | Must |
+| Nov 14 | Submit | |
+| Nov 15 | Final submission | |
 
 ## Checkpoints
-- **Oct 28, MUI trial:** the user decides go or stop after MUI-1. Stop means keep the token CSS; the rest of the plan is unchanged. Decided: go (Oct 29).
-- **Oct 30 evening:** MUI-0 to MUI-8 done. If not, finish them by noon Oct 31 and skip the stretch block. Met, with MUI-9 to MUI-13 also done.
-- **Oct 31 evening, MUI stop:** whatever is not converted keeps its stylesheet, which reads the CSS variables generated from the theme, so the look stays consistent, and is finished after submission.
-- **Nov 3 evening:** F3 core done. The extra Insights sections are dropped if not.
-- **If late, cut in this order:** MUI-9 to MUI-14; the M11 thumbnail; the Insights response and dealer section. Never cut M6, M10, M11 deployment or M12.
+- **Nov 5 evening:** F1 checked live and M6 done.
+- **Nov 9 evening:** Stock Log and all of F3 done. Anything left moves to Nov 12, never past the freeze.
+- **Nov 10 evening:** M10 and M11 done, so M12 measures the hosted app.
+- **If late, cut in this order** (each cut goes into `docs/FUTURE_WORK.md`): the Response and dealer section; stockouts and lost sales; stock value; Apply on recommendations; undo on Record Sale. **Never cut:** the alert delay, the dark-frame skip, Adjust Stock, camera status, the Stock Log, M6, M10, M11 deployment, M12.
 - M6 does not depend on anything else; move it earlier whenever there is a gap.
 
 ## Definition of done (every task)
@@ -75,58 +79,65 @@ Not taken (offered, optional): scan-age warning, Receive Stock renamed Receive D
 ## 2. Supervisor feedback: history and business intelligence
 The analytics decides what history is needed. Alerts, orders and scans are already stored; sales and receipts are not (Record Sale, Receive Stock and Mark Received only overwrite `posCount`), so F1 adds a log.
 
-### F1. Stock change log (about 1 day)
-- New collection `stock_movements/{id}`: `product`, `type` (Sale, Receipt, OrderReceived), `qty`, `posBefore`, `posAfter`, `at`, `by`, `orderId` (OrderReceived only), `seeded` (demo data only).
-- Written in the same transaction as the `posCount` change: Record Sale, Receive Stock, and the `receiveOrder` transaction. The log can never disagree with the POS.
-- Rules: shopkeeper only; fields validated; `posBefore` and `posAfter` must match the product before and after; `by` is the signed-in user and `at` the request time; no update or delete; a `posCount` change without a matching log entry is refused. The user publishes the rules; compare the deployed ruleset first.
-- Seed script `python -m scripts.seed_history [--clear]`: about 30 days of sales, receipts, Resolved alerts and Received orders, all marked `seeded: true`. `--clear` removes only seeded documents.
-- `demo_reset` keeps seeded documents (they are all closed, so they never block automatic ordering).
-- Tests: transaction logic, parsers, seed planning, rules attack checks (dealer writes, edits, deletes, mismatched counts, unlogged POS change).
+### F1. Stock change log, Adjust Stock, Part Settings (built Nov 4)
+- `stock_movements/{id}`: `product`, `type` (Sale, Receipt, OrderReceived, Adjustment, Reset), `change` (signed), `posBefore`, `posAfter`, `unitCost` and `unitPrice` as at the change, `reason` (Adjustment), `orderId` (OrderReceived), `at`, `by`.
+- Written in the same transaction as the `posCount` change: Record Sale, Receive Stock, Adjust Stock and `receiveOrder`. The product names the entry in `lastMovementId`; the rules refuse a POS change without its matching new entry, an entry the product does not match, a faked cost or price, a reason that does not fit the direction, an Order Received entry for an order not moving from Dispatched to Received in the same write, and any edit or delete. Shopkeeper only, including reads.
+- **Adjust Stock** (Stock Check row): new count (starts at the camera count), reason (Damaged, Lost or Stolen, Miscount; Found, Customer Return, Miscount), the change and its write-off value at cost.
+- **Part Settings** panel and dialog: cost, selling price, margin, reorder level and quantity (0 turns automatic orders off), with `updatedBy` and `updatedAt`.
+- **Delivery guard:** Receive Stock warns when a dealer order for the part has been dispatched and points to Mark Received; Receive Anyway still works.
+- `acknowledgedBy` on alerts and `receivedBy` on orders.
+- `demo_reset` and `seed_products --reset` write a `Reset` entry when they change a POS count (backend only), so the log stays in step.
+- Tests: 598 frontend (100 new: planner, validation, repository writes, dialogs, guard, provider), 111 backend. Live (Nov 4): `f1_rest.py`, 31/31 rule checks over REST with real sign-ins on the first publish; `f1.mjs` in Chrome found that a second Part Settings save by the same person was refused (the rule wanted `updatedBy` to change; fixed, republish needed) and that MUI moved focus to the dialog box instead of the first field (fixed in the shared `Dialog`). The rules check script (`.handoff/live-tests/rules_test.py`, 65 cases through the Rules API test endpoint, nothing deployed) needs the service account to have the Firebase Rules permission to test; until then, live REST attack checks after publishing.
+- Still to do: live check in Chrome after the user publishes the rules; `seed_history` moves to F3.
 
-### F2. History (revised Oct 31: mostly done by UX-1)
-- Alert history: done, on the Alerts tab (UX-1), including a notification opening its row (this replaced Notifications Stage B).
-- Order history: already on the Orders page (Completed and All filters).
-- Stock changes: a section of the Insights page (F3) over the F1 log, instead of a separate History page. The header stays at four tabs (Dashboard, Alerts, Orders, Insights).
+### Stock Log tab and undo (Nov 6)
+Shopkeeper only, between Orders and Insights. Today by default; filters by part, type and period; 50 at a time with Load More (as alert history). Columns: time, part, type, change, POS before and after, reason, who. Stock Check rows and the Insights stock-flow section link to it filtered to the part. The dealer never sees it. Five tabs are measured at 320 px; if they do not fit, the tab row scrolls (it already can).
+One name per part: the Orders and Alerts pages name a part from its id (`partLabel`), Stock Check from the product document; use the product name from `ProductsProvider` everywhere, with `partLabel` only as the fallback (found in the F1 live test, where `zz_part` showed as "ZZ Part" and "Zz Part").
+Undo on Record Sale: a few seconds of "Sale recorded. Undo" that writes a reversing entry (never a delete); the analytics leave out both entries.
+
+### F2. History (done by UX-1 and the Stock Log)
+- Alert history: the Alerts tab. Order history: the Orders page. Stock changes: the Stock Log tab.
 - Notifications stay derived and are never stored; history reads the source records.
 
-### F3. Business intelligence: dashboard summary and Insights page (about 2 days)
-Shopkeeper only. Calculations are pure, tested functions in `features/insights/analytics.ts`, run in the browser so they also work on the hosted app. Medians, not averages (small numbers). Every chart has a table alternative. The Insights page is lazy-loaded so the main bundle does not grow. Charts use MUI X Charts (free MIT version). A visible "Includes demo data" label appears when the period contains seeded records.
+### F3. Business intelligence: dashboard summary and Insights page (Nov 7 to 9)
+Shopkeeper only. Calculations are pure, tested functions in `features/insights/analytics.ts`, run in the browser so they also work on the hosted app. Medians, not averages (small numbers). Every chart has a table alternative. The Insights page is lazy-loaded so the main bundle does not grow. A visible "Includes demo data" label appears when the period contains seeded records. Money in LKR from each entry's own cost and price.
 
-Dashboard summary (period selectable), each linking to its Insights section:
-1. Units sold, with the change against the previous period.
-2. Lowest days of cover: the part closest to running out.
-3. Discrepancy units: stock the POS claims but the shelf does not have.
-4. Typical dealer lead time (created to received).
+Dashboard summary (four tiles, each linking to its Insights section): sales value for the period with the change from the previous one; shrinkage value (Damaged plus Lost or Stolen, at cost); lowest days of cover; typical dealer lead time.
 
-Insights page (7, 30 or 90 days; all parts or one):
+| Section | Shows | Kind |
+|---|---|---|
+| Sales trend | Units and value per day and part, net of customer returns | Core |
+| Shrinkage | Write-offs by reason and part, and as a share of sales | Core |
+| Days of cover | Shelf count / median daily sales, against the reorder level | Core |
+| Recommendations | Suggested reorder level = median daily sales x lead time + safety margin, next to the current one | Core |
+| Stock flow | Sold compared with received per part, linking to the Stock Log | Core (Nov 9) |
+| Stock value | POS and shelf counts at cost; the gap is unexplained loss | Core (Nov 9) |
+| Stockouts | Hours at zero from the scans (laptop-off gaps counted as unknown) and the estimated lost sales | Core (Nov 9) |
+| Apply | Applies a recommended reorder level through Part Settings | Core (Nov 9) |
+| Response and dealer | Time to acknowledge and resolve alerts; time per order stage | Core (Nov 9) |
 
-| Section | Shows | Decision it supports | Kind |
-|---|---|---|---|
-| Sales trend | Daily sales per part | What sells; is demand rising | Core |
-| Stock flow | Sold compared with received per part | Over- or under-stocking | Core |
-| Shelf stock over time | Camera count per part (from scans) | When the shelf actually runs low | Core |
-| Days of cover | Per part, against its reorder level | Which part to reorder first | Core |
-| Discrepancies | Alerts and missing units per part | Where stock goes missing | Core |
-| Recommendations | Suggested reorder level = average daily sales x dealer lead time + safety margin, next to the current level | Turns data into an action | Core |
-| Response and dealer performance | Time to acknowledge and resolve alerts; time per order stage | Shop responsiveness; dealer reliability | Stretch |
+Edge cases each function handles and tests: no sales in the period ("No sales", not 0%); previous period zero ("New", not infinity); under 14 days of sales or 2 received orders ("Not enough history yet", no recommendation); a part with no cost or price ("Set a price in Part Settings", never 0); a part added later (no history, nothing breaks); a price change mid-period (each entry's own price); Reset entries left out; days in the shop's local time.
 
-Read cost: at most 90 days of records for two parts, a few hundred reads per visit, well inside the Spark plan's 50,000 per day.
+`seed_history` (moved from F1): about 30 days of sales, receipts, adjustments with reasons, customer returns, Resolved alerts and Received orders, all `seeded: true`; `--clear` removes only seeded documents; `demo_reset` keeps them.
 
-## 3. M6: automatic scanning every 60 s
-- A background loop in the backend calls the same scan service every `SCAN_INTERVAL` seconds (new `.env` setting, validated in `core/config.py`).
-- Free-tier budget: write a `scans` document only when the counts change, plus a heartbeat every 10 minutes. `status/latest` is updated every scan.
-- Must not overlap with a manual Scan Now (one scan at a time); camera errors are logged and the loop carries on.
-- No rule change (the backend uses `firebase-admin`).
-- Tests with the fake camera and fake repository; no real webcam.
+Read cost: at most 90 days of records for two parts, a few thousand reads per visit, well inside the Spark plan's 50,000 per day.
+
+## 3. M6: automatic scanning (Nov 5)
+- A background loop in the backend calls the same scan service every `SCAN_INTERVAL` seconds (new `.env` setting, validated in `core/config.py`). Must not overlap with a manual Scan Now (one scan at a time); camera errors are logged and the loop carries on.
+- Free-tier budget: write a `scans` document only when the counts change, plus a heartbeat every 10 minutes. `status/latest` is updated every scan, with `scanIntervalSeconds`, `lastAttemptAt` and `lastError`, so the browser can tell "camera not responding" from "laptop off" without hard-coding the interval.
+- **Alert delay:** an alert is raised only when a mismatch has lasted `ALERT_DELAY_SECONDS` (`.env`, default 180; 0 restores the old behaviour for demos). The backend stores `mismatchSince` on the product; a match clears it and resolves at once. The Stock Check row still shows the mismatch at once; only the alert and its notification wait. Why time, not a number of scans: a Scan Now right after an automatic scan would otherwise confirm a customer walking to the till. In `plan_alerts`, with tests.
+- **Dark frames:** a frame darker than `MIN_FRAME_BRIGHTNESS` (`.env`) is skipped: no counts, alerts or orders change, and the dashboard says "Skipped: too dark". Without it a dark shop at night reads as an empty shelf and orders stock. Pure function, tested.
+- **Camera status** on the dashboard: last scan time and age; amber "camera not responding" or "no scan for N minutes, check the shop laptop" when older than twice the interval; Stock Check says its counts are "as of" that time.
+- No rule change (the backend uses `firebase-admin`). Tests with the fake camera and fake repository; no real webcam.
 
 ## 4. M10: full role-based security
-- Final rules: keep every current rule, including `stock_movements` from F1 and the dealer's read of order history. The user publishes them.
+- Final rules: keep every current rule, including `stock_movements` from F1 and the dealer's read of order history. Narrow `products` reads so the dealer no longer sees the shop's costs and selling prices (the dealer's order list needs only the part name, which comes from the order). The user publishes them.
 - Backend role check: today any signed-in user, including a dealer, can call `/scan` and `/snapshot`. Add a shopkeeper-only dependency.
 - Rules attack tests (see `docs/TESTING.md`).
 
 ## 5. M11: Firebase Hosting
 - Deploy the React build. Add the hosted origin to `CORS_ORIGINS`. "Scan Now" still only works on the shop laptop.
-- Stretch: a small thumbnail in `status/latest` (no Cloud Storage), so the hosted app can show the shelf image.
+- Planned (Nov 10): a small thumbnail in `status/latest` (no Cloud Storage), so the hosted app can show the shelf image.
 - Check on a phone.
 
 ## 6. Model retraining (in parallel, user-run)

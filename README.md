@@ -93,16 +93,17 @@ python scripts/test_webcam.py
 
 ## Firestore data model
 
-Seven collections. The backend writes the counts, alerts and orders; the browser writes only POS counts, acknowledgements, order steps and the user's own read state. `firestore.rules` enforces each of these.
+Eight collections. The backend writes the counts, alerts and orders; the browser writes only POS changes (each with its stock log entry), part settings, acknowledgements, order steps and the user's own read state. `firestore.rules` enforces each of these.
 
 | Collection / document | Key fields | Written by | Built in |
 |---|---|---|---|
 | `status/latest` (one document) | `counts` {spark_plug, petrol_filter}, `scannedAt`, `imageThumb` (planned, M11) | Backend | M3 |
 | `scans/{auto id}` | `counts`, `scannedAt`, `inferenceMs` | Backend | M3 |
 | `users/{uid}` | `name`, `role` (shopkeeper or dealer) | `seed_users.py` or the console | M4 |
-| `products/{spark_plug}` | `name`, `posCount`, `reorderLevel`, `reorderQty`, `status` (Matched or Mismatch), `lowScanStreak` | Seeded once; shopkeeper (`posCount` only); backend (`status`, `lowScanStreak`) | M7 |
-| `alerts/{auto id}` | `product`, `visualCount`, `posCount`, `state` (Open, Acknowledged, Resolved), `createdAt`, `acknowledgedAt`, `resolvedAt` | Backend; shopkeeper (acknowledge) | M8 |
-| `purchase_orders/{auto id}` | `product`, `qty`, `state` (Pending, Accepted, Dispatched, Received), `createdAt`, `acceptedAt`, `dispatchedAt`, `receivedAt`, `source` (auto), `seeded` (sample data only) | Backend; dealer; shopkeeper | M9 |
+| `products/{spark_plug}` | `name`, `posCount`, `lastMovementId`, `reorderLevel`, `reorderQty`, `unitCost`, `unitPrice` (LKR, null until set), `updatedBy`, `updatedAt`, `status` (Matched or Mismatch), `lowScanStreak` | Seeded once; shopkeeper (`posCount` with its log entry; Part Settings); backend (`status`, `lowScanStreak`) | M7, F1 |
+| `stock_movements/{auto id}` | `product`, `type` (Sale, Receipt, OrderReceived, Adjustment, Reset), `change` (signed), `posBefore`, `posAfter`, `unitCost`, `unitPrice` (as at the change), `reason` (Adjustment: Damaged, LostOrStolen, Miscount, Found, CustomerReturn), `orderId` (OrderReceived), `at`, `by` | Shopkeeper, in the same write as the POS change; scripts (Reset only). Never edited or deleted; shopkeeper only | F1 |
+| `alerts/{auto id}` | `product`, `visualCount`, `posCount`, `state` (Open, Acknowledged, Resolved), `createdAt`, `acknowledgedAt`, `acknowledgedBy`, `resolvedAt` | Backend; shopkeeper (acknowledge) | M8 |
+| `purchase_orders/{auto id}` | `product`, `qty`, `state` (Pending, Accepted, Dispatched, Received), `createdAt`, `acceptedAt`, `dispatchedAt`, `receivedAt`, `receivedBy`, `source` (auto), `seeded` (sample data only) | Backend; dealer; shopkeeper | M9 |
 | `notification_reads/{uid}` | `readKeys` (list, at most 500) | The signed-in user, own document only | Notifications |
 
 Product document ids are the model's own class names. Adding a new part later means retraining the model and adding one product document, with no code change (NFR7).
@@ -133,7 +134,11 @@ Product document ids are the model's own class names. Adding a new part later me
 Each part has a mock POS record in `products/{class name}` (`posCount`, `reorderLevel`, `reorderQty`). After every scan the backend compares the camera count with `posCount` and stores **Matched** or **Mismatch** on the product. The shopkeeper dashboard's Stock Check panel shows the same comparison live, with **Record Sale** (POS minus 1) and **Receive Stock** (POS plus a quantity) buttons that simulate POS transactions. A negative Difference means the records claim stock that is not on the shelf.
 
 - Seed the records from the model's class names: `python -m scripts.seed_products` (from `backend/`; existing records are left alone, `--reset` restores them).
-- Only a shopkeeper can change `posCount`, as a whole number from 0 to 100000, and nothing else (enforced in `firestore.rules`).
+- Only a shopkeeper can change `posCount`, as a whole number from 0 to 100000, and only together with its stock log entry (enforced in `firestore.rules`).
+- **Stock change log (F1):** every POS change (Record Sale, Receive Stock, Adjust Stock, Mark Received) writes a `stock_movements` entry in the same transaction, with who, when, the before and after counts, and the part's cost and price at that moment. Entries cannot be edited or deleted.
+- **Adjust Stock:** sets the POS record to a count the shopkeeper made, with a reason (Damaged, Lost or Stolen, Miscount; Found, Customer Return), so write-offs never show up as sales.
+- **Part Settings:** each part's cost, selling price (LKR, `VITE_CURRENCY`), margin, reorder level and reorder quantity, editable by the shopkeeper. A reorder quantity of 0 turns automatic orders off.
+- **One delivery, counted once:** Receive Stock warns when a dealer order for the part has been dispatched, and points to Mark Received.
 - **False-detection guard:** the model has no "not a part" class, so people and rooms can score as parts. Detections covering more than `MAX_BOX_AREA_RATIO` (default 25%) of the frame, or whose longest side exceeds `MAX_BOX_SIDE_RATIO` (default 60%), are ignored and logged. This is a mitigation until the model is retrained with background photos.
 
 ## Alerts (M8)
@@ -207,9 +212,10 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 - [x] M4: React login, protected dashboard, logout
 - [x] M5: live dashboard (count cards, annotated image, Scan Now, last 10 scans)
 - [x] M7 POS reconciliation, M8 alerts, M9 automatic orders with dealer and shopkeeper flows, and notifications: built, tested and checked live in Chrome with both roles
-- [ ] Move to Material UI (theme keeps the Carbon look)
+- [x] Move to Material UI (theme keeps the Carbon look, Oct 31)
 - [x] Supervisor feedback, part 1: alert history on the Alerts tab (Oct 31)
-- [ ] Supervisor feedback, part 2: stock change log, business intelligence (dashboard summary and Insights page, with stock history)
+- [x] Stock change log, Adjust Stock and Part Settings (F1, Nov 4; live check after the rules are published)
+- [ ] Supervisor feedback, part 2: Stock Log tab, business intelligence (dashboard summary and Insights page)
 - [ ] M6 automatic scanning every 60 s, M10 full role-based rules, M11 Hosting, M12 evaluation, M13 report
 
 What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).

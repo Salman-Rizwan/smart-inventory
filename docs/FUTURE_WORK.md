@@ -27,6 +27,7 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 | Partial and damaged deliveries | Mark Received today adds the full ordered quantity | Needs a received quantity on the order, a rules change and UI | Received quantity defaulting to the ordered quantity; the difference logged; dealer fill rate in Insights |
 | Pause automatic scanning while restocking | Putting a delivery on the shelf over several minutes can raise an alert | The alert delay covers short gaps; a long restock is rare in the demo | A Pause Scanning button with an automatic resume after 15 minutes |
 | Price history and promotions | Revenue analytics with changing prices | Each sale already records its price at the time | A price list with dates; promotion periods marked in Insights |
+| Approval for large adjustments | An adjustment is trusted as entered | Two roles only | Adjustments above a threshold wait for the owner's approval (with owner and staff roles) |
 | Search and filter for many products | Two parts today | Not needed at demo scale | Search box and status filter on Stock Check |
 | CSV export | The accountant works in a spreadsheet | Not needed for the evaluation | Export the stock log, alerts and orders for a chosen period from the browser |
 
