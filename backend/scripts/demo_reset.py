@@ -6,7 +6,8 @@ Run from backend/:
 
 Resets each product's POS count and reorder settings to the demo values below, resets the low-scan
 counts, and clears all purchase orders, alerts and notification read state. It keeps the scan
-history, the users and the model. Scan once afterwards to refresh the dashboard.
+history, the stock change log (adding a Reset entry for each POS count it changes), part costs and
+prices, the users and the model. Scan once afterwards to refresh the dashboard.
 
 Demo values: 4 spark plugs and 1 petrol filter on the shelf, matching the POS. A spark plug reorders
 when 3 or fewer are left, so removing one plug and scanning twice raises an order. The order is for
@@ -21,6 +22,7 @@ from firebase_admin import firestore
 
 from app.core.config import get_settings
 from app.firebase_db import init_firebase
+from app.stock_log import reset_movement
 
 DEMO_PRODUCTS: dict[str, dict[str, int]] = {
     "spark_plug": {"posCount": 4, "reorderLevel": 3, "reorderQty": 1},
@@ -70,9 +72,16 @@ def main() -> None:
     if not args.apply:
         return
     for product_id, target in updates.items():
-        db.collection("products").document(product_id).update(
-            {**target, "lowScanStreak": firestore.DELETE_FIELD}
-        )
+        product_ref = db.collection("products").document(product_id)
+        fields = {**target, "lowScanStreak": firestore.DELETE_FIELD}
+        movement = reset_movement(product_id, existing[product_id], target["posCount"], "demo_reset")
+        batch = db.batch()
+        if movement:
+            movement_ref = db.collection("stock_movements").document()
+            batch.set(movement_ref, {**movement, "at": firestore.SERVER_TIMESTAMP})
+            fields["lastMovementId"] = movement_ref.id
+        batch.update(product_ref, fields)
+        batch.commit()
     for name in CLEARED_COLLECTIONS:
         for doc in db.collection(name).stream():
             doc.reference.delete()
