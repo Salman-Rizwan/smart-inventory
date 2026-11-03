@@ -4,6 +4,8 @@ Deadlines (moved Nov 4): final submission Nov 15, 2026; code freeze Nov 13, subm
 
 **Progress (Nov 4):** the move to Material UI (MUI-0 to MUI-14) and the UI and usability phase UX-1 to UX-4 (section 1b) were done on Oct 31. Nov 1 to 3 were lost; with the deadline moved to Nov 15, the plan below keeps every item, stretch ones included. F1 (stock change log, Adjust Stock, Part Settings) is built and tested on Nov 4; its live check waits for the user to publish the rules.
 
+**Task checklist:** `docs/TASKS.md` breaks every remaining step into small actions, each with its script tests and live tests.
+
 **Decided Nov 4 (from the shopkeeper review on Oct 31):** money in LKR (`VITE_CURRENCY`); the stock change log gets its own **Stock Log** tab; an alert waits `ALERT_DELAY_SECONDS` (a `.env` setting, default 180) before it is raised; frames that are too dark are skipped; the dashboard shows when the camera last scanned. Future work and limitations for the report are kept in `docs/FUTURE_WORK.md`.
 
 Plan agreed on Oct 28 after the interim viva. It covers the supervisor's feedback (a history of past alerts, and business intelligence analytics on the dashboard) and the move to Material UI.
@@ -16,22 +18,22 @@ Planned Oct 28: about 80 working hours to Nov 6. Re-planned Nov 4 for the Nov 15
 | Oct 28 to 31 | MUI-0 to MUI-14; UX-1 to UX-4 (done) | Must |
 | Nov 1 to 3 | Lost | |
 | Nov 4 | F1: stock change log, Adjust Stock, Part Settings, delivery guard, who-did-it stamps (built); user publishes the rules; live check | Must |
-| Nov 5 | M6: automatic scanning, alert delay, dark-frame skip, camera status | Must |
-| Nov 6 | Stock Log tab; undo on Record Sale | Must |
-| Nov 7 | `seed_history`; F3 analytics functions (pure, tested) | Must |
-| Nov 8 | F3 dashboard tiles; Insights core sections (sales, shrinkage, days of cover, recommendations) | Must |
-| Nov 9 | Insights: stock flow, stock value, stockouts, Apply, response and dealer | Must |
-| Nov 10 | M10 final rules (user publishes) and backend role check; M11 Hosting and thumbnail | Must |
-| Nov 11 | M12 measurements: detection under 3 lighting conditions, Scan Now timing, sync latency, usability test with 3 people | Must |
-| Nov 12 | Fixes from M12; full regression; screenshots for the report; demo rehearsal | Must |
+| Nov 5 | M6 backend: loop and settings, time rules for alerts and orders, dark-frame skip, change-only writes and heartbeat, scan timings | Must |
+| Nov 6 | M6 browser and live: camera status, Pause Scanning (user publishes the rules), camera kept open if measured worthwhile, brightness calibration, live run | Must |
+| Nov 7 | Stock Log tab; undo on Record Sale; one name per part | Must |
+| Nov 8 | `seed_history`; F3 analytics functions (pure, tested) | Must |
+| Nov 9 | F3 dashboard tiles; Insights core sections (sales, shrinkage, days of cover, recommendations) | Must |
+| Nov 10 | Insights: stock flow, stock value, stockouts, Apply, response and dealer | Must |
+| Nov 11 | M10 final rules (user publishes) and backend role check; M11 Hosting and thumbnail | Must |
+| Nov 12 | M12 measurements (the user's lighting and accuracy trials run from Nov 7 alongside), full regression, demo rehearsal | Must |
 | Nov 13 | Code freeze. `package.json` 1.0.0, PR dev to main (merge commit), tag `v1.0.0`, deploy Hosting from it | Must |
 | Nov 14 | Submit | |
 | Nov 15 | Final submission | |
 
 ## Checkpoints
-- **Nov 5 evening:** F1 checked live and M6 done.
-- **Nov 9 evening:** Stock Log and all of F3 done. Anything left moves to Nov 12, never past the freeze.
-- **Nov 10 evening:** M10 and M11 done, so M12 measures the hosted app.
+- **Nov 6 evening:** M6 done and checked live (F1 was checked live on Nov 4).
+- **Nov 10 evening:** Stock Log and all of F3 done. Anything left moves to Nov 12, never past the freeze.
+- **Nov 11 evening:** M10 and M11 done, so M12 measures the hosted app.
 - **If late, cut in this order** (each cut goes into `docs/FUTURE_WORK.md`): the Response and dealer section; stockouts and lost sales; stock value; Apply on recommendations; undo on Record Sale. **Never cut:** the alert delay, the dark-frame skip, Adjust Stock, camera status, the Stock Log, M6, M10, M11 deployment, M12.
 - M6 does not depend on anything else; move it earlier whenever there is a gap.
 
@@ -122,13 +124,27 @@ Edge cases each function handles and tests: no sales in the period ("No sales", 
 
 Read cost: at most 90 days of records for two parts, a few thousand reads per visit, well inside the Spark plan's 50,000 per day.
 
-## 3. M6: automatic scanning (Nov 5)
-- A background loop in the backend calls the same scan service every `SCAN_INTERVAL` seconds (new `.env` setting, validated in `core/config.py`). Must not overlap with a manual Scan Now (one scan at a time); camera errors are logged and the loop carries on.
-- Free-tier budget: write a `scans` document only when the counts change, plus a heartbeat every 10 minutes. `status/latest` is updated every scan, with `scanIntervalSeconds`, `lastAttemptAt` and `lastError`, so the browser can tell "camera not responding" from "laptop off" without hard-coding the interval.
-- **Alert delay:** an alert is raised only when a mismatch has lasted `ALERT_DELAY_SECONDS` (`.env`, default 180; 0 restores the old behaviour for demos). The backend stores `mismatchSince` on the product; a match clears it and resolves at once. The Stock Check row still shows the mismatch at once; only the alert and its notification wait. Why time, not a number of scans: a Scan Now right after an automatic scan would otherwise confirm a customer walking to the till. In `plan_alerts`, with tests.
-- **Dark frames:** a frame darker than `MIN_FRAME_BRIGHTNESS` (`.env`) is skipped: no counts, alerts or orders change, and the dashboard says "Skipped: too dark". Without it a dark shop at night reads as an empty shelf and orders stock. Pure function, tested.
-- **Camera status** on the dashboard: last scan time and age; amber "camera not responding" or "no scan for N minutes, check the shop laptop" when older than twice the interval; Stock Check says its counts are "as of" that time.
-- No rule change (the backend uses `firebase-admin`). Tests with the fake camera and fake repository; no real webcam.
+## 3. M6: automatic scanning (Nov 5 to 6, agreed Nov 4)
+Why now: Insights reads the scan history, so its shape is decided here first; it is the riskiest piece left (camera, a background thread, free-tier limits); M12 trials need it; FR1 is the only requirement still partly done.
+
+**Settings** (`.env`, validated in `core/config.py`): `AUTO_SCAN_ENABLED` (default false: the master switch), `SCAN_INTERVAL_SECONDS` (60, at least 10), `SCAN_HEARTBEAT_SECONDS` (600), `ALERT_DELAY_SECONDS` (180; 0 alerts at once, for demos), `REORDER_DELAY_SECONDS` (300; `REORDER_CONFIRM_SCANS` low scans in a row are still needed), `MIN_FRAME_BRIGHTNESS` (40, provisional until calibrated on real frames).
+
+**Nov 5, backend (unit tests on fakes, no webcam):**
+- The loop: one background thread started and stopped with the app, sharing the scan lock with Scan Now, carrying on after camera errors. One worker only (documented).
+- Alerts: an alert opens only when a mismatch has lasted `ALERT_DELAY_SECONDS` (`mismatchSince` on the product); a match clears it and resolves at once. Why time and not scans: a Scan Now right after an automatic scan would otherwise confirm a customer walking to the till.
+- Orders: low must last `REORDER_DELAY_SECONDS` (`lowSince`) as well as the low-scan streak, so restocking or a person in front of the shelf cannot order stock. With both at 0 and two presses, the demo works as before.
+- Dark frames: a frame darker than `MIN_FRAME_BRIGHTNESS` changes nothing; an automatic scan records the skip in `status/latest`; Scan Now returns a typed error ("Too dark to count..."), shown by the Scan Now button.
+- Change-only writes: a scan record only when counts change, plus a heartbeat every `SCAN_HEARTBEAT_SECONDS` (manual scans always save); product status, alert counts, `mismatchSince` and `lowSince` only when they change. `status/latest` every scan, with `lastAttemptAt`, `lastError` and the auto-scan settings. Budget: about 1,500 writes and 7,000 reads a day from the backend plus about 1,440 reads a day per open dashboard, inside the Spark plan's 20,000 and 50,000.
+- Scan records gain `trigger` (manual or auto), `brightness`, `captureMs`, `detectMs`, `saveMs` (for M12 and the Scan Now timing question).
+- Time comes from an injected clock, so tests control it. `demo_reset` clears `mismatchSince` and `lowSince`.
+
+**Nov 6, browser and live:**
+- Camera status on the dashboard: "Last scan 14:02 (40 s ago)"; "Automatic scanning is off"; "Paused until 14:20"; amber "camera not responding" or "no scan for N minutes, check the shop laptop" past twice the interval. Stock Check says its counts are "as of" that time.
+- **Pause Scanning** (for restocking): `settings/scanning.pausedUntil`, at most 30 minutes ahead, resumes by itself; shopkeeper only (rules change, the user publishes); the loop checks it before each scan.
+- Keep the camera open while automatic scanning is on, only if the step timings show opening the camera dominates; reopen after a failure; release when paused or off.
+- Calibrate `MIN_FRAME_BRIGHTNESS` from real frames, lights on and off.
+- Live run: the user restarts the backend from VS Code's terminal (macOS camera permission); 1 to 2 hours at 30 s, counting real reads and writes; Chrome checks of the status line and Pause.
+- Demo settings documented: `AUTO_SCAN_ENABLED=false` or the delays at 0 for a live demonstration.
 
 ## 4. M10: full role-based security
 - Final rules: keep every current rule, including `stock_movements` from F1 and the dealer's read of order history. Narrow `products` reads so the dealer no longer sees the shop's costs and selling prices (the dealer's order list needs only the part name, which comes from the order). The user publishes them.
