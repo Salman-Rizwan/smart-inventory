@@ -141,13 +141,6 @@ Read cost: at most 90 days of records for two parts, a few hundred reads per vis
 - Implementation and Evaluation chapters, including the business intelligence features and the MUI decision. Replace ESP32 with webcam and Realtime Database with Firestore everywhere. Include the licence note (Ultralytics is AGPL). State that demo history is synthetic and marked `seeded`. Any AI-use disclosure follows the university policy; that decision is the user's.
 
 ## After submission (backlog)
-- Anything cut at a checkpoint above.
-- Dealer dashboard (the dealer's own performance and order trends).
-- Dashboard: search and filter for many products, scan-age indicator.
-- Page title per route; phone layout of tables if MUI-9 to MUI-12 are cut.
-- Confirmation or undo for Accept and Dispatch.
-- Optional Request Restock button; relabel Receive Stock to Receive Delivery. A delivery entered both by Receive Stock and by Mark Received would be counted twice; decide the wording or guard.
-- Password reset; idle timeout.
-- Backend: rate limiting, audit trail for order and alert changes (stock changes are logged by F1), split `ScanRepository` (scans, products, alerts, orders), remove dead `Detector.warmup`.
-- Tooling: CI running the test and lint commands; move `.handoff/live-tests` into the repo if the user wants; code-split the main JS chunk (864 KB).
+Future work and known limitations, kept for the report, are in `docs/FUTURE_WORK.md`. Anything cut at a checkpoint above goes there too.
+- Small clean-ups: remove the dead `Detector.warmup`.
 - Known, not actionable: `npm audit` reports `@grpc/grpc-js` (not in the browser bundle; do not downgrade firebase); Python 3.11 end-of-life warnings from Google libraries.
