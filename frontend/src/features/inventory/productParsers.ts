@@ -4,6 +4,9 @@ import type { Product } from "./types";
 const isCount = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 0;
 
+const money = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+
 /** Validates a products/{id} document. Returns null when posCount is missing or invalid. */
 export function parseProduct(id: string, data: Record<string, unknown> | undefined): Product | null {
   if (!data || !isCount(data.posCount)) return null;
@@ -14,5 +17,7 @@ export function parseProduct(id: string, data: Record<string, unknown> | undefin
     posCount: data.posCount,
     reorderLevel: isCount(data.reorderLevel) ? data.reorderLevel : 0,
     reorderQty: isCount(data.reorderQty) ? data.reorderQty : 0,
+    unitCost: money(data.unitCost),
+    unitPrice: money(data.unitPrice),
   };
 }

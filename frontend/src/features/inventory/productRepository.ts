@@ -1,8 +1,19 @@
-import { collection, doc, onSnapshot, runTransaction, type Unsubscribe } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  runTransaction,
+  serverTimestamp,
+  updateDoc,
+  type Transaction,
+  type Unsubscribe,
+} from "firebase/firestore";
 import { db } from "../../firebase";
+import { currentUid, SignedOutError } from "../../shared/currentUser";
+import { planMovement, type MovementInput } from "./movements";
 import { parseProduct } from "./productParsers";
-import { nextPosCount, StockError } from "./stock";
-import type { Product } from "./types";
+import { StockError } from "./stock";
+import type { PartSettings, Product } from "./types";
 
 export function subscribeProducts(onData: (products: Product[]) => void, onError: (error: unknown) => void): Unsubscribe {
   return onSnapshot(
@@ -12,19 +23,47 @@ export function subscribeProducts(onData: (products: Product[]) => void, onError
   );
 }
 
+function uidOrStockError(): string {
+  try {
+    return currentUid();
+  } catch (error) {
+    if (error instanceof SignedOutError) throw new StockError("signed_out");
+    throw error;
+  }
+}
+
 /**
- * Changes a product's POS count by `delta` and returns the new value. A transaction keeps two quick
- * clicks from overwriting each other; the rules still enforce the same limits server side.
+ * Writes one POS change and its stock_movements entry inside `tx`, and returns the new POS count.
+ * The product names the entry in lastMovementId, which is how the rules tie the two together.
+ * `product` must have been read in the same transaction.
  */
-export function adjustPosCount(productId: string, delta: number): Promise<number> {
+export function writeMovement(tx: Transaction, product: Product, input: MovementInput, uid: string): number {
+  const fields = planMovement(product, input, uid);
+  const movementRef = doc(collection(db, "stock_movements"));
+  tx.set(movementRef, { ...fields, at: serverTimestamp() });
+  tx.update(doc(db, "products", product.id), { posCount: fields.posAfter, lastMovementId: movementRef.id });
+  return fields.posAfter;
+}
+
+/**
+ * Changes a product's POS count and logs the change, in one transaction, and returns the new value.
+ * The transaction keeps two quick clicks from overwriting each other; the rules enforce the same
+ * limits server side.
+ */
+export function changeStock(productId: string, input: MovementInput): Promise<number> {
+  const uid = uidOrStockError();
   const ref = doc(db, "products", productId);
   return runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists()) throw new StockError("not_found");
-    const current = parseProduct(snap.id, snap.data())?.posCount;
-    if (current === undefined) throw new StockError("invalid_record");
-    const next = nextPosCount(current, delta);
-    tx.update(ref, { posCount: next });
-    return next;
+    const product = parseProduct(snap.id, snap.data());
+    if (!product) throw new StockError("invalid_record");
+    return writeMovement(tx, product, input, uid);
   });
+}
+
+/** Saves a part's cost, price and reorder settings, stamped with who changed them and when. */
+export function savePartSettings(productId: string, settings: PartSettings): Promise<void> {
+  const uid = uidOrStockError();
+  return updateDoc(doc(db, "products", productId), { ...settings, updatedBy: uid, updatedAt: serverTimestamp() });
 }

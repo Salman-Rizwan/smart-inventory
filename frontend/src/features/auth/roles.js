@@ -3,6 +3,7 @@ export const ROLES = {
   shopkeeper: {
     label: "Shopkeeper",
     home: "/dashboard",
+    stock: true, // sees and changes stock records (Stock Check, Part Settings)
     alerts: true, // sees discrepancy alerts (bell, dashboard summary and the Alerts page)
     orders: true, // sees the orders page and confirms receipt
     // badge: the count of work waiting on that tab (open alerts; orders waiting for this role to act)
@@ -15,6 +16,7 @@ export const ROLES = {
   dealer: {
     label: "Dealer",
     home: "/orders",
+    stock: false,
     alerts: false,
     orders: true, // sees purchase orders (page and bell)
     nav: [{ to: "/orders", label: "Purchase Orders" }],

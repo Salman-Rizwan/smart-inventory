@@ -1,7 +1,15 @@
 export const MAX_RECEIVE_QTY = 999;
 export const MAX_POS_COUNT = 100_000; // also enforced by firestore.rules
 
-export type StockErrorCode = "insufficient" | "too_large" | "invalid_quantity" | "not_found" | "invalid_record";
+export type StockErrorCode =
+  | "insufficient"
+  | "too_large"
+  | "invalid_quantity"
+  | "not_found"
+  | "invalid_record"
+  | "no_change"
+  | "invalid_reason"
+  | "signed_out";
 
 export class StockError extends Error {
   readonly code: StockErrorCode;
@@ -30,4 +38,12 @@ export function receiptPosCount(current: number, quantity: number): number {
   const next = current + quantity;
   if (next > MAX_POS_COUNT) throw new StockError("too_large");
   return next;
+}
+
+/** The POS count after a stock adjustment to `target` (a count the shopkeeper made). */
+export function adjustedPosCount(current: number, target: number): number {
+  if (!Number.isInteger(target) || target < 0) throw new StockError("invalid_quantity");
+  if (target > MAX_POS_COUNT) throw new StockError("too_large");
+  if (target === current) throw new StockError("no_change");
+  return target;
 }

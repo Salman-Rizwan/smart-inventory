@@ -1,7 +1,12 @@
-import { adjustPosCount } from "./productRepository";
+import type { AdjustmentReason } from "./movements";
+import { changeStock } from "./productRepository";
 
-/** Simulated POS transactions. Both resolve to the new POS count. */
-export const recordSale = (productId: string): Promise<number> => adjustPosCount(productId, -1);
+/** Simulated POS transactions. Each resolves to the new POS count and is logged in stock_movements. */
+export const recordSale = (productId: string): Promise<number> => changeStock(productId, { type: "Sale" });
 
 export const receiveStock = (productId: string, quantity: number): Promise<number> =>
-  adjustPosCount(productId, quantity);
+  changeStock(productId, { type: "Receipt", qty: quantity });
+
+/** Sets the POS record to a count the shopkeeper made, with the reason for the difference. */
+export const adjustStock = (productId: string, target: number, reason: AdjustmentReason): Promise<number> =>
+  changeStock(productId, { type: "Adjustment", target, reason });

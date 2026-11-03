@@ -31,6 +31,7 @@ export function orderErrorMessage(error: unknown, orderLabel: string): string {
     return `Receiving order ${orderLabel} would put the POS record above the limit of 100,000 units. Ask your administrator to check the stock record.`;
   }
   const code = (error as { code?: unknown } | null)?.code;
+  if (code === "signed-out") return "Your session has ended. Sign in again, then repeat this step.";
   if (code === "permission-denied") {
     return `Your account was not allowed to update order ${orderLabel}. Refresh the page and try again; if it keeps happening, ask your administrator to check your account.`;
   }

@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../firebase", () => ({ db: {} }));
+vi.mock("../../shared/currentUser", () => ({ currentUid: () => "shop-uid" }));
 vi.mock("firebase/firestore", () => ({
-  collection: vi.fn(),
+  collection: vi.fn((_db: unknown, name: string) => ({ name })),
   getDoc: vi.fn(),
-  doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+  // doc(db, collection, id) for a known document; doc(collectionRef) for a new log entry's id
+  doc: vi.fn((parent: { name?: string }, collection?: string, id?: string) =>
+    collection ? { collection, id } : { collection: parent.name, id: "move1" },
+  ),
   limit: vi.fn(),
   onSnapshot: vi.fn(),
   orderBy: vi.fn(),
@@ -27,6 +31,7 @@ async function receive(docs: { order?: Record<string, unknown> | null; product?:
   const tx = {
     get: vi.fn(async (ref: Ref) => (ref.collection === "purchase_orders" ? snap(ref.id, docs.order ?? null) : snap(ref.id, docs.product ?? null))),
     update: vi.fn(),
+    set: vi.fn(),
   };
   vi.mocked(runTransaction).mockImplementation(((_db: unknown, fn: (t: typeof tx) => Promise<void>) => fn(tx)) as never);
   await receiveOrder("order1");
@@ -34,22 +39,40 @@ async function receive(docs: { order?: Record<string, unknown> | null; product?:
 }
 
 const dispatched = { product: "petrol_filter", qty: 10, state: "Dispatched" };
-const product = { name: "Petrol Filter", posCount: 1 };
+const product = { name: "Petrol Filter", posCount: 1, unitCost: 1800 };
 
 describe("receiveOrder", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("marks the order received and adds its quantity to the POS record, together", async () => {
+  it("marks the order received, adds its quantity to the POS record and logs it, together", async () => {
     const tx = await receive({ order: dispatched, product });
     expect(tx.update).toHaveBeenCalledTimes(2);
-    expect(tx.update).toHaveBeenCalledWith({ collection: "purchase_orders", id: "order1" }, { state: "Received", receivedAt: "SERVER_TIME" });
-    expect(tx.update).toHaveBeenCalledWith({ collection: "products", id: "petrol_filter" }, { posCount: 11 });
+    expect(tx.update).toHaveBeenCalledWith(
+      { collection: "purchase_orders", id: "order1" },
+      { state: "Received", receivedAt: "SERVER_TIME", receivedBy: "shop-uid" },
+    );
+    expect(tx.update).toHaveBeenCalledWith({ collection: "products", id: "petrol_filter" }, { posCount: 11, lastMovementId: "move1" });
+    expect(tx.set).toHaveBeenCalledWith(
+      { collection: "stock_movements", id: "move1" },
+      {
+        product: "petrol_filter",
+        type: "OrderReceived",
+        change: 10,
+        posBefore: 1,
+        posAfter: 11,
+        unitCost: 1800,
+        unitPrice: null,
+        by: "shop-uid",
+        orderId: "order1",
+        at: "SERVER_TIME",
+      },
+    );
   });
 
-  it("reads both documents before writing either", async () => {
+  it("reads both documents before writing anything", async () => {
     const tx = await receive({ order: dispatched, product });
     const lastRead = Math.max(...tx.get.mock.invocationCallOrder);
-    const firstWrite = Math.min(...tx.update.mock.invocationCallOrder);
+    const firstWrite = Math.min(...tx.update.mock.invocationCallOrder, ...tx.set.mock.invocationCallOrder);
     expect(lastRead).toBeLessThan(firstWrite);
   });
 
@@ -58,7 +81,7 @@ describe("receiveOrder", () => {
   });
 
   it.each(["Pending", "Accepted", "Received"])("refuses an order that is %s, so nothing is received twice", async (state) => {
-    const tx = { get: vi.fn(async () => snap("order1", { ...dispatched, state })), update: vi.fn() };
+    const tx = { get: vi.fn(async () => snap("order1", { ...dispatched, state })), update: vi.fn(), set: vi.fn() };
     vi.mocked(runTransaction).mockImplementation(((_db: unknown, fn: (t: typeof tx) => Promise<void>) => fn(tx)) as never);
     await expect(receiveOrder("order1")).rejects.toBeInstanceOf(OrderError);
     await expect(receiveOrder("order1")).rejects.toMatchObject({ code: "moved_on", state });

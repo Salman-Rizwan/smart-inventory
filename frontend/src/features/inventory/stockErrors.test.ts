@@ -7,7 +7,7 @@ describe("stockErrorMessage", () => {
     expect(stockErrorMessage(new StockError("insufficient"), "Spark Plug")).toMatch(/already 0.*Receive stock first/);
   });
 
-  it.each(["too_large", "invalid_quantity", "not_found", "invalid_record"] as const)("has a message for %s", (code) => {
+  it.each(["too_large", "invalid_quantity", "not_found", "invalid_record", "no_change", "invalid_reason", "signed_out"] as const)("has a message for %s", (code) => {
     expect(stockErrorMessage(new StockError(code), "Spark Plug").length).toBeGreaterThan(20);
   });
 

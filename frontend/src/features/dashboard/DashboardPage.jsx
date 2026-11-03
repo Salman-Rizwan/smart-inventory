@@ -2,6 +2,7 @@ import { Page, PageHead } from "../../shared/components/Page";
 import { formatDateTime } from "../../shared/format";
 import CountsGrid from "./CountsGrid";
 import AlertsSummary from "../alerts/AlertsSummary";
+import PartSettingsPanel from "../inventory/PartSettingsPanel";
 import StockCheckPanel from "../inventory/StockCheckPanel";
 import { useLatestStatus, useRecentScans } from "./hooks";
 import ScanControl from "./ScanControl";
@@ -39,6 +40,7 @@ export default function DashboardPage() {
       </section>
 
       <StockCheckPanel counts={status.data?.counts ?? null} />
+      <PartSettingsPanel />
 
       <SnapshotPanel scannedAt={scannedAt} />
       <ScanHistoryTable scans={scans.data ?? []} loading={scans.loading} error={scans.error} />

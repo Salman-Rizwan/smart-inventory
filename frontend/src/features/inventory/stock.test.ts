@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_POS_COUNT, nextPosCount, receiptPosCount, StockError } from "./stock";
+import { adjustedPosCount, MAX_POS_COUNT, nextPosCount, receiptPosCount, StockError } from "./stock";
 
 const codeOf = (fn: () => unknown) => {
   try {
@@ -51,5 +51,22 @@ describe("receiptPosCount", () => {
 
   it.each([0, -3, 1.5, NaN])("refuses an invalid quantity of %s", (qty) => {
     expect(codeOf(() => receiptPosCount(5, qty))).toBe("invalid_quantity");
+  });
+});
+
+describe("adjustedPosCount", () => {
+  it("sets the POS record to the counted number", () => {
+    expect(adjustedPosCount(4, 2)).toBe(2);
+    expect(adjustedPosCount(4, 0)).toBe(0);
+    expect(adjustedPosCount(4, 1500)).toBe(1500); // no 999 cap: a full recount can be large
+  });
+
+  it.each([
+    [4, 4, "no_change"],
+    [4, -1, "invalid_quantity"],
+    [4, 1.5, "invalid_quantity"],
+    [4, MAX_POS_COUNT + 1, "too_large"],
+  ])("from %d to %d is refused with %s", (current, target, code) => {
+    expect(codeOf(() => adjustedPosCount(current, target))).toBe(code);
   });
 });

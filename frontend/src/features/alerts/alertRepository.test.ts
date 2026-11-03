@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../firebase", () => ({ db: {} }));
+vi.mock("../../shared/currentUser", () => ({ currentUid: () => "shop-uid" }));
 vi.mock("firebase/firestore", () => ({
   collection: vi.fn(() => "alerts"),
   doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
@@ -88,8 +89,11 @@ describe("subscribeAlertHistory", () => {
 });
 
 describe("acknowledgeAlert", () => {
-  it("writes only the state and the server's timestamp", async () => {
+  it("writes only the state, the server's timestamp and who acknowledged it", async () => {
     await acknowledgeAlert("a1");
-    expect(updateDoc).toHaveBeenCalledWith({ collection: "alerts", id: "a1" }, { state: "Acknowledged", acknowledgedAt: "SERVER_TIME" });
+    expect(updateDoc).toHaveBeenCalledWith(
+      { collection: "alerts", id: "a1" },
+      { state: "Acknowledged", acknowledgedAt: "SERVER_TIME", acknowledgedBy: "shop-uid" },
+    );
   });
 });

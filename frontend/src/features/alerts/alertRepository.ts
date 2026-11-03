@@ -12,6 +12,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "../../firebase";
+import { currentUid } from "../../shared/currentUser";
 import { parseAlert } from "./alertParsers";
 import type { Alert } from "./types";
 
@@ -61,5 +62,9 @@ export function subscribeAlertHistory(
 
 /** Marks an alert as seen. The rules allow only Open -> Acknowledged, with a server timestamp. */
 export function acknowledgeAlert(alertId: string): Promise<void> {
-  return updateDoc(doc(db, "alerts", alertId), { state: "Acknowledged", acknowledgedAt: serverTimestamp() });
+  return updateDoc(doc(db, "alerts", alertId), {
+    state: "Acknowledged",
+    acknowledgedAt: serverTimestamp(),
+    acknowledgedBy: currentUid(),
+  });
 }

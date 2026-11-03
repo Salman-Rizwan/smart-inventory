@@ -14,6 +14,12 @@ export function stockErrorMessage(error: unknown, partName: string): string {
         return `No stock record exists for ${partName}. Ask your administrator to add it.`;
       case "invalid_record":
         return `The stock record for ${partName} is damaged. Ask your administrator to check it.`;
+      case "no_change":
+        return `The ${partName} POS record already shows that count. Enter a different count, or press Cancel.`;
+      case "invalid_reason":
+        return "Choose a reason that fits the change: a write-off for fewer units, Found or Customer Return for more.";
+      case "signed_out":
+        return "Your session has ended. Sign in again, then repeat the change.";
     }
   }
   const code = (error as { code?: unknown } | null)?.code;

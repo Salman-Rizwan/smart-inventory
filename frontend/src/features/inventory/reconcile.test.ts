@@ -8,6 +8,8 @@ const product = (id: string, name: string, posCount: number): Product => ({
   posCount,
   reorderLevel: 2,
   reorderQty: 10,
+  unitCost: null,
+  unitPrice: null,
 });
 
 describe("stockState", () => {

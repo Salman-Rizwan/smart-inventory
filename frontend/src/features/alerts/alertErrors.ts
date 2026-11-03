@@ -1,6 +1,7 @@
 /** User-facing message with a next step. Never exposes raw error text. */
 export function alertErrorMessage(error: unknown, partName: string): string {
   const code = (error as { code?: unknown } | null)?.code;
+  if (code === "signed-out") return "Your session has ended. Sign in again, then repeat this step.";
   if (code === "permission-denied") {
     return `The ${partName} alert could not be acknowledged. It may already be resolved, or your account may not have permission. Refresh the page and try again.`;
   }

@@ -9,7 +9,16 @@ describe("parseProduct", () => {
       posCount: 3,
       reorderLevel: 2,
       reorderQty: 10,
+      unitCost: null,
+      unitPrice: null,
     });
+  });
+
+  it("reads cost and price, and treats anything invalid as not set", () => {
+    expect(parseProduct("spark_plug", { posCount: 3, unitCost: 950, unitPrice: 1249.5 })).toMatchObject({ unitCost: 950, unitPrice: 1249.5 });
+    for (const bad of [-1, "950", null, NaN, Infinity]) {
+      expect(parseProduct("spark_plug", { posCount: 3, unitCost: bad, unitPrice: bad })).toMatchObject({ unitCost: null, unitPrice: null });
+    }
   });
 
   it("falls back to a readable name and zero reorder settings", () => {
@@ -19,6 +28,8 @@ describe("parseProduct", () => {
       posCount: 5,
       reorderLevel: 0,
       reorderQty: 0,
+      unitCost: null,
+      unitPrice: null,
     });
   });
 

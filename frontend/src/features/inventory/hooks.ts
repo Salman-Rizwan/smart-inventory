@@ -1,6 +1,4 @@
-import { useSubscription } from "../../shared/hooks/useSubscription";
-import { subscribeProducts } from "./productRepository";
+import { useProductsContext } from "./ProductsContext";
 
-const LOAD_ERROR = "Stock records could not be loaded. Check your connection and sign in again if this continues.";
-
-export const useProducts = () => useSubscription(subscribeProducts, LOAD_ERROR);
+/** The shared live product list (see ProductsProvider). */
+export const useProducts = useProductsContext;

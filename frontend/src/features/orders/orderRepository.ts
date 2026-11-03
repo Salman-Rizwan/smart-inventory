@@ -12,8 +12,9 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "../../firebase";
+import { currentUid } from "../../shared/currentUser";
 import { parseProduct } from "../inventory/productParsers";
-import { receiptPosCount } from "../inventory/stock";
+import { writeMovement } from "../inventory/productRepository";
 import { parseOrder } from "./orderParsers";
 import { OrderError, type OrderAction } from "./orderWorkflow";
 import type { Order } from "./types";
@@ -45,10 +46,12 @@ export function advanceOrder(orderId: string, action: OrderAction): Promise<void
 }
 
 /**
- * The shop confirms a dispatched order arrived: marks it Received and adds its quantity to the POS
- * record, in one transaction so the two can never disagree. Receiving twice is refused.
+ * The shop confirms a dispatched order arrived: marks it Received, adds its quantity to the POS record
+ * and logs that as Order Received, in one transaction so the three can never disagree. Receiving
+ * twice is refused.
  */
 export function receiveOrder(orderId: string): Promise<void> {
+  const uid = currentUid();
   const orderRef = doc(db, "purchase_orders", orderId);
   return runTransaction(db, async (tx) => {
     const orderSnap = await tx.get(orderRef);
@@ -61,8 +64,7 @@ export function receiveOrder(orderId: string): Promise<void> {
     const product = productSnap.exists() ? parseProduct(productSnap.id, productSnap.data()) : null;
     if (!product) throw new OrderError("product_missing");
 
-    const nextPos = receiptPosCount(product.posCount, order.qty);
-    tx.update(orderRef, { state: "Received", receivedAt: serverTimestamp() });
-    tx.update(productRef, { posCount: nextPos });
+    tx.update(orderRef, { state: "Received", receivedAt: serverTimestamp(), receivedBy: uid });
+    writeMovement(tx, product, { type: "OrderReceived", orderId, qty: order.qty }, uid);
   });
 }
