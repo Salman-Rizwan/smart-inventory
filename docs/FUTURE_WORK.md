@@ -14,6 +14,9 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 | Single shop, single camera | No chain stores or several shelves | Product ids equal class names, so new parts need no code change (NFR7) |
 | Demo history is synthetic | Insights over the demo period are not real trading data | Seeded records are marked `seeded: true` and the page says "Includes demo data" |
 | Scan Now works only on the shop laptop | The hosted app can view but not scan | By design: the laptop does all processing (Spark plan, no Cloud Functions) |
+| The laptop must stay awake and online | A sleeping laptop scans nothing (gaps of 2 and 4.5 hours seen); short network drops slow a scan by up to 10 s per call | The dashboard says "No Recent Scan"; calls are bounded; the README says to turn off sleep |
+| Brightness cannot detect a partly covered lens | A hand half over the lens counts as an empty shelf | Alerts wait 3 minutes and orders 5, so short obstructions raise nothing |
+| The camera must see the shelf | Twice the camera counted no parts in full light, most likely with the shelf out of view, which raises alerts after 3 minutes | Camera placement guidance; a future "shelf not recognised" check |
 | In-app notifications only | Nobody is told while the app is closed | Email or push needs Cloud Functions (paid plan) |
 | Ultralytics is AGPL-3.0 | Licence obligations for a commercial product | Noted in the report; a commercial licence or another detector would be needed |
 
@@ -51,10 +54,11 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 ### Detection
 | Item | Why it matters | Why deferred | How |
 |---|---|---|---|
+| Shelf-in-view check | A moved camera or a cleared shelf looks like stock gone missing | Needs a reference image or marker | Compare each frame with a reference view of the empty shelf, or add a printed marker the model must see |
 | Retrain with background images | Lets the box guards be loosened or removed | Needs a new training run and re-validation | `python -m scripts.capture_dataset negatives --count 150`, then retrain and re-validate |
 | End-on and edge-of-frame filters | Fewer missed parts | Same retraining | Add those views to the dataset |
 | Several cameras or shelves | Covers more of the shop | One camera is enough for the evaluation | A camera id per scan and per product |
-| Shelf image on the hosted app | The hosted app shows counts but no photo | No Cloud Storage on the Spark plan | A small thumbnail in `status/latest` (M11 stretch) |
+| Shelf image on the hosted app | The hosted app shows counts but no photo | No Cloud Storage on the Spark plan | A small thumbnail in `status/latest` (planned in M11) |
 
 ### Analytics
 | Item | Why it matters | Why deferred | How |

@@ -2,6 +2,63 @@
 
 The roadmap (`docs/ROADMAP.md`) says what and why; this file breaks each step into small actions, each with its **script tests** (automated: pytest, vitest, rule checks) and its **live tests** (real Firebase, real Chrome, real webcam). A task is done only when both pass. Tick items here as they are finished.
 
+## Remaining work (as of Nov 11)
+Everything left to finish the product as planned, with no cuts. IDs point to the detailed rows below; each code item has its script tests and live tests there. "User" marks a step only the user can do.
+
+**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1 (checked live), M6 backend and browser parts (script-tested; delays, soak, dark frames, the call limits and the pause rules checked live).
+
+**Before any live test:** the camera must see the shelf. On Nov 11 it counted no parts in full light (shelf out of view or not set up), which opened 2 alerts. A petrol filter order (Pending, Nov 5 03:36 UTC) is a leftover from the Nov 5 lens test: ask the user before deleting it.
+
+1. M6: finish automatic scanning
+   - [ ] 1. Gap recheck, live: an old timer must not open an alert after a gap (`gap_live.py`).
+   - [ ] 2. Every camera status in Chrome (live, off, paused, too dark, camera not responding, no recent scan) with axe at all widths (M6-L5).
+   - [ ] 3. Pause end to end: the loop stops while paused and resumes on time.
+   - [ ] 4. Full regression updated for the camera status line and run (M6-L1).
+2. Stock Log, undo and part names
+   - [ ] 5. Stock Log data: newest first, 50 at a time, period, part and type filters (SL-1).
+   - [ ] 6. Stock Log page as the fifth tab; header fit at 320 to 1360 px (SL-2).
+   - [ ] 7. Link from each Stock Check row to that part's log (SL-3).
+   - [ ] 8. Undo on Record Sale; rules change (SL-4). User publishes the rules.
+   - [ ] 9. One name per part; `productName` on new orders (SL-5).
+3. Demo history and analytics
+   - [ ] 10. `seed_history`, ending exactly at the real POS counts (SH-1).
+   - [ ] 11. Data loader for a period (AN-1).
+   - [ ] 12. Sales, net of returns (AN-2).
+   - [ ] 13. Shrinkage (AN-3).
+   - [ ] 14. Days of cover (AN-4).
+   - [ ] 15. Reorder recommendations (AN-5).
+   - [ ] 16. Stockouts and lost sales (AN-6).
+   - [ ] 17. Stock value and period comparison (AN-7).
+   - [ ] 18. `insights_check.py`, an independent recomputation (AN-L1).
+4. Insights
+   - [ ] 19. Charts library at an exact version; Insights lazy-loaded (IN-1).
+   - [ ] 20. Insights page: 7, 30 or 90 days, part filter, "Includes demo data" (IN-2).
+   - [ ] 21. Core sections with table alternatives (IN-3).
+   - [ ] 22. Four dashboard tiles linking to their sections (IN-4).
+   - [ ] 23. Stock flow, stock value, stockouts, response and dealer (IN-5).
+   - [ ] 24. Apply a recommended reorder level (IN-6).
+5. M10 security
+   - [ ] 25. Final rules; the dealer no longer reads products (M10-1). User publishes.
+   - [ ] 26. Backend: Scan Now and the shelf image for the shopkeeper only (M10-2).
+   - [ ] 27. Dealer pages without product reads (M10-3).
+6. M11 Hosting
+   - [ ] 28. Build and deploy; hosted origin in `CORS_ORIGINS` (M11-1). User deploys or approves.
+   - [ ] 29. Scan Now from the hosted page on the shop laptop (M11-2).
+   - [ ] 30. Shelf thumbnail on the hosted app (M11-3).
+7. M12 evaluation (results go into `docs/REPORT_NOTES.md`)
+   - [ ] 31. Detection accuracy, 20 arrangements x 3 lighting conditions (M12-1). User arranges the shelf.
+   - [ ] 32. Scan Now timing, 50 runs (M12-2).
+   - [ ] 33. Sync latency and one day of free-tier usage (M12-3, M12-4).
+   - [ ] 34. Functional test cases FR1 to FR9 plus Stock Log and Insights (M12-5).
+   - [ ] 35. Usability test with 3 people (M12-6). User runs it.
+8. Release
+   - [ ] 36. Full regression, screenshots, fresh-clone check, no secrets, version 1.0.0 (M12-7, R-1, R-2).
+   - [ ] 37. PR dev to main (merge commit), tag `v1.0.0`, deploy, smoke test (R-3). User.
+
+Then the report (M13, user), using `docs/REPORT_NOTES.md` and `docs/FUTURE_WORK.md`.
+
+**Schedule (open):** final submission Nov 15; a proposed re-plan (Nov 11: M6 live; Nov 12: Insights core; Nov 13: M10, M11 and a simple Stock Log; Nov 14 morning: M12, freeze, tag, submit; cuts: undo, extra Insights sections, Apply, thumbnail) is waiting for the user's decision.
+
 ## Every task, every time
 1. Script gates: backend `python -m pytest` and `ruff check . && ruff format --check .`; frontend `npm run typecheck && npm test && npx oxlint && npm run build`.
 2. New code has tests for its normal case, every edge case listed here, and its error paths (typed errors, safe messages).

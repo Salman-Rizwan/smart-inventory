@@ -2,7 +2,7 @@
 
 Deadlines (moved Nov 4): final submission Nov 15, 2026; code freeze Nov 13, submit Nov 14. Earlier: freeze Nov 7, final Nov 9. Done so far: M1 to M5, M7, M8, M9 and notifications Stage A (see `README.md` Status).
 
-**Progress (Nov 4):** the move to Material UI (MUI-0 to MUI-14) and the UI and usability phase UX-1 to UX-4 (section 1b) were done on Oct 31. Nov 1 to 3 were lost; with the deadline moved to Nov 15, the plan below keeps every item, stretch ones included. F1 (stock change log, Adjust Stock, Part Settings) is built, published and checked live on Nov 4. The M6 backend (Nov 5 list) was built and script-tested ahead of time on Nov 4; its live checks run on Nov 6.
+**Progress (Nov 11):** Done: MUI-0 to MUI-14 and UX-1 to UX-4 (Oct 31); F1 (built, published and checked live Nov 4); M6 automatic scanning (backend and browser built and script-tested; delays, soak, dark frames, call limits and pause rules checked live; the gap recheck, camera states in Chrome and the regression remain). Nov 6 to 10 had no work. Left: the rest of the list in `docs/TASKS.md` ("Remaining work"). The schedule below is from Nov 4; a re-plan for the remaining days is waiting for the user's decision.
 
 **Task checklist:** `docs/TASKS.md` breaks every remaining step into small actions, each with its script tests and live tests.
 

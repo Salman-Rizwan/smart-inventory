@@ -112,7 +112,7 @@ Product document ids are the model's own class names. Adding a new part later me
 
 | Req | Requirement | Milestone | Evidence | Status |
 |---|---|---|---|---|
-| FR1 | Capture images periodically (now via webcam) | M1, M6 | Dashboard updating on its own | Partly (Scan Now; M6 pending) |
+| FR1 | Capture images periodically (now via webcam) | M1, M6 | Dashboard updating on its own | Done (automatic scanning, M6) |
 | FR2 | Detect and classify parts | Done; M1 | Annotated webcam image | Done |
 | FR3 | Count units per part | Done; M1, M5 | Count cards on the dashboard | Done |
 | FR4 | Store counts in the cloud | M2, M3 | Documents in the Firestore console | Done |
@@ -226,7 +226,8 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - [x] Move to Material UI (theme keeps the Carbon look, Oct 31)
 - [x] Supervisor feedback, part 1: alert history on the Alerts tab (Oct 31)
 - [x] Stock change log, Adjust Stock and Part Settings (F1, Nov 4; live check after the rules are published)
+- [x] M6 automatic scanning (Nov 11): time rules, dark-frame skip, change-only writes, camera status, Pause Scanning; final live checks listed in docs/TASKS.md
 - [ ] Supervisor feedback, part 2: Stock Log tab, business intelligence (dashboard summary and Insights page)
-- [ ] M6 automatic scanning every 60 s, M10 full role-based rules, M11 Hosting, M12 evaluation, M13 report
+- [ ] M10 full role-based rules, M11 Hosting, M12 evaluation, M13 report
 
-What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md), broken into small tested actions in [docs/TASKS.md](docs/TASKS.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).
+What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md), broken into small tested actions in [docs/TASKS.md](docs/TASKS.md). Material for the final report is kept in [docs/REPORT_NOTES.md](docs/REPORT_NOTES.md) and [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).
