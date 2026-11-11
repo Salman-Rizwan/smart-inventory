@@ -16,7 +16,7 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 | Scan Now works only on the shop laptop | The hosted app can view but not scan | By design: the laptop does all processing (Spark plan, no Cloud Functions) |
 | The laptop must stay awake and online | A sleeping laptop scans nothing (gaps of 2 and 4.5 hours seen); short network drops slow a scan by up to 10 s per call | The dashboard says "No Recent Scan"; calls are bounded; the README says to turn off sleep |
 | Brightness cannot detect a partly covered lens | A hand half over the lens counts as an empty shelf | Alerts wait 3 minutes and orders 5, so short obstructions raise nothing |
-| The camera must see the shelf | Twice the camera counted no parts in full light, most likely with the shelf out of view, which raises alerts after 3 minutes | Camera placement guidance; a future "shelf not recognised" check |
+| The camera must see the shelf | Twice the camera counted no parts in full light (on Nov 11 the shelf image showed it looking at the person at the laptop, not the shelf, each time the laptop was being used), which raises alerts after 3 minutes | Camera placement guidance; a future "shelf not recognised" check |
 | In-app notifications only | Nobody is told while the app is closed | Email or push needs Cloud Functions (paid plan) |
 | Ultralytics is AGPL-3.0 | Licence obligations for a commercial product | Noted in the report; a commercial licence or another detector would be needed |
 

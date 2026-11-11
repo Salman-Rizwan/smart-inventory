@@ -205,7 +205,7 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - **Pause Scanning (15 Min)** for restocking: written to `settings/scanning` (shopkeeper only, at most 30 minutes ahead, resumes by itself); the loop checks it before each scan and releases the camera while paused. Resume Scanning ends it early.
 - **Time rules:** an alert waits `ALERT_DELAY_SECONDS`; an order needs `REORDER_CONFIRM_SCANS` low scans in a row and `REORDER_DELAY_SECONDS` of being low.
 - **Dark frames** below `MIN_FRAME_BRIGHTNESS` are skipped: nothing changes, and `status/latest` records the skip. Scan Now in the dark answers "Too dark to count the parts. Turn on the shelf light, then scan again."
-- **Writes:** an automatic scan is saved to `scans` only when the counts change, plus a heartbeat every `SCAN_HEARTBEAT_SECONDS`; manual scans are always saved. `status/latest` is updated after every attempt with `lastAttemptAt`, `lastOutcome` (counted, skipped, failed), `skipReason`, `lastError`, `brightness`, `timings` and the scanning settings. Scan records carry `trigger`, `brightness`, `captureMs`, `detectMs` and `heartbeat`.
+- **Writes:** an automatic scan is saved to `scans` only when the counts change, plus a heartbeat every `SCAN_HEARTBEAT_SECONDS`; manual scans are always saved. The backend writes whether automatic scanning is on to `status/latest` once at startup, so the dashboard shows "Automatic Scanning Off" without waiting for a scan. `status/latest` is updated after every attempt with `lastAttemptAt`, `lastOutcome` (counted, skipped, failed), `skipReason`, `lastError`, `brightness`, `timings` and the scanning settings. Scan records carry `trigger`, `brightness`, `captureMs`, `detectMs` and `heartbeat`.
 
 ## Before a demo or rehearsal
 

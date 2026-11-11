@@ -39,6 +39,9 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | Scan Now click to result | 2.8 to 5.4 s before the camera change (target 3 s); to be remeasured in M12 | Live regression runs, Oct 30 to Oct 31 |
 | Database steps per scan | 0.3 to 1 s normally; reads 0.15 to 0.4 s warm, 1.2 to 1.6 s for the first read on a new connection | Live, Nov 5 |
 | Alert delay | Alert opened 203 s after the mismatch began (setting 180 s plus the next 30 s scan) | Live test, Nov 4 |
+| Gap rule | After a 130 s pause, a timer planted 24 hours in the past was ignored; the alert opened 186 s after the restarted timer (setting 180 s) | `gap_live.py`, Nov 11 |
+| Pause Scanning | No scan attempted during a 130 s pause; scanning resumed by itself 29 s after it ended (interval 30 s); from the button, a scan arrived 4 s after Resume | `pause_live.py`, `camstates.mjs`, Nov 11 |
+| Scan Now click to result, camera kept open | 2.4 s and 2.8 s (target 3 s); 50 runs to follow in M12 | Live regression, Nov 11 |
 | Writes from automatic scanning | Overnight: 8 scan records over the hours the laptop was awake (5 heartbeats every 10 minutes, 2 changes, 1 manual) instead of about 300; a quiet scan costs 1 write | Live soak, Nov 4 to 5 |
 | Brightness (0 to 255) | Lights on 171 to 183; lights off with daylight 40 to 53 (counts still right); lens covered 18 and 39 (skipped); threshold 40 | Live, Nov 4 to 5 |
 | Free-tier budget (estimate) | About 1,500 writes and 7,000 reads a day from the backend at a 60 s interval, plus about 1,440 reads a day per open dashboard; limits are 20,000 and 50,000 | Design calculation; to be measured in M12 |
@@ -46,8 +49,9 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 Still to measure in M12 (`docs/TASKS.md`): detection accuracy over 20 arrangements under 3 lighting conditions, Scan Now timing over 50 runs, sync latency over 10 trials, one day of real free-tier usage, functional test cases FR1 to FR9, and a usability test with 3 people.
 
 ## Testing (Evaluation)
-- Automated, Nov 11: backend 227 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 635 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
+- Automated, Nov 11: backend 234 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 644 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
 - Rules: 63 cases written for the Rules API test endpoint; live attack checks over REST with real sign-ins: 32 for the stock change log and Part Settings, 11 for Pause Scanning, all passing.
+- Live, Nov 11: full regression 56 checks passing; all six camera states produced for real (lens covered, backend stopped, wrong camera index, scanning off, paused, live), each at 6 widths with axe 0; Pause Scanning by keyboard, end to end.
 - Live, in Chrome with Playwright and axe: full regression across both roles, screenshot comparison at 5 widths, 43 extra interface states, keyboard walks; F1 flow end to end; temporary `zz-*` data, with the real data snapshotted and restored identically after every run.
 
 ## Problems found by live testing (Evaluation: what testing caught)
@@ -61,6 +65,11 @@ These were missed by unit tests and found only on the real system; each was fixe
 | Nov 4 | With automatic scanning, a dark shop would read as an empty shelf and order stock overnight | Frames below a brightness threshold are skipped |
 | Nov 4 to 5 | A network hiccup held a scan (and Scan Now) for 19 to 144 s: the Firestore library retries for up to 300 s | Every call capped at 5 s per attempt and 10 s in total |
 | Nov 5 | A timer left from the day before opened alerts on the first mismatched scan after a restart; a part low before an overnight gap was ordered at once | Timers and the low-scan streak restart after a gap or a restart |
+| Nov 11 | The camera status line was read out by a screen reader on every page load, and said "Waiting for First Scan" for a moment while loading | A "Checking Camera…" state while loading; only a real change of state is announced |
+| Nov 11 | The dashboard said "No active alerts. Everything on the shelf matches" while Stock Check showed 2 mismatches: alerts now wait 3 minutes, and the text predated the delay | The text counts the parts that differ and says a lasting mismatch becomes an alert |
+| Nov 11 | The Scan Now button moved below the title when the camera status text was long, so the main action was in a different place in different states | The title block wraps its text; Scan Now keeps its place |
+| Nov 11 | After a restart with automatic scanning off, the dashboard still said scanning was on, then "No Recent Scan", until Scan Now was pressed: the backend reported its setting only with a scan attempt | The backend publishes the setting once at startup; the dashboard showed "Automatic Scanning Off" 2 s after the next start, with no scan |
+| Nov 11 | Keyboard focus was lost after pressing Pause Scanning or Resume Scanning (the button is disabled while saving, and Chrome drops focus from a disabled button) | Focus is returned to the button when the save ends |
 
 ## Requirements status
 | Req | Status (Nov 11) |
@@ -72,7 +81,7 @@ These were missed by unit tests and found only on the real system; each was fixe
 | NFR2 inference under 1 s | Met (25 to 48 ms) |
 | NFR3 free services | Spark plan; usage measured in M12 |
 | NFR4 usable by a non-technical shopkeeper | Usability test in M12 |
-| NFR5 any webcam | `CAMERA_INDEX` |
+| NFR5 any webcam | `CAMERA_INDEX`; a wrong index shows "Camera Not Responding" on the dashboard (seen live, Nov 11) |
 | NFR6 access control | Rules per role; final set in M10 |
 | NFR7 new parts without code changes | Product ids equal model class names |
 
@@ -80,4 +89,4 @@ These were missed by unit tests and found only on the real system; each was fixe
 - A sleeping laptop scans nothing: the shop laptop must not sleep (`caffeinate`, or the battery settings). The dashboard says "No Recent Scan" when it happens.
 - The shop's internet connection drops for seconds at a time; the backend must assume it will.
 - Brightness cannot tell a hand partly over the lens from a dim shelf; the time rules absorb short obstructions.
-- Twice (Nov 4 at 12:05 local and Nov 11), the camera counted no parts in full light, most likely because the shelf was out of view; worth noting in M12 as a setup risk.
+- Twice (Nov 4 at 12:05 local and Nov 11), the camera counted no parts in full light. On Nov 11 the saved shelf image confirmed the cause: the camera was pointed at the room, not the shelf. The system behaved as designed (two alerts after 3 minutes, resolved by themselves once the shelf was back in view), but it cannot tell "no parts" from "no shelf"; worth noting in M12 as a setup risk. Later the same morning four single scans read 0 and 0 at full brightness (03:38, 03:44, 03:50 and 03:53 UTC), each while the laptop was being used (before covering the lens, after restarts, pressing Scan Now); the saved image of one of them again showed the person at the laptop instead of the parts. The next scan with the parts in view read 4 and 1 each time, and the alert delay meant nothing was raised. For the evaluation and the demo the camera needs a fixed view of the shelf that using the laptop does not disturb.
