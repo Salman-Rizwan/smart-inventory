@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { emptySales } from "./analytics";
 import {
   coverHint,
   coverValue,
@@ -7,9 +8,15 @@ import {
   formatShare,
   leadHint,
   leadValue,
+  profitHint,
+  profitValue,
   recommendationText,
   salesValueText,
+  uncostedNote,
   unpricedNote,
+  whatToDoKind,
+  whatToDoLabel,
+  whatToDoText,
 } from "./insightsText";
 
 describe("insights wording", () => {
@@ -34,11 +41,11 @@ describe("insights wording", () => {
   });
 
   it("shows units instead of a value when nothing had a price, and notes missing prices", () => {
-    expect(salesValueText({ units: 3, value: 0, unpriced: 3 })).toBe("3 units");
-    expect(salesValueText({ units: 3, value: 1500, unpriced: 0 })).toMatch(/1,500/);
-    expect(unpricedNote({ units: 3, value: 1000, unpriced: 0 })).toBe("");
-    expect(unpricedNote({ units: 3, value: 1000, unpriced: 1 })).toBe("1 unit has no price and is not in the value. Set a price in Part Settings.");
-    expect(unpricedNote({ units: 3, value: 500, unpriced: 2 })).toBe("2 units have no price and are not in the value. Set a price in Part Settings.");
+    expect(salesValueText({ ...emptySales(), units: 3, value: 0, unpriced: 3 })).toBe("3 units");
+    expect(salesValueText({ ...emptySales(), units: 3, value: 1500 })).toMatch(/1,500/);
+    expect(unpricedNote({ ...emptySales(), units: 3, value: 1000 })).toBe("");
+    expect(unpricedNote({ ...emptySales(), units: 3, value: 1000, unpriced: 1 })).toBe("1 unit has no price and is not in the value. Set a price in Part Settings.");
+    expect(unpricedNote({ ...emptySales(), units: 3, value: 500, unpriced: 2 })).toBe("2 units have no price and are not in the value. Set a price in Part Settings.");
   });
 
   it("words days of cover and its edge cases", () => {
@@ -70,5 +77,43 @@ describe("insights wording", () => {
     expect(recommendationText({ kind: "not-enough", historyDays: 30, deliveries: 0 }, 2, 14, 2)).toBe(
       "Not enough history yet: 0 of 2 deliveries received",
     );
+  });
+
+  it("words gross profit, with a dash and a next step when nothing had a cost", () => {
+    const sold = { ...emptySales(), units: 20, value: 10_000, profit: 3000, profitBase: 10_000 };
+    expect(profitValue(sold)).toMatch(/3,000/);
+    expect(profitHint(sold, { kind: "change", percent: 12 }, 30)).toBe("30% margin. +12% vs the previous 30 days");
+    expect(profitHint(sold, { kind: "new" }, 30)).toBe("30% margin. No sales in the previous 30 days");
+    const noCost = { ...emptySales(), units: 4, value: 2000, uncosted: 4 };
+    expect(profitValue(noCost)).toBe("—");
+    expect(profitHint(noCost, { kind: "none" }, 30)).toBe("Set a cost in Part Settings to see the profit");
+    expect(profitValue(emptySales())).toMatch(/0/);
+    expect(profitHint(emptySales(), { kind: "none" }, 7)).toBe("No sales in this period");
+  });
+
+  it("notes units missing from the profit", () => {
+    expect(uncostedNote(emptySales())).toBe("");
+    expect(uncostedNote({ ...emptySales(), uncosted: 1 })).toBe("1 unit has no cost and is not in the profit. Set a cost in Part Settings.");
+    expect(uncostedNote({ ...emptySales(), uncosted: 3 })).toBe("3 units have no cost and are not in the profit. Set a cost in Part Settings.");
+  });
+
+  it("words every action, with a badge kind and a short label that never rely on colour", () => {
+    const actions = [
+      [{ kind: "scan" }, "Scan the shelf to count this part", "neutral", "Scan Needed"],
+      [{ kind: "waiting", state: "Pending" }, "Order placed, waiting for the dealer to accept it", "info", "Order Open"],
+      [{ kind: "waiting", state: "Accepted" }, "Order accepted, waiting for the dealer to dispatch it", "info", "Order Open"],
+      [{ kind: "waiting", state: "Dispatched" }, "Order on its way: mark it received when it arrives", "info", "Order Open"],
+      [{ kind: "due" }, "At the reorder level: an order is raised after two low scans", "warning", "Order Due"],
+      [{ kind: "adjust", level: 5, direction: "raise" }, "Raise the reorder level to 5", "info", "Raise Level"],
+      [{ kind: "adjust", level: 1, direction: "lower" }, "Lower the reorder level to 1", "info", "Lower Level"],
+      [{ kind: "no-sales" }, "No recent sales to base a decision on", "neutral", "No Sales"],
+      [{ kind: "not-enough", historyDays: 3, deliveries: 1 }, "Not enough history yet: 3 of 14 days of history, 1 of 2 deliveries received", "neutral", "Too Early"],
+      [{ kind: "ok" }, "OK: stock and reorder level fit the sales", "success", "OK"],
+    ] as const;
+    for (const [action, text, kind, label] of actions) {
+      expect(whatToDoText(action, 14, 2)).toBe(text);
+      expect(whatToDoKind(action)).toBe(kind);
+      expect(whatToDoLabel(action)).toBe(label);
+    }
   });
 });

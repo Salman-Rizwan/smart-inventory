@@ -1,7 +1,7 @@
 import type { SummaryTile } from "../../shared/components/SummaryTiles";
 import { formatInteger, formatMoney } from "../../shared/format";
 import { DEFAULT_PERIOD, type InsightsReport } from "./analytics";
-import { coverHint, coverValue, describeChange, formatShare, leadHint, leadValue, salesValueText } from "./insightsText";
+import { coverHint, coverValue, describeChange, formatShare, profitHint, profitValue, salesValueText } from "./insightsText";
 
 /** The Insights page section each tile opens, with the dashboard's period. */
 export const insightsLink = (section: string, days = DEFAULT_PERIOD): string => `/insights?period=${days}#${section}`;
@@ -10,11 +10,19 @@ export const insightsLink = (section: string, days = DEFAULT_PERIOD): string => 
 export function tilesFor(report: InsightsReport): SummaryTile[] {
   const days = report.period.days;
   const lowest = report.lowestCover;
+  const first = report.parts[0];
+  const cover = lowest ?? first;
   return [
     {
       label: "Sales",
       value: salesValueText(report.sales),
       hint: describeChange(report.change, days),
+      to: insightsLink("sales", days),
+    },
+    {
+      label: "Gross Profit",
+      value: profitValue(report.sales),
+      hint: profitHint(report.sales, report.profitChange, days),
       to: insightsLink("sales", days),
     },
     {
@@ -28,16 +36,10 @@ export function tilesFor(report: InsightsReport): SummaryTile[] {
     },
     {
       label: "Lowest Days of Cover",
-      value: lowest ? coverValue(lowest.cover) : report.parts.length ? coverValue(report.parts[0].cover) : "No parts",
-      hint: lowest ? `${lowest.name}: ${coverHint(lowest.cover, lowest.reorderLevel)}` : report.parts.length ? coverHint(report.parts[0].cover, report.parts[0].reorderLevel) : "Add a product first",
+      value: cover ? coverValue(cover.cover) : "No parts",
+      hint: !cover ? "Add a product first" : lowest ? `${lowest.name}: ${coverHint(lowest.cover, lowest.reorderLevel)}` : coverHint(cover.cover, cover.reorderLevel),
       attention: lowest?.cover.kind === "cover" && lowest.cover.untilReorder === 0,
       to: insightsLink("cover", days),
-    },
-    {
-      label: "Dealer Lead Time",
-      value: leadValue(report.lead),
-      hint: leadHint(report.lead),
-      to: insightsLink("recommendations", days),
     },
   ];
 }

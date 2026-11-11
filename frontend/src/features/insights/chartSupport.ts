@@ -11,11 +11,15 @@ const longDay = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 export const dayLabel = (date: Date, periodDays: number): string => (periodDays <= 7 ? weekday.format(date) : shortDay.format(date));
 export const fullDayLabel = (date: Date): string => longDay.format(date);
 
-/** Which day ticks to label so they never overlap: every day over a week, then every 5th or 15th; twice as sparse on a phone. */
-export const labelEvery = (periodDays: number, narrow = false): number => {
-  const every = periodDays <= 7 ? 1 : periodDays <= 30 ? 5 : 15;
+/** Which bar labels to show so they never overlap: all up to a week of bars, then every 2nd, 5th or 15th; twice as sparse on a phone. */
+export const labelEvery = (bars: number, narrow = false): number => {
+  const every = bars <= 7 ? 1 : bars <= 14 ? 2 : bars <= 31 ? 5 : 15;
   return narrow ? every * 2 : every;
 };
+
+/** A bar's period in words: the day itself, or "13 Aug to 19 Aug" for a week. */
+export const bucketLabel = (bucket: { start: Date; end: Date; days: number }): string =>
+  bucket.days === 1 ? longDay.format(bucket.start) : `${shortDay.format(bucket.start)} to ${shortDay.format(bucket.end)}`;
 
 /** A fixed height that fits the content without a layout jump while the data loads. */
 export const CHART_HEIGHT = 280;

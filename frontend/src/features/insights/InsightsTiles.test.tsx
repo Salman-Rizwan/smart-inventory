@@ -57,21 +57,21 @@ const report = (extra: Partial<Parameters<typeof computeInsights>[0]> = {}): Ins
 describe("tilesFor", () => {
   it("names the four figures with their hints and links to their sections", () => {
     const tiles = tilesFor(report());
-    expect(tiles.map((t) => t.label)).toEqual(["Sales", "Shrinkage", "Lowest Days of Cover", "Dealer Lead Time"]);
+    expect(tiles.map((t) => t.label)).toEqual(["Sales", "Gross Profit", "Shrinkage", "Lowest Days of Cover"]);
     expect(tiles[0].value).toMatch(/7,500/); // 15 x 500
     expect(tiles[0].hint).toBe("+50% vs the previous 30 days"); // previous 10 x 500
-    expect(tiles[1].value).toMatch(/350/);
-    expect(tiles[1].hint).toBe("1 unit written off, 5% of sales");
-    expect(tiles[2].value).toBe("8.0 days"); // 4 / (15 / 30)
-    expect(tiles[2].hint).toBe("Spark Plug: 4.0 days until the reorder level of 2");
-    expect(tiles[2].attention).toBe(false);
-    expect(tiles[3].value).toBe("3.0 days");
-    expect(tiles[3].hint).toBe("Median of 2 deliveries, order to receipt");
+    expect(tiles[1].value).toMatch(/2,250/); // 15 x (500 - 350)
+    expect(tiles[1].hint).toBe("30% margin. +50% vs the previous 30 days");
+    expect(tiles[2].value).toMatch(/350/);
+    expect(tiles[2].hint).toBe("1 unit written off, 5% of sales");
+    expect(tiles[3].value).toBe("8.0 days"); // 4 / (15 / 30)
+    expect(tiles[3].hint).toBe("Spark Plug: 4.0 days until the reorder level of 2");
+    expect(tiles[3].attention).toBe(false);
     expect(tiles.map((t) => t.to)).toEqual([
+      "/insights?period=30#sales",
       "/insights?period=30#sales",
       "/insights?period=30#shrinkage",
       "/insights?period=30#cover",
-      "/insights?period=30#recommendations",
     ]);
   });
 
@@ -79,15 +79,21 @@ describe("tilesFor", () => {
     const tiles = tilesFor(report({ movements: [], orders: [], counts: null }));
     expect(tiles[0].value).toMatch(/0/);
     expect(tiles[0].hint).toBe("No sales in this or the previous period");
-    expect(tiles[1].hint).toBe("No write-offs in this period");
-    expect(tiles[2].value).toBe("No scan yet");
-    expect(tiles[3].value).toBe("No deliveries yet");
+    expect(tiles[1].hint).toBe("No sales in this period");
+    expect(tiles[2].hint).toBe("No write-offs in this period");
+    expect(tiles[3].value).toBe("No scan yet");
+  });
+
+  it("shows a dash and a next step when sales have no cost to subtract", () => {
+    const tiles = tilesFor(report({ movements: [{ ...sale(1), unitCost: null }] }));
+    expect(tiles[1].value).toBe("—");
+    expect(tiles[1].hint).toBe("Set a cost in Part Settings to see the profit");
   });
 
   it("flags the lowest cover when a part is already at its reorder level", () => {
     const tiles = tilesFor(report({ counts: { spark_plug: 2, petrol_filter: 1 } }));
-    expect(tiles[2].attention).toBe(true);
-    expect(tiles[2].hint).toBe("Spark Plug: At or below the reorder level of 2");
+    expect(tiles[3].attention).toBe(true);
+    expect(tiles[3].hint).toBe("Spark Plug: At or below the reorder level of 2");
   });
 
   it("builds the section link with the dashboard's period", () => {

@@ -11,6 +11,9 @@ import type { Movement, OrderTiming } from "./types";
  *   same number of days immediately before it.
  * - Sales are Sale entries net of Customer Return adjustments, each at its entry's own price. Reset
  *   entries are left out. Entries without a price count in units but not in value.
+ * - Gross profit is (price - cost) x units over the same entries, each at its own price and cost;
+ *   an entry missing either is left out of profit and counted. Margin is profit over the sales value
+ *   of the entries that count towards profit.
  * - Shrinkage is the Damaged and Lost or Stolen write-offs, at each entry's own cost.
  * - Days of cover is the shelf count divided by the average daily net sales over the period.
  * - Lead time is the median of received minus created over orders received in the period.
@@ -89,9 +92,15 @@ export interface SaleTotals {
   units: number; // net of returns, so a day with more returns than sales is negative
   value: number; // at each entry's own price
   unpriced: number; // units (sales or returns) that had no price and so are missing from `value`
+  profit: number; // (price - cost) x units, over the entries that have both
+  profitBase: number; // the sales value of those same entries: the margin's denominator
+  uncosted: number; // units that had a price but no cost, so are missing from `profit`
 }
 
-export const emptySales = (): SaleTotals => ({ units: 0, value: 0, unpriced: 0 });
+export const emptySales = (): SaleTotals => ({ units: 0, value: 0, unpriced: 0, profit: 0, profitBase: 0, uncosted: 0 });
+
+/** Gross margin as a fraction, or null when no sale had both a price and a cost. */
+export const marginOf = (totals: SaleTotals): number | null => (totals.profitBase > 0 ? totals.profit / totals.profitBase : null);
 
 /** Units sold by one entry: positive for a sale, negative for a customer return, null for anything else. */
 export function saleUnits(movement: Movement): number | null {
@@ -104,8 +113,18 @@ function addSale(totals: SaleTotals, movement: Movement): void {
   const units = saleUnits(movement);
   if (units === null) return;
   totals.units += units;
-  if (movement.unitPrice === null) totals.unpriced += Math.abs(units);
-  else totals.value = cents(totals.value + units * movement.unitPrice);
+  const { unitPrice, unitCost } = movement;
+  if (unitPrice === null) {
+    totals.unpriced += Math.abs(units);
+    return;
+  }
+  totals.value = cents(totals.value + units * unitPrice);
+  if (unitCost === null) {
+    totals.uncosted += Math.abs(units);
+    return;
+  }
+  totals.profit = cents(totals.profit + units * (unitPrice - unitCost));
+  totals.profitBase = cents(totals.profitBase + units * unitPrice);
 }
 
 export function salesTotals(movements: Movement[], start: Date, end: Date, part?: string | null): SaleTotals {
@@ -136,6 +155,49 @@ export function salesByDay(movements: Movement[], period: Period, parts: string[
     addSale(row.total, m);
   }
   return [...rows.values()];
+}
+
+export interface SalesBucket {
+  key: string; // the first day, "YYYY-MM-DD"
+  start: Date; // local midnight of the first day
+  end: Date; // local midnight of the last day
+  days: number; // 1, or 7 (fewer in the oldest bucket of a period that is not a whole number of weeks)
+  byPart: Record<string, SaleTotals>;
+  total: SaleTotals;
+}
+
+const addTotals = (into: SaleTotals, from: SaleTotals): void => {
+  into.units += from.units;
+  into.value = cents(into.value + from.value);
+  into.unpriced += from.unpriced;
+  into.profit = cents(into.profit + from.profit);
+  into.profitBase = cents(into.profitBase + from.profitBase);
+  into.uncosted += from.uncosted;
+};
+
+/** How many days one chart bar covers: a day over a week or a month, a week over 90 days. */
+export const bucketSize = (periodDays: number): number => (periodDays > 30 ? 7 : 1);
+
+/** Groups the days into blocks of `size`, counted back from the newest day, so the newest bar is always a full block. */
+export function bucketSales(byDay: DaySales[], parts: string[], size: number): SalesBucket[] {
+  const buckets: SalesBucket[] = [];
+  for (let end = byDay.length; end > 0; end -= size) {
+    const slice = byDay.slice(Math.max(0, end - size), end);
+    const bucket: SalesBucket = {
+      key: slice[0].day,
+      start: slice[0].date,
+      end: slice[slice.length - 1].date,
+      days: slice.length,
+      byPart: Object.fromEntries(parts.map((part) => [part, emptySales()])),
+      total: emptySales(),
+    };
+    for (const day of slice) {
+      addTotals(bucket.total, day.total);
+      for (const part of parts) if (day.byPart[part]) addTotals(bucket.byPart[part], day.byPart[part]);
+    }
+    buckets.unshift(bucket);
+  }
+  return buckets;
 }
 
 export type SalesChange =
@@ -262,6 +324,37 @@ export function historyDays(movements: Movement[], part: string, now: Date): num
   return oldest ? (now.getTime() - oldest.getTime()) / DAY_MS : 0;
 }
 
+// ---------- what to do ----------
+
+export const OPEN_ORDER_STATES = ["Pending", "Accepted", "Dispatched"] as const;
+
+export type Action =
+  | { kind: "scan" } // the camera has never counted this part
+  | { kind: "waiting"; state: string } // at or below the reorder level, and an order is already open
+  | { kind: "due" } // at or below the reorder level, and no order is open
+  | { kind: "adjust"; level: number; direction: "raise" | "lower" } // the suggested level differs from the current one
+  | { kind: "no-sales" }
+  | { kind: "not-enough"; historyDays: number; deliveries: number }
+  | { kind: "ok" };
+
+/** The one thing to do about a part, the first rule that matches: see docs/DESIGN_DECISIONS.md. */
+export function whatToDo(
+  part: Pick<PartInsight, "shelf" | "reorderLevel" | "cover" | "recommendation">,
+  openOrder: string | null,
+): Action {
+  if (part.shelf === null) return { kind: "scan" };
+  if (part.shelf <= part.reorderLevel) return openOrder ? { kind: "waiting", state: openOrder } : { kind: "due" };
+  const { recommendation } = part;
+  if (recommendation.kind === "ok" && recommendation.level !== part.reorderLevel) {
+    return { kind: "adjust", level: recommendation.level, direction: recommendation.level > part.reorderLevel ? "raise" : "lower" };
+  }
+  if (part.cover.kind === "no-sales") return { kind: "no-sales" };
+  if (recommendation.kind === "not-enough") {
+    return { kind: "not-enough", historyDays: recommendation.historyDays, deliveries: recommendation.deliveries };
+  }
+  return { kind: "ok" };
+}
+
 // ---------- the whole report ----------
 
 export interface PartInsight {
@@ -274,6 +367,21 @@ export interface PartInsight {
   cover: Cover;
   historyDays: number;
   recommendation: Recommendation;
+  openOrder: string | null; // the state of the part's open order (Pending, Accepted or Dispatched), if any
+  action: Action;
+}
+
+export interface RankedPart {
+  part: PartInsight;
+  profitShare: number | null; // this part's profit over all listed parts' profit; null when there is none
+}
+
+/** The parts by gross profit, best first (ties by units, then name), with each part's share of the profit. */
+export function rankParts(parts: PartInsight[]): RankedPart[] {
+  const total = parts.reduce((sum, p) => sum + p.sales.profit, 0);
+  return [...parts]
+    .sort((a, b) => b.sales.profit - a.sales.profit || b.sales.units - a.sales.units || a.name.localeCompare(b.name))
+    .map((part) => ({ part, profitShare: total > 0 ? part.sales.profit / total : null }));
 }
 
 export interface InsightsReport {
@@ -282,6 +390,8 @@ export interface InsightsReport {
   byDay: DaySales[];
   sales: SaleTotals;
   change: SalesChange; // sales value against the previous period
+  profitChange: SalesChange; // gross profit against the previous period
+  buckets: SalesBucket[]; // the chart's bars: days, or weeks over 90 days
   shrinkage: ShrinkageReport;
   lowestCover: PartInsight | null; // the part with the fewest days of cover, among those with a figure
   lead: LeadTime | null; // dealer-wide: the same dealer delivers every part
@@ -313,6 +423,9 @@ export function computeInsights(input: InsightsInput): InsightsReport {
     const averageDaily = averageDailySales(own.units, days);
     const shelf = counts && typeof counts[product.id] === "number" ? counts[product.id] : null;
     const history = historyDays(movements, product.id, now);
+    const recommendation = recommendLevel(averageDaily, lead, history);
+    const cover = daysOfCover(shelf, averageDaily, product.reorderLevel);
+    const openOrder = orders.find((o) => o.product === product.id && OPEN_ORDER_STATES.includes(o.state as (typeof OPEN_ORDER_STATES)[number]))?.state ?? null;
     return {
       part: product.id,
       name: product.name,
@@ -320,9 +433,11 @@ export function computeInsights(input: InsightsInput): InsightsReport {
       averageDaily,
       shelf,
       reorderLevel: product.reorderLevel,
-      cover: daysOfCover(shelf, averageDaily, product.reorderLevel),
+      cover,
       historyDays: history,
-      recommendation: recommendLevel(averageDaily, lead, history),
+      recommendation,
+      openOrder,
+      action: whatToDo({ shelf, reorderLevel: product.reorderLevel, cover, recommendation }, openOrder),
     };
   });
 
@@ -337,12 +452,16 @@ export function computeInsights(input: InsightsInput): InsightsReport {
     movements.some((m) => m.seeded && inPeriod(m.at) && (!part || m.product === part)) ||
     orders.some((o) => o.seeded && (inPeriod(o.receivedAt) || inPeriod(o.createdAt)) && (!part || o.product === part));
 
+  const byDay = salesByDay(movements, period, partIds);
+  const previousLoaded = loadedFrom <= period.previousStart;
   return {
     period,
     parts,
-    byDay: salesByDay(movements, period, partIds),
+    byDay,
+    buckets: bucketSales(byDay, partIds, bucketSize(days)),
     sales,
-    change: salesChange(sales.value, previous.value, loadedFrom <= period.previousStart),
+    change: salesChange(sales.value, previous.value, previousLoaded),
+    profitChange: salesChange(sales.profit, previous.profit, previousLoaded),
     shrinkage: shrinkage(movements, period.start, period.end, partIds, sales.value, part),
     lowestCover,
     lead,

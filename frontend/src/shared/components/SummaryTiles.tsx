@@ -1,6 +1,6 @@
 import { styled } from "@mui/material/styles";
 import { Link } from "react-router-dom";
-import { breakpoint, color, font, space, text } from "../theme/tokens";
+import { color, font, space, text } from "../theme/tokens";
 
 export interface SummaryTile {
   label: string;
@@ -20,6 +20,7 @@ const Tiles = styled("dl")({
 /** A tile: teal top bar, amber when it holds work waiting for this user. */
 const Tile = styled("div", { shouldForwardProp: (prop) => prop !== "attention" })<{ attention: boolean }>(({ attention }) => ({
   position: "relative",
+  containerType: "inline-size",
   margin: 0,
   padding: `${space(4)} ${space(5)}`,
   background: color.canvas,
@@ -34,14 +35,17 @@ const Tile = styled("div", { shouldForwardProp: (prop) => prop !== "attention" }
   "& dt a:focus-visible": { outline: "none" },
 }));
 
+/**
+ * The figure. The tile is a size container, so the figure scales with the tile's own width: a money
+ * value such as "LKR 31,800.00" (13 mono characters, joined by a no-break space) always fits on one
+ * line and is never split mid-number, whether the tile is a quarter of the dashboard or the full
+ * width of a phone. Words ("No deliveries yet") still wrap at spaces.
+ */
 const Value = styled("dd")({
   margin: `${space(1)} 0`,
   fontFamily: font.mono,
-  fontSize: "2rem",
+  fontSize: "clamp(1.125rem, 11cqi, 2rem)",
   lineHeight: 1.2,
-  overflowWrap: "anywhere",
-  // A money figure ("LKR 31,800.00") needs the smaller size to fit a phone-width tile.
-  [`@media (max-width: ${breakpoint.narrow})`]: { fontSize: "1.5rem" },
 });
 const Hint = styled("dd")({ margin: 0, fontSize: text.sm, color: color.inkMuted });
 

@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import EmptyState from "../../shared/components/EmptyState";
 import FilterGroup, { type FilterOption } from "../../shared/components/FilterGroup";
@@ -16,7 +16,7 @@ import { formatDateTime, formatInteger, formatMoney } from "../../shared/format"
 import { color, space, text } from "../../shared/theme/tokens";
 import { useLatestStatus } from "../dashboard/hooks";
 import { useProducts } from "../inventory/hooks";
-import { DEFAULT_PERIOD, MIN_DELIVERIES, MIN_HISTORY_DAYS, parsePeriod, PERIODS, periodRange, salesTotals, type PeriodDays } from "./analytics";
+import { DEFAULT_PERIOD, marginOf, MIN_DELIVERIES, MIN_HISTORY_DAYS, parsePeriod, PERIODS, periodRange, salesTotals, type PeriodDays } from "./analytics";
 import { useInsights, useNow } from "./hooks";
 import { useInsightsData } from "./InsightsContext";
 import {
@@ -29,23 +29,39 @@ import {
   leadValue,
   recommendationText,
   salesValueText,
+  uncostedNote,
   unpricedNote,
 } from "./insightsText";
+import ActionList from "./ActionList";
+import PartRanking from "./PartRanking";
 import SalesChart from "./SalesChart";
+import SalesDataTable from "./SalesDataTable";
 import ShrinkageChart from "./ShrinkageChart";
 import { tilesFor } from "./tiles";
 
 const PERIOD_OPTIONS: readonly FilterOption<`${PeriodDays}`>[] = PERIODS.map((d) => ({ value: `${d}` as const, label: `${d} Days` }));
-const SECTIONS = ["sales", "shrinkage", "cover", "recommendations"] as const;
+const SECTIONS = ["sales", "shrinkage", "cover", "recommendations", "actions"] as const;
 
-function Section({ id, title, subtitle, children, footer }: { id: string; title: string; subtitle: string; children: React.ReactNode; footer?: string }) {
+interface SectionProps {
+  id: string;
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+  footer?: string;
+  aside?: ReactNode; // a figure shown at the right of the heading, wrapping under it when narrow
+}
+
+function Section({ id, title, subtitle, children, footer, aside }: SectionProps) {
   return (
     <Panel id={id} aria-labelledby={`${id}-title`}>
-      <PanelHeader>
-        <h2 id={`${id}-title`} tabIndex={-1}>
-          {title}
-        </h2>
-        <Muted>{subtitle}</Muted>
+      <PanelHeader split={Boolean(aside)}>
+        <div>
+          <h2 id={`${id}-title`} tabIndex={-1}>
+            {title}
+          </h2>
+          <Muted>{subtitle}</Muted>
+        </div>
+        {aside}
       </PanelHeader>
       {children}
       {footer && <PanelFooter>{footer}</PanelFooter>}
@@ -69,6 +85,8 @@ export default function InsightsPage() {
   const products = useProducts();
   const now = useNow();
   const { report, loading, error } = useInsights(days, partParam, counts);
+  // The advice always uses the default period, so changing the period shown below never changes it.
+  const basis = useInsights(DEFAULT_PERIOD, null, counts);
 
   // Filters: each period and part shows the net units sold in it, so the choice itself informs.
   const periodCounts = useMemo(() => {
@@ -170,13 +188,29 @@ export default function InsightsPage() {
         <>
           <SummaryTiles tiles={tiles.map((t) => ({ ...t, to: undefined }))} />
 
+          {basis.report && <ActionList parts={basis.report.parts} basisDays={DEFAULT_PERIOD} />}
+
           <Section
             id="sales"
-            title="Sales"
-            subtitle="Units sold per day and part, net of customer returns, at each sale's own price."
-            footer={report.sales.units === 0 ? "No sales in this period." : `${formatInteger(report.sales.units)} units, ${salesValueText(report.sales)} in total. ${describeChange(report.change, days)}. ${unpricedNote(report.sales)}`.trim()}
+            title="Sales and Profit"
+            subtitle={`Units sold per ${days > 30 ? "week" : "day"} and part, net of customer returns. Revenue is at each sale's own price and gross profit at its own price and cost.`}
+            footer={
+              report.sales.units === 0
+                ? "No sales in this period."
+                : [
+                    `${formatInteger(report.sales.units)} units, ${salesValueText(report.sales)} in total.`,
+                    marginOf(report.sales) === null ? "" : `Gross profit ${formatMoney(report.sales.profit)}, ${formatShare(marginOf(report.sales))} margin.`,
+                    `${describeChange(report.change, days)}.`,
+                    unpricedNote(report.sales),
+                    uncostedNote(report.sales),
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+            }
           >
-            <SalesChart byDay={report.byDay} parts={report.parts} periodDays={days} />
+            <SalesChart buckets={report.buckets} parts={report.parts} periodDays={days} />
+            <PartRanking parts={report.parts} />
+            <SalesDataTable buckets={report.buckets} parts={report.parts} />
           </Section>
 
           <Section
@@ -234,11 +268,24 @@ export default function InsightsPage() {
             </TableScroll>
           </Section>
 
+          {basis.report && (
           <Section
             id="recommendations"
             title="Reorder Recommendations"
-            subtitle={`Suggested reorder level = average daily sales × the dealer's median lead time, plus a safety margin of half that demand (at least 1 unit), rounded up. Needs ${MIN_HISTORY_DAYS} days of history and ${MIN_DELIVERIES} received deliveries.`}
-            footer={`Dealer lead time: ${leadValue(report.lead)}. ${leadHint(report.lead)}.`}
+            subtitle={`Always from the last ${DEFAULT_PERIOD} days, whichever period is shown above, so the advice does not change with the view. Suggested reorder level = average daily sales × the dealer's median lead time, plus a safety margin of half that demand (at least 1 unit), rounded up. Needs ${MIN_HISTORY_DAYS} days of history and ${MIN_DELIVERIES} received deliveries.`}
+            aside={
+              <Box sx={{ textAlign: "left", fontSize: text.sm }}>
+                <Box component="span" sx={{ display: "block", color: color.inkMuted }}>
+                  Dealer Lead Time
+                </Box>
+                <Box component="strong" sx={{ fontFamily: "inherit" }}>
+                  {leadValue(basis.report.lead)}
+                </Box>
+                <Box component="span" sx={{ display: "block", color: color.inkMuted }}>
+                  {leadHint(basis.report.lead)}
+                </Box>
+              </Box>
+            }
           >
             <TableScroll label="Reorder recommendations table">
               <DataTable
@@ -250,26 +297,34 @@ export default function InsightsPage() {
                     <HeadCell numeric>Lead Time (days)</HeadCell>
                     <HeadCell numeric>Current Level</HeadCell>
                     <HeadCell numeric>Suggested Level</HeadCell>
-                    <HeadCell>Recommendation</HeadCell>
                   </>
                 }
               >
-                {report.parts.map((p) => (
+                {basis.report.parts.filter((p) => partFilterValue === "all" || p.part === partFilterValue).map((p) => (
                   <Row key={p.part}>
                     <RowHeader translate="no">{p.name}</RowHeader>
                     <NumCell>{formatDays(p.averageDaily)}</NumCell>
-                    <NumCell>{report.lead ? formatDays(report.lead.days) : "—"}</NumCell>
+                    <NumCell>{basis.report?.lead ? formatDays(basis.report.lead.days) : "—"}</NumCell>
                     <NumCell>{formatInteger(p.reorderLevel)}</NumCell>
-                    <NumCell>{p.recommendation.kind === "ok" ? formatInteger(p.recommendation.level) : "—"}</NumCell>
-                    <Cell>{recommendationText(p.recommendation, p.reorderLevel, MIN_HISTORY_DAYS, MIN_DELIVERIES)}</Cell>
+                    <Cell sx={{ textAlign: "right" }}>
+                      <Box component="span" sx={{ display: "block", fontFamily: "inherit" }}>
+                        {p.recommendation.kind === "ok" ? formatInteger(p.recommendation.level) : "—"}
+                      </Box>
+                      {p.recommendation.kind !== "ok" && (
+                        <Box component="span" sx={{ display: "block", fontSize: text.sm, color: color.inkMuted }}>
+                          {recommendationText(p.recommendation, p.reorderLevel, MIN_HISTORY_DAYS, MIN_DELIVERIES)}
+                        </Box>
+                      )}
+                    </Cell>
                   </Row>
                 ))}
               </DataTable>
             </TableScroll>
             <PanelBody sx={{ pt: 0, fontSize: text.sm, color: color.inkMuted }}>
-              A suggestion is applied by hand in Part Settings on the Dashboard; the next scan uses the new level.
+              A suggestion is applied by hand in Part Settings; the next scan uses the new level.
             </PanelBody>
           </Section>
+          )}
         </>
       )}
     </Page>

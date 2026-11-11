@@ -1,5 +1,6 @@
 import { formatInteger, formatMoney } from "../../shared/format";
-import type { Cover, LeadTime, Recommendation, SaleTotals, SalesChange } from "./analytics";
+import type { BadgeKind } from "../../shared/components/StatusBadge";
+import { marginOf, type Action, type Cover, type LeadTime, type Recommendation, type SaleTotals, type SalesChange } from "./analytics";
 
 /*
  * How each figure reads on the tiles and the page. Pure, so every wording and edge case is tested.
@@ -74,6 +75,13 @@ export function leadHint(lead: LeadTime | null): string {
   return `Median of ${formatInteger(lead.deliveries)} ${lead.deliveries === 1 ? "delivery" : "deliveries"}, order to receipt`;
 }
 
+const missingText = (historyDays: number, deliveries: number, minDays: number, minDeliveries: number): string => {
+  const missing: string[] = [];
+  if (historyDays < minDays) missing.push(`${formatInteger(historyDays)} of ${minDays} days of history`);
+  if (deliveries < minDeliveries) missing.push(`${formatInteger(deliveries)} of ${minDeliveries} deliveries received`);
+  return `Not enough history yet: ${missing.join(", ")}`;
+};
+
 /** The suggestion as a short action, or what is missing before one can be made. */
 export function recommendationText(recommendation: Recommendation, currentLevel: number, minDays: number, minDeliveries: number): string {
   switch (recommendation.kind) {
@@ -84,12 +92,90 @@ export function recommendationText(recommendation: Recommendation, currentLevel:
     }
     case "no-sales":
       return "No recent sales to base a suggestion on";
-    case "not-enough": {
-      const missing: string[] = [];
-      if (recommendation.historyDays < minDays) missing.push(`${formatInteger(recommendation.historyDays)} of ${minDays} days of history`);
-      if (recommendation.deliveries < minDeliveries)
-        missing.push(`${formatInteger(recommendation.deliveries)} of ${minDeliveries} deliveries received`);
-      return `Not enough history yet: ${missing.join(", ")}`;
-    }
+    case "not-enough":
+      return missingText(recommendation.historyDays, recommendation.deliveries, minDays, minDeliveries);
+  }
+}
+
+// ---------- gross profit ----------
+
+/** Gross profit for a tile: "—" when units sold have no cost to subtract. */
+export function profitValue(sales: SaleTotals): string {
+  return sales.units !== 0 && sales.profitBase === 0 ? "—" : formatMoney(sales.profit);
+}
+
+export function profitHint(sales: SaleTotals, change: SalesChange, periodDays: number): string {
+  if (sales.units === 0) return "No sales in this period";
+  const margin = marginOf(sales);
+  if (margin === null) return "Set a cost in Part Settings to see the profit";
+  return `${formatShare(margin)} margin. ${describeChange(change, periodDays)}`;
+}
+
+/** A note when some units are missing from the profit because they had no cost. */
+export function uncostedNote(sales: SaleTotals): string {
+  if (sales.uncosted === 0) return "";
+  const n = sales.uncosted;
+  return `${formatInteger(n)} ${n === 1 ? "unit has" : "units have"} no cost and ${n === 1 ? "is" : "are"} not in the profit. Set a cost in Part Settings.`;
+}
+
+// ---------- what to do ----------
+
+const ORDER_STATE_TEXT: Record<string, string> = {
+  Pending: "Order placed, waiting for the dealer to accept it",
+  Accepted: "Order accepted, waiting for the dealer to dispatch it",
+  Dispatched: "Order on its way: mark it received when it arrives",
+};
+
+export function whatToDoText(action: Action, minDays: number, minDeliveries: number): string {
+  switch (action.kind) {
+    case "scan":
+      return "Scan the shelf to count this part";
+    case "waiting":
+      return ORDER_STATE_TEXT[action.state] ?? "Order placed, waiting for delivery";
+    case "due":
+      return "At the reorder level: an order is raised after two low scans";
+    case "adjust":
+      return `${action.direction === "raise" ? "Raise" : "Lower"} the reorder level to ${formatInteger(action.level)}`;
+    case "no-sales":
+      return "No recent sales to base a decision on";
+    case "not-enough":
+      return missingText(action.historyDays, action.deliveries, minDays, minDeliveries);
+    case "ok":
+      return "OK: stock and reorder level fit the sales";
+  }
+}
+
+/** The badge that carries the action's urgency as icon plus text, never colour alone. */
+export function whatToDoKind(action: Action): BadgeKind {
+  switch (action.kind) {
+    case "due":
+      return "warning";
+    case "waiting":
+    case "adjust":
+      return "info";
+    case "ok":
+      return "success";
+    default:
+      return "neutral";
+  }
+}
+
+/** The short label on the badge. */
+export function whatToDoLabel(action: Action): string {
+  switch (action.kind) {
+    case "scan":
+      return "Scan Needed";
+    case "waiting":
+      return "Order Open";
+    case "due":
+      return "Order Due";
+    case "adjust":
+      return action.direction === "raise" ? "Raise Level" : "Lower Level";
+    case "no-sales":
+      return "No Sales";
+    case "not-enough":
+      return "Too Early";
+    case "ok":
+      return "OK";
   }
 }

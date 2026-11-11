@@ -6,7 +6,10 @@ import { formatInteger, formatMoney } from "../../shared/format";
 import { color, space, text } from "../../shared/theme/tokens";
 import { REASON_LABELS } from "../inventory/movements";
 import { SHRINKAGE_REASONS, type PartInsight, type ShrinkageReport } from "./analytics";
-import { CHART_HEIGHT, seriesColor } from "./chartSupport";
+import { seriesColor } from "./chartSupport";
+
+/** Two bars need less height than a daily chart, and keeps each bar thin. */
+const SHRINKAGE_HEIGHT = 200;
 
 interface Props {
   shrinkage: ShrinkageReport;
@@ -31,10 +34,10 @@ export default function ShrinkageChart({ shrinkage, parts }: Props) {
     <>
       <Box role="img" aria-label={summary} sx={{ px: space(3), "& text": { fontFamily: "inherit", fill: color.inkMuted } }}>
         <BarChart
-          height={CHART_HEIGHT}
+          height={SHRINKAGE_HEIGHT}
           layout="horizontal"
           series={series}
-          yAxis={[{ scaleType: "band", data: reasons, valueFormatter: (reason: string) => REASON_LABELS[reason as keyof typeof REASON_LABELS], width: 110, categoryGapRatio: 0.5 }]}
+          yAxis={[{ scaleType: "band", data: reasons, valueFormatter: (reason: string) => REASON_LABELS[reason as keyof typeof REASON_LABELS], width: 110, categoryGapRatio: 0.7 }]}
           xAxis={[{ tickMinStep: 1, label: "Units" }]}
           grid={{ vertical: true }}
           borderRadius={2}
