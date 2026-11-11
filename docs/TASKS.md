@@ -19,7 +19,7 @@ Everything left to finish the product as planned, with no cuts. IDs point to the
    - [ ] 6. Stock Log page as the fifth tab; header fit at 320 to 1360 px (SL-2).
    - [ ] 7. Link from each Stock Check row to that part's log (SL-3).
    - [ ] 8. Undo on Record Sale; rules change (SL-4). User publishes the rules.
-   - [ ] 9. One name per part; `productName` on new orders (SL-5).
+   - [x] 9. One name per part; `productName` on new orders (SL-5). Nov 11: built, script-tested and seen live (the dealer's row shows the stored name) (orders and order notifications use it; alerts still use the class-name label, see FUTURE_WORK).
 3. Demo history and analytics
    - [ ] 10. `seed_history`, ending exactly at the real POS counts (SH-1).
    - [ ] 11. Data loader for a period (AN-1).
@@ -38,9 +38,10 @@ Everything left to finish the product as planned, with no cuts. IDs point to the
    - [ ] 23. Stock flow, stock value, stockouts, response and dealer (IN-5).
    - [ ] 24. Apply a recommended reorder level (IN-6).
 5. M10 security
-   - [ ] 25. Final rules; the dealer no longer reads products (M10-1). User publishes.
-   - [ ] 26. Backend: Scan Now and the shelf image for the shopkeeper only (M10-2).
-   - [ ] 27. Dealer pages without product reads (M10-3).
+   - [x] 25. Final rules; the dealer no longer reads products (M10-1). Published Nov 11 05:36 UTC (dealer reads purchase orders only, plus the Cancel Order rule). `m10_rest.py` 38/38, `f1_rest.py` 32/32, `pause_rest.py` 11/11.
+   - [x] 26. Backend: Scan Now and the shelf image for the shopkeeper only (M10-2). Nov 11: built (`require_shopkeeper`, `RoleChecker` with a 5-minute cache, typed 403), backend 252 tests; live: the dealer's token gets 403 `forbidden` for both, the shopkeeper's 200, no token 401.
+   - [x] 27. Dealer pages without product reads (M10-3). The dealer's pages already read no products (ProductsProvider is shopkeeper-only); names now come from `productName`. Live: full regression 56/56 under the new rules, no permission errors in either role.
+   - [x] 27a. Cancel Order (added Nov 11, user's decision): shopkeeper cancels Pending or Accepted with a reason; Cancelled state, Closed filter, Cancelled tile, dealer notified if they had accepted it; backend no longer counts it as open. Built and script-tested (frontend 674 tests). Live (`cancel_live.mjs`, both roles): cancelled with a reason, moved to Closed with the reason shown, the dealer's tile and notification updated live, no Cancel on a dispatched order, axe 0; dialog checked at 1360, 390 and 320 px (`cancelui.mjs`). Not live-tested: a real part being ordered again after a cancel (unit-tested only, to avoid a real order).
 6. M11 Hosting
    - [ ] 28. Build and deploy; hosted origin in `CORS_ORIGINS` (M11-1). User deploys or approves.
    - [ ] 29. Scan Now from the hosted page on the shop laptop (M11-2).

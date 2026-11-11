@@ -21,7 +21,8 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | Oct 31 | Shopkeeper's-eye review | Led to the stock change log, Adjust Stock, Part Settings, the delivery guard, and the changes to automatic scanning below |
 | Nov 4 | F1 | Every POS change logged in the same transaction (`stock_movements`), enforced by the rules; Adjust Stock with reasons; Part Settings (cost, price in LKR, margin, reorder settings); delivery guard; who acknowledged or received |
 | Nov 4 to 11 | M6 automatic scanning | Background loop; time rules for alerts (3 min) and orders (5 min); dark-frame skip; change-only writes; bounded database calls; camera kept open; gap rule; camera status line; Pause Scanning |
-| Still to do | Stock Log, Insights (F3), M10, M11, M12 | See `docs/TASKS.md`, "Remaining work" |
+| Nov 11 | M10 and Cancel Order | Final least-privilege rules (the dealer reads purchase orders only), shopkeeper-only Scan Now and shelf image on the backend, part names stored on orders; the shopkeeper can cancel an order before dispatch, with a reason |
+| Still to do | Stock Log, Insights (F3), M11, M12 | See `docs/TASKS.md`, "Remaining work" |
 
 ## Engineering approach (Implementation)
 - Layered backend: routes (HTTP only), services (use cases), adapters (camera, detector, Firestore). Decisions live in pure, unit-tested functions: `reconcile.py`, `alerts.py`, `orders.py`, `scan_policy.py`, `frame_quality.py`.
@@ -49,8 +50,8 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 Still to measure in M12 (`docs/TASKS.md`): detection accuracy over 20 arrangements under 3 lighting conditions, Scan Now timing over 50 runs, sync latency over 10 trials, one day of real free-tier usage, functional test cases FR1 to FR9, and a usability test with 3 people.
 
 ## Testing (Evaluation)
-- Automated, Nov 11: backend 234 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 644 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
-- Rules: 63 cases written for the Rules API test endpoint; live attack checks over REST with real sign-ins: 32 for the stock change log and Part Settings, 11 for Pause Scanning, all passing.
+- Automated, Nov 11: backend 252 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 674 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
+- Rules: 63 cases written for the Rules API test endpoint; live attack checks over REST with real sign-ins: 32 for the stock change log and Part Settings, 11 for Pause Scanning, 38 for M10 (reads per role, every Cancel Order case, and the backend's 403 for the dealer), all passing on Nov 11.
 - Live, Nov 11: full regression 56 checks passing; all six camera states produced for real (lens covered, backend stopped, wrong camera index, scanning off, paused, live), each at 6 widths with axe 0; Pause Scanning by keyboard, end to end.
 - Live, in Chrome with Playwright and axe: full regression across both roles, screenshot comparison at 5 widths, 43 extra interface states, keyboard walks; F1 flow end to end; temporary `zz-*` data, with the real data snapshotted and restored identically after every run.
 
@@ -76,13 +77,13 @@ These were missed by unit tests and found only on the real system; each was fixe
 |---|---|
 | FR1 capture periodically | Done: automatic scanning (M6) |
 | FR2 to FR8 | Done (detection, counting, cloud storage, POS comparison, alerts, automatic orders, dashboard) |
-| FR9 authentication | Done; final role rules in M10 |
+| FR9 authentication | Done, with the final role rules (M10, Nov 11) |
 | NFR1 accuracy | 0.995 mAP50 validation; live accuracy in M12 |
 | NFR2 inference under 1 s | Met (25 to 48 ms) |
 | NFR3 free services | Spark plan; usage measured in M12 |
 | NFR4 usable by a non-technical shopkeeper | Usability test in M12 |
 | NFR5 any webcam | `CAMERA_INDEX`; a wrong index shows "Camera Not Responding" on the dashboard (seen live, Nov 11) |
-| NFR6 access control | Rules per role; final set in M10 |
+| NFR6 access control | Done: least privilege per role in the rules, and a role check on the backend's camera and image endpoints (M10, Nov 11) |
 | NFR7 new parts without code changes | Product ids equal model class names |
 
 ## Operational lessons (Discussion)

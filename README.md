@@ -103,7 +103,7 @@ Nine collections (`settings/scanning` holds Pause Scanning). The backend writes 
 | `products/{spark_plug}` | `name`, `posCount`, `lastMovementId`, `reorderLevel`, `reorderQty`, `unitCost`, `unitPrice` (LKR, null until set), `updatedBy`, `updatedAt`, `status` (Matched or Mismatch), `lowScanStreak` | Seeded once; shopkeeper (`posCount` with its log entry; Part Settings); backend (`status`, `lowScanStreak`) | M7, F1 |
 | `stock_movements/{auto id}` | `product`, `type` (Sale, Receipt, OrderReceived, Adjustment, Reset), `change` (signed), `posBefore`, `posAfter`, `unitCost`, `unitPrice` (as at the change), `reason` (Adjustment: Damaged, LostOrStolen, Miscount, Found, CustomerReturn), `orderId` (OrderReceived), `at`, `by` | Shopkeeper, in the same write as the POS change; scripts (Reset only). Never edited or deleted; shopkeeper only | F1 |
 | `alerts/{auto id}` | `product`, `visualCount`, `posCount`, `state` (Open, Acknowledged, Resolved), `createdAt`, `acknowledgedAt`, `acknowledgedBy`, `resolvedAt` | Backend; shopkeeper (acknowledge) | M8 |
-| `purchase_orders/{auto id}` | `product`, `qty`, `state` (Pending, Accepted, Dispatched, Received), `createdAt`, `acceptedAt`, `dispatchedAt`, `receivedAt`, `receivedBy`, `source` (auto), `seeded` (sample data only) | Backend; dealer; shopkeeper | M9 |
+| `purchase_orders/{auto id}` | `product`, `productName` (the part's name when raised; the dealer cannot read products), `qty`, `state` (Pending, Accepted, Dispatched, Received, Cancelled), `createdAt`, `acceptedAt`, `dispatchedAt`, `receivedAt`, `receivedBy`, `cancelledAt`, `cancelledBy`, `cancelReason` (NotNeeded, OrderedByMistake, Other), `source` (auto), `seeded` (sample data only) | Backend; dealer; shopkeeper | M9, M10 |
 | `notification_reads/{uid}` | `readKeys` (list, at most 500) | The signed-in user, own document only | Notifications |
 
 Product document ids are the model's own class names. Adding a new part later means retraining the model and adding one product document, with no code change (NFR7).
@@ -120,13 +120,13 @@ Product document ids are the model's own class names. Adding a new part later me
 | FR6 | Raise discrepancy alerts | M8 | One alert per mismatch | Done |
 | FR7 | Automatic replenishment request | M9 | Order on the dealer screen | Done |
 | FR8 | Web dashboard | M4, M5, M9 | Shopkeeper and dealer pages | Done |
-| FR9 | User authentication | M4, M10 | Login and role-based pages | Done (rules are interim until M10) |
+| FR9 | User authentication | M4, M10 | Login, role-based pages, final rules, shopkeeper-only Scan Now and shelf image | Done (M10 built Nov 11; live check after the rules are published) |
 | NFR1 | Accuracy of at least 85% mAP | Done (0.995 mAP50); M12 | Colab results plus live accuracy test | Done (0.995 mAP50); live test M12 |
 | NFR2 | Inference under 1 second | M1, M12 | Measured average time | Met in M1; measure in M12 |
 | NFR3 | Free or low-cost services | M2, M6, M11 | Spark plan; usage under limits | On Spark plan; Hosting M11 |
 | NFR4 | Usable by a non-technical shopkeeper | M5, M12 | Usability test | Usability test M12 |
 | NFR5 | Any webcam works (camera configurable) | M3 | `CAMERA_INDEX` setting | Done |
-| NFR6 | Access restricted to logged-in users | M2, M10 | Security rules; key never committed | Done (interim rules) |
+| NFR6 | Access restricted to logged-in users | M2, M10 | Least-privilege rules per role; backend role check; key never committed | Done (M10) |
 | NFR7 | New part categories can be added | Data model | Product ids equal class names | Done |
 
 ## POS reconciliation (M7)
@@ -156,7 +156,11 @@ The shopkeeper has an **Alerts** tab (`/alerts`, with a badge for open alerts): 
 
 **Automatic ordering.** After every scan the backend (`app/orders.py`, a pure function with unit tests) checks each part against its `reorderLevel`. A part is *low* when the camera count is at or below that level. A **Pending** order for `reorderQty` is raised when the part has been low for `REORDER_CONFIRM_SCANS` scans in a row (default 2, so one bad frame, such as a hand over the camera, cannot order stock), **and** for `REORDER_DELAY_SECONDS` (default 300, `lowSince` on the product, so restocking or a person standing in front of the shelf cannot order once scanning is automatic), **and** has no open order. A part therefore never has two orders. While an order is open both are held at zero, so after it is received the part must be low for fresh scans and a fresh delay before the next order, which leaves time to restock the shelf. A `reorderQty` of 0 turns automatic orders off for the part. Orders are marked `source: auto`.
 
-**Dealer** (Purchase Orders page): summary tiles (Pending, Accepted, Dispatched, Received), an Open, Completed and All filter kept in the URL (`?status=completed`), and an action queue with Pending first and the oldest first. **Accept Order** (Pending to Accepted), then **Mark Dispatched** ("the goods have left my warehouse"). The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance (see Notifications below).
+**Dealer** (Purchase Orders page): summary tiles (Pending, Accepted, Dispatched, Received, Cancelled), an Open, Closed and All filter kept in the URL (`?status=closed`; the old `?status=completed` still works), and an action queue with Pending first and the oldest first. **Accept Order** (Pending to Accepted), then **Mark Dispatched** ("the goods have left my warehouse"). The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance (see Notifications below).
+
+**Cancel Order (shopkeeper).** An order the dealer has not dispatched (Pending or Accepted) can be cancelled from the Orders tab, with a reason (Not needed any more, Ordered by mistake, Other) after a confirmation. It is kept as **Cancelled**, never deleted: the dealer sees it, and is notified if they had already accepted it. A cancelled order no longer blocks a new one, so if the part stays low the backend raises a fresh order after the usual scans and delay; the message says so and points to Part Settings to stop it. A dispatched order cannot be cancelled: it is on its way, so it is received.
+
+**Access (M10).** The dealer reads purchase orders only: never stock records, prices, sales, alerts, scans or the scanning setting. Each order stores its part's name for that reason. The backend's Scan Now (`POST /scan`) and shelf image (`GET /snapshot/latest.jpg`) answer the shopkeeper only: any other signed-in user gets a typed 403 (`forbidden`). The role is read from `users/{uid}` and kept for 5 minutes, because the dashboard fetches the image after every scan.
 
 **Shopkeeper** (Orders tab, with a count badge for orders waiting to be confirmed): the same page, with Dispatched orders first. **Mark Received** confirms the goods arrived and, in the same transaction, adds the order quantity to the part's POS record. Receiving twice is refused.
 
@@ -201,7 +205,7 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 
 Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (default 60) on a background thread that starts and stops with the backend. **A sleeping laptop scans nothing** (the Nov 4 overnight run had gaps of 2 and 4.5 hours): on the shop laptop turn off sleep while plugged in (System Settings, Battery, Options), or start the backend with `caffeinate -i uvicorn app.main:app`. While scanning is on, the camera stays open between scans (capture about 0.19 s instead of 1.25 s), so the camera light stays on. Every Firestore call gives up after 5 s per attempt and 10 s in total, so a network hiccup cannot hold a scan (or Scan Now) for minutes. Scan Now works whether it is on or off, and the two never overlap. Run the backend as **one worker** (plain `uvicorn app.main:app`); several workers would each run a loop. The settings, with their reasons, are in `.env.example`:
 
-- **Camera status** on the dashboard: Scanning Every N s (last scan and its age), Automatic Scanning Off, Scanning Paused, Too Dark to Count, Camera Not Responding, Last Scan Failed, or No Recent Scan (nothing for more than twice the interval: the laptop is asleep or the backend stopped), each with a next step. Stock Check says when its shelf counts were taken.
+- **Camera status** on the dashboard: Scanning Every N s (last scan and its age), Automatic Scanning Off, Scanning Paused, Too Dark to Count, Camera Not Responding, Last Scan Failed, or No Recent Scan (nothing for more than twice the interval: the laptop is asleep or the backend stopped), each with a next step; "Checking Camera…" while the status loads. While a mismatch waits out the alert delay, Active Alerts says how many parts differ instead of "everything matches". Stock Check says when its shelf counts were taken.
 - **Pause Scanning (15 Min)** for restocking: written to `settings/scanning` (shopkeeper only, at most 30 minutes ahead, resumes by itself); the loop checks it before each scan and releases the camera while paused. Resume Scanning ends it early.
 - **Time rules:** an alert waits `ALERT_DELAY_SECONDS`; an order needs `REORDER_CONFIRM_SCANS` low scans in a row and `REORDER_DELAY_SECONDS` of being low.
 - **Dark frames** below `MIN_FRAME_BRIGHTNESS` are skipped: nothing changes, and `status/latest` records the skip. Scan Now in the dark answers "Too dark to count the parts. Turn on the shelf light, then scan again."
@@ -226,7 +230,7 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - [x] Move to Material UI (theme keeps the Carbon look, Oct 31)
 - [x] Supervisor feedback, part 1: alert history on the Alerts tab (Oct 31)
 - [x] Stock change log, Adjust Stock and Part Settings (F1, Nov 4; live check after the rules are published)
-- [x] M6 automatic scanning (Nov 11): time rules, dark-frame skip, change-only writes, camera status, Pause Scanning; final live checks listed in docs/TASKS.md
+- [x] M6 automatic scanning (Nov 11): time rules, dark-frame skip, change-only writes, camera status, Pause Scanning; live checks finished Nov 11 (docs/TASKS.md)
 - [ ] Supervisor feedback, part 2: Stock Log tab, business intelligence (dashboard summary and Insights page)
 - [ ] M10 full role-based rules, M11 Hosting, M12 evaluation, M13 report
 

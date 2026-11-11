@@ -36,7 +36,8 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 ### Orders and the dealer
 | Item | Why it matters | Why deferred | How |
 |---|---|---|---|
-| Cancel and decline | A Pending order cannot be cancelled by the shop or declined by the dealer (out of stock) | New `Cancelled` and `Declined` states in the workflow, rules and planner | Shopkeeper cancels Pending; dealer declines with a reason; neither counts as an open order |
+| Dealer decline, and returns | The dealer cannot decline an order (out of stock), and a dispatched order cannot be cancelled or returned. Cancel Order (shopkeeper, before dispatch) was built on Nov 11 | Cancel covered the case seen live; time | A `Declined` state like `Cancelled`; a return flow that removes the quantity with a logged entry |
+| Part names on alerts | Orders carry `productName`; alerts and the dashboard counts still show the class name made readable, so a part renamed in its product document reads differently there | No part can be renamed from the app yet | Store the name on alerts as on orders, or read it from the products the shopkeeper already loads |
 | Manual order request | The shopkeeper may know about a coming demand spike | Orders are created only by the backend, which the hosted app cannot reach | A Request Restock entry that the backend turns into an order on its next scan |
 | Expected delivery date | The shop wants to know when stock arrives | Extra field and rules | Dealer sets a date on Accept; Insights shows on-time delivery rate |
 | Confirmation or undo for Accept and Dispatch | A mis-tap moves an order on | Low risk at demo scale | A confirmation step, or a short undo window |
@@ -54,7 +55,7 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 ### Detection
 | Item | Why it matters | Why deferred | How |
 |---|---|---|---|
-| Shelf-in-view check | A moved camera or a cleared shelf looks like stock gone missing | Needs a reference image or marker | Compare each frame with a reference view of the empty shelf, or add a printed marker the model must see |
+| Shelf-in-view check | A moved camera or a cleared shelf looks like stock gone missing (seen five times on Nov 11, whenever the laptop was in use) | Needs a reference image or marker | Compare each frame with a reference view of the empty shelf, or add a printed marker the model must see |
 | Retrain with background images | Lets the box guards be loosened or removed | Needs a new training run and re-validation | `python -m scripts.capture_dataset negatives --count 150`, then retrain and re-validate |
 | End-on and edge-of-frame filters | Fewer missed parts | Same retraining | Add those views to the dataset |
 | Several cameras or shelves | Covers more of the shop | One camera is enough for the evaluation | A camera id per scan and per product |
@@ -69,6 +70,8 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 ### Engineering
 | Item | Why it matters | Why deferred | How |
 |---|---|---|---|
+| Keep focus on every busy button | A button is disabled while it saves, and Chrome drops keyboard focus from a disabled button; fixed for Pause and Resume Scanning only (Nov 11) | The other buttons (Scan Now, Record Sale, Acknowledge, order steps) were not rechecked | Use `aria-disabled` while busy in the shared `Button`, or return focus as `CameraStatus` does |
+| Tell the dashboard the alert and reorder delays | The summary can only say "a mismatch that lasts"; it cannot say "in 2 minutes" | The delays are backend settings the browser does not read | Publish them in `status/latest` at startup with the scanning setting, and show a countdown from `mismatchSince` |
 | Continuous integration | Runs tests and linters on every push | Single developer | A GitHub Actions workflow with the commands in `docs/TESTING.md` |
 | Code-split the main bundle | Faster first load | The Insights page is already lazy-loaded | Split the remaining routes |
 | Split `ScanRepository` | One adapter per collection | Works as is | Separate scans, products, alerts and orders adapters |
