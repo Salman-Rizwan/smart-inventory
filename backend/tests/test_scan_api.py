@@ -13,7 +13,9 @@ def test_scan_returns_counts_and_saves(make_client):
     body = res.json()
     assert body["counts"] == {"spark_plug": 3, "petrol_filter": 1}
     assert body["inferenceMs"] == 412
-    assert repo.saved == [({"spark_plug": 3, "petrol_filter": 1}, 412)]
+    assert [(r.counts, r.inference_ms, r.trigger) for r in repo.saved] == [
+        ({"spark_plug": 3, "petrol_filter": 1}, 412, "manual")
+    ]
 
 
 def test_scan_requires_authentication(make_client):
@@ -108,3 +110,19 @@ def test_scan_raises_an_order_once_a_part_stays_low(make_client):
     assert repo.orders == []
     client.post("/scan")
     assert [(o["product"], o["qty"]) for o in repo.orders] == [("spark_plug", 10)]
+
+
+def test_scan_now_in_the_dark_returns_a_typed_422_with_a_next_step(make_client):
+    from app.services.scan_service import ScanPolicy
+    from tests.conftest import FakeCamera
+
+    client, repo = make_client(camera=FakeCamera(brightness=5), policy=ScanPolicy(min_frame_brightness=40))
+    res = client.post("/scan")
+    assert res.status_code == 422
+    assert res.json() == {
+        "error": {
+            "code": "frame_too_dark",
+            "message": "Too dark to count the parts. Turn on the shelf light, then scan again.",
+        }
+    }
+    assert repo.saved == []

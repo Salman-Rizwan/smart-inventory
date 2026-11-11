@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -18,11 +18,27 @@ class Settings(BaseSettings):
     max_box_area_ratio: float = Field(default=0.25, gt=0, le=1)
     max_box_side_ratio: float = Field(default=0.6, gt=0, le=1)
     reorder_confirm_scans: int = Field(default=2, ge=1)
+    # Automatic scanning (M6). Off unless switched on in .env.
+    auto_scan_enabled: bool = False
+    scan_interval_seconds: int = Field(default=60, ge=10)
+    scan_heartbeat_seconds: int = Field(default=600, ge=10)
+    alert_delay_seconds: int = Field(default=180, ge=0)
+    reorder_delay_seconds: int = Field(default=300, ge=0)
+    min_frame_brightness: float = Field(default=40, ge=0, le=255)
     cors_origins: list[str] = ["http://localhost:5173"]
     model_path: Path = BACKEND_DIR / "models" / "best.pt"
     snapshot_path: Path = BACKEND_DIR / "snapshots" / "latest.jpg"
     firebase_key_path: Path = BACKEND_DIR / "serviceAccountKey.json"
     log_level: str = "INFO"
+
+    @model_validator(mode="after")
+    def heartbeat_not_shorter_than_interval(self) -> "Settings":
+        if self.scan_heartbeat_seconds < self.scan_interval_seconds:
+            raise ValueError(
+                "SCAN_HEARTBEAT_SECONDS must be at least SCAN_INTERVAL_SECONDS "
+                f"({self.scan_heartbeat_seconds} < {self.scan_interval_seconds})"
+            )
+        return self
 
 
 @lru_cache

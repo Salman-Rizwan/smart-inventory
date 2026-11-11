@@ -25,6 +25,12 @@ class CameraError(AppError):
     message = "Webcam not available - check camera permission and CAMERA_INDEX."
 
 
+class FrameTooDarkError(AppError):
+    status_code = 422
+    code = "frame_too_dark"
+    message = "Too dark to count the parts. Turn on the shelf light, then scan again."
+
+
 class DetectionError(AppError):
     status_code = 500
     code = "detection_failed"

@@ -41,3 +41,21 @@ def test_it_says_so_when_nothing_changes():
     assert describe_change(
         "spark_plug", dict(DEMO_PRODUCTS["spark_plug"]), DEMO_PRODUCTS["spark_plug"]
     ).endswith("already as in the demo")
+
+
+def test_it_clears_the_alert_and_reorder_timers():
+    from datetime import UTC, datetime
+
+    t = datetime(2026, 11, 5, 9, 0, tzinfo=UTC)
+    text = describe_change(
+        "spark_plug",
+        {**DEMO_PRODUCTS["spark_plug"], "mismatchSince": t, "lowSince": t},
+        DEMO_PRODUCTS["spark_plug"],
+    )
+    assert "mismatchSince cleared" in text and "lowSince cleared" in text
+
+
+def test_every_backend_counter_and_timer_is_cleared_on_apply():
+    from scripts.demo_reset import CLEARED_FIELDS
+
+    assert set(CLEARED_FIELDS) == {"lowScanStreak", "mismatchSince", "lowSince"}

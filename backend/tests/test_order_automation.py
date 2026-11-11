@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.services.scan_service import ScanService
+from app.services.scan_service import ScanPolicy, ScanService
 from app.services.snapshot_store import SnapshotStore
 from tests.conftest import FakeCamera, FakeDetector, FakeRepository
 
@@ -18,7 +18,7 @@ def setup(tmp_path):
             detector,
             repo,
             SnapshotStore(tmp_path / "latest.jpg"),
-            reorder_confirm_scans=confirm,
+            ScanPolicy(reorder_confirm_scans=confirm),
         )
         return service, detector, repo
 

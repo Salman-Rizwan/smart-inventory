@@ -5,9 +5,10 @@ Run from backend/:
     python -m scripts.demo_reset --apply    # does it
 
 Resets each product's POS count and reorder settings to the demo values below, resets the low-scan
-counts, and clears all purchase orders, alerts and notification read state. It keeps the scan
-history, the stock change log (adding a Reset entry for each POS count it changes), part costs and
-prices, the users and the model. Scan once afterwards to refresh the dashboard.
+counts and the alert and reorder timers (mismatchSince, lowSince), and clears all purchase orders,
+alerts and notification read state. It keeps the scan history, the stock change log (adding a Reset
+entry for each POS count it changes), part costs and prices, the users and the model. Scan once
+afterwards to refresh the dashboard.
 
 Demo values: 4 spark plugs and 1 petrol filter on the shelf, matching the POS. A spark plug reorders
 when 3 or fewer are left, so removing one plug and scanning twice raises an order. The order is for
@@ -29,6 +30,7 @@ DEMO_PRODUCTS: dict[str, dict[str, int]] = {
     "petrol_filter": {"posCount": 1, "reorderLevel": 0, "reorderQty": 10},
 }
 CLEARED_COLLECTIONS = ("purchase_orders", "alerts", "notification_reads")
+CLEARED_FIELDS = ("lowScanStreak", "mismatchSince", "lowSince")  # backend counters and timers
 
 
 def plan_reset(existing: dict[str, dict]) -> dict[str, dict[str, int]]:
@@ -42,6 +44,7 @@ def describe_change(product_id: str, current: dict, target: dict[str, int]) -> s
     ]
     if current.get("lowScanStreak"):
         changes.append(f"lowScanStreak {current['lowScanStreak']} -> 0")
+    changes += [f"{key} cleared" for key in ("mismatchSince", "lowSince") if current.get(key) is not None]
     return f"products/{product_id}: " + (", ".join(changes) if changes else "already as in the demo")
 
 
@@ -73,7 +76,7 @@ def main() -> None:
         return
     for product_id, target in updates.items():
         product_ref = db.collection("products").document(product_id)
-        fields = {**target, "lowScanStreak": firestore.DELETE_FIELD}
+        fields = {**target, **dict.fromkeys(CLEARED_FIELDS, firestore.DELETE_FIELD)}
         movement = reset_movement(product_id, existing[product_id], target["posCount"], "demo_reset")
         batch = db.batch()
         if movement:

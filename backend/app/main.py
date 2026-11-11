@@ -7,12 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import health, scan
 from app.camera import Camera
+from app.clock import utc_now
 from app.core.config import Settings, get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
 from app.detector import Detector
 from app.firebase_db import ScanRepository, init_firebase
-from app.services.scan_service import ScanService
+from app.services.auto_scanner import AutoScanner, pause_check
+from app.services.scan_service import ScanPolicy, ScanService
 from app.services.snapshot_store import SnapshotStore
 
 logger = logging.getLogger(__name__)
@@ -27,20 +29,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # build the heavy objects once at startup, not on every request
         init_firebase(settings.firebase_key_path)
         app.state.snapshot_store = SnapshotStore(settings.snapshot_path)
+        repository = ScanRepository()
         app.state.scan_service = ScanService(
-            camera=Camera(settings.camera_index),
+            camera=Camera(settings.camera_index, keep_open=settings.auto_scan_enabled),
             detector=Detector.from_path(
                 settings.model_path,
                 settings.detection_conf,
                 settings.max_box_area_ratio,
                 settings.max_box_side_ratio,
             ),
-            repository=ScanRepository(),
-            reorder_confirm_scans=settings.reorder_confirm_scans,
+            repository=repository,
             snapshots=app.state.snapshot_store,
+            policy=ScanPolicy.from_settings(settings),
         )
+        app.state.auto_scanner = None
+        logger.info(
+            "Scanning rules: alert delay %d s, reorder delay %d s after %d low scans, min brightness %.0f",
+            settings.alert_delay_seconds,
+            settings.reorder_delay_seconds,
+            settings.reorder_confirm_scans,
+            settings.min_frame_brightness,
+        )
+        if settings.auto_scan_enabled:
+            app.state.auto_scanner = AutoScanner(
+                app.state.scan_service,
+                settings.scan_interval_seconds,
+                is_paused=pause_check(repository, utc_now),
+                on_pause=app.state.scan_service.camera.release,
+            )
+            app.state.auto_scanner.start()
+        else:
+            logger.info("Automatic scanning is off (AUTO_SCAN_ENABLED=false); Scan Now still works")
         logger.info("Backend ready")
         yield
+        if app.state.auto_scanner is not None:
+            app.state.auto_scanner.stop()
+        app.state.scan_service.camera.release()
 
     app = FastAPI(title="Smart Inventory API", version="0.1.0", lifespan=lifespan)
 
