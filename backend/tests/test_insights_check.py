@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from scripts.insights_check import compute, recommendation, sales_change
+from scripts.insights_check import buckets, compute, ranking, recommendation, sales, sales_change, what_to_do
 
 TZ = ZoneInfo("Asia/Colombo")
 NOW = datetime(2026, 11, 12, 12, 0, tzinfo=TZ)
@@ -64,8 +64,17 @@ ORDERS = [order(25, 3), order(10, 2), order(50, 4)]
 
 def test_the_report_matches_the_browser_definitions():
     report = compute(MOVEMENTS, ORDERS, PRODUCTS, {"spark_plug": 4, "petrol_filter": 1}, NOW, 30, None, TZ)
-    assert report["sales"] == {"units": 20, "value": 10700.0, "unpriced": 0}
+    assert report["sales"] == {
+        "units": 20,
+        "value": 10700.0,
+        "unpriced": 0,
+        "profit": 3700.0,
+        "profitBase": 10700.0,
+        "uncosted": 0,
+    }
     assert report["change"] == {"kind": "change", "percent": 114}
+    assert report["profitChange"] == {"kind": "change", "percent": 147}
+    assert report["margin"] == round(3700 / 10700, 4)
     assert report["shrinkage"]["units"] == 1 and report["shrinkage"]["value"] == 350.0
     assert report["lead"] == {"days": 2.5, "deliveries": 2}
     plug = report["parts"]["spark_plug"]
@@ -92,7 +101,14 @@ def test_days_are_local_calendar_days():
 def test_one_part_and_the_edge_cases():
     report = compute(MOVEMENTS, ORDERS, PRODUCTS, None, NOW, 30, "petrol_filter", TZ)
     assert list(report["parts"]) == ["petrol_filter"]
-    assert report["sales"] == {"units": 1, "value": 1200.0, "unpriced": 0}
+    assert report["sales"] == {
+        "units": 1,
+        "value": 1200.0,
+        "unpriced": 0,
+        "profit": 850.0,
+        "profitBase": 1200.0,
+        "uncosted": 0,
+    }
     assert report["change"] == {"kind": "new"}
     assert report["parts"]["petrol_filter"]["cover"] == {"kind": "no-scan"}
     assert report["lowestCover"] is None
@@ -122,3 +138,73 @@ def test_recommendation_and_change_rules():
     assert recommendation(0, {"days": 3, "deliveries": 2}, 30) == {"kind": "no-sales"}
     assert sales_change(1200, 1000) == {"kind": "change", "percent": 20}
     assert sales_change(5, 0) == {"kind": "new"} and sales_change(0, 0) == {"kind": "none"}
+
+
+def test_profit_uses_each_entrys_own_price_and_cost_and_counts_what_it_leaves_out():
+    start, end = at(10), NOW
+    totals = sales(
+        [sale(1), sale(2, price=600) | {"unitCost": 400}, adjustment(3, "CustomerReturn", 1)], start, end
+    )
+    assert totals["profit"] == 150 + 200 - 150 and totals["profitBase"] == 500 + 600 - 500
+    no_cost = sales([sale(1), sale(2) | {"unitCost": None}], start, end)
+    assert no_cost == {
+        "units": 2,
+        "value": 1000.0,
+        "unpriced": 0,
+        "profit": 150.0,
+        "profitBase": 500.0,
+        "uncosted": 1,
+    }
+    no_price = sales([sale(1, price=None)], start, end)
+    assert no_price["unpriced"] == 1 and no_price["profit"] == 0 and no_price["uncosted"] == 0
+
+
+def test_weekly_buckets_count_back_from_today():
+    by_day = {f"d{i:02d}": {**sales([], NOW, NOW), "units": 1} for i in range(90)}
+    weekly = buckets(by_day, 7)
+    assert len(weekly) == 13
+    assert [b["days"] for b in weekly] == [6] + [7] * 12
+    assert weekly[-1]["end"] == "d89" and weekly[-1]["start"] == "d83"
+    assert sum(b["total"]["units"] for b in weekly) == 90
+    assert len(buckets(by_day, 1)) == 90
+
+
+def test_the_report_buckets_by_period_and_ranks_parts_by_profit():
+    assert len(compute(MOVEMENTS, ORDERS, PRODUCTS, None, NOW, 30, None, TZ)["buckets"]) == 30
+    assert len(compute(MOVEMENTS, ORDERS, PRODUCTS, None, NOW, 90, None, TZ)["buckets"]) == 13
+    report = compute(MOVEMENTS, ORDERS, PRODUCTS, None, NOW, 30, None, TZ)
+    assert [r["part"] for r in report["ranking"]] == ["spark_plug", "petrol_filter"]
+    assert round(sum(r["profitShare"] for r in report["ranking"]), 3) == 1.0
+    assert ranking({"a": {"name": "A", "sales": {"profit": 0, "units": 0}}})[0]["profitShare"] is None
+
+
+def test_what_to_do_takes_the_first_matching_rule():
+    ok = {"kind": "ok", "level": 2}
+    assert what_to_do(None, 2, 1, ok, "Pending") == {"kind": "scan"}
+    assert what_to_do(2, 2, 1, ok, None) == {"kind": "due"}
+    assert what_to_do(0, 2, 1, ok, "Dispatched") == {"kind": "waiting", "state": "Dispatched"}
+    assert what_to_do(4, 2, 1, {"kind": "ok", "level": 5}, None) == {
+        "kind": "adjust",
+        "level": 5,
+        "direction": "raise",
+    }
+    assert what_to_do(4, 3, 1, {"kind": "ok", "level": 1}, None) == {
+        "kind": "adjust",
+        "level": 1,
+        "direction": "lower",
+    }
+    early = {"kind": "not-enough", "historyDays": 3, "deliveries": 1}
+    assert what_to_do(4, 2, 0, early, None) == {"kind": "no-sales"}
+    assert what_to_do(4, 2, 1, early, None) == {"kind": "not-enough", "historyDays": 3, "deliveries": 1}
+    assert what_to_do(4, 2, 1, ok, None) == {"kind": "ok"}
+
+
+def test_an_open_order_is_found_and_a_cancelled_one_ignored():
+    orders = [
+        {"product": "petrol_filter", "state": "Pending"},
+        {"product": "spark_plug", "state": "Cancelled"},
+    ]
+    report = compute(MOVEMENTS, orders, PRODUCTS, {"spark_plug": 4, "petrol_filter": 0}, NOW, 30, None, TZ)
+    assert report["parts"]["petrol_filter"]["openOrder"] == "Pending"
+    assert report["parts"]["petrol_filter"]["action"] == {"kind": "waiting", "state": "Pending"}
+    assert report["parts"]["spark_plug"]["openOrder"] is None

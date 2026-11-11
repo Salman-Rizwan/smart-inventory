@@ -29,6 +29,8 @@ MIN_HISTORY_DAYS = 14
 MIN_DELIVERIES = 2
 SAFETY_SHARE = 0.5
 SHRINKAGE_REASONS = ("Damaged", "LostOrStolen")
+OPEN_STATES = ("Pending", "Accepted", "Dispatched")
+WEEK = 7
 DEFAULT_TZ = "Asia/Colombo"
 
 
@@ -53,8 +55,18 @@ def sale_units(movement: dict) -> int | None:
     return None
 
 
+def new_totals() -> dict:
+    return {"units": 0, "value": 0.0, "unpriced": 0, "profit": 0.0, "profitBase": 0.0, "uncosted": 0}
+
+
 def sales(movements: list[dict], start: datetime, end: datetime, part: str | None = None) -> dict:
-    totals = {"units": 0, "value": 0.0, "unpriced": 0}
+    """Net units, value at each entry's own price, and gross profit at its own price and cost.
+
+    An entry with no price counts in `unpriced`; one with a price but no cost counts in `uncosted`
+    and is left out of profit. `profitBase` is the sales value of the entries that count towards
+    profit, the margin's denominator.
+    """
+    totals = new_totals()
     for m in movements:
         if not (start <= m["at"] < end) or (part and m["product"] != part):
             continue
@@ -62,11 +74,54 @@ def sales(movements: list[dict], start: datetime, end: datetime, part: str | Non
         if units is None:
             continue
         totals["units"] += units
-        if m.get("unitPrice") is None:
+        price, cost = m.get("unitPrice"), m.get("unitCost")
+        if price is None:
             totals["unpriced"] += abs(units)
-        else:
-            totals["value"] = round(totals["value"] + units * m["unitPrice"], 2)
+            continue
+        totals["value"] = round(totals["value"] + units * price, 2)
+        if cost is None:
+            totals["uncosted"] += abs(units)
+            continue
+        totals["profit"] = round(totals["profit"] + units * (price - cost), 2)
+        totals["profitBase"] = round(totals["profitBase"] + units * price, 2)
     return totals
+
+
+def add_totals(into: dict, other: dict) -> None:
+    for key, value in other.items():
+        into[key] = round(into[key] + value, 2) if isinstance(value, float) else into[key] + value
+
+
+def buckets(by_day: dict[str, dict], size: int) -> list[dict]:
+    """Groups the days into blocks of `size`, counted back from the newest day."""
+    days = list(by_day)
+    out = []
+    for end in range(len(days), 0, -size):
+        chunk = days[max(0, end - size) : end]
+        total = new_totals()
+        for day in chunk:
+            add_totals(total, by_day[day])
+        out.insert(0, {"start": chunk[0], "end": chunk[-1], "days": len(chunk), "total": total})
+    return out
+
+
+def what_to_do(shelf: int | None, level: int, avg_daily: float, rec: dict, open_order: str | None) -> dict:
+    """The first rule that matches: scan, order open or due, change the level, no sales, too early, OK."""
+    if shelf is None:
+        return {"kind": "scan"}
+    if shelf <= level:
+        return {"kind": "waiting", "state": open_order} if open_order else {"kind": "due"}
+    if rec["kind"] == "ok" and rec["level"] != level:
+        return {
+            "kind": "adjust",
+            "level": rec["level"],
+            "direction": "raise" if rec["level"] > level else "lower",
+        }
+    if avg_daily <= 0:
+        return {"kind": "no-sales"}
+    if rec["kind"] == "not-enough":
+        return {"kind": "not-enough", "historyDays": rec["historyDays"], "deliveries": rec["deliveries"]}
+    return {"kind": "ok"}
 
 
 def sales_change(current: float, previous: float) -> dict:
@@ -140,6 +195,18 @@ def cover(shelf: int | None, average_daily: float, reorder_level: int) -> dict:
     }
 
 
+def ranking(parts: dict[str, dict]) -> list[dict]:
+    """Parts by gross profit, then units, then name, each with its share of the total profit."""
+    total = sum(p["sales"]["profit"] for p in parts.values())
+    ordered = sorted(
+        parts.items(), key=lambda kv: (-kv[1]["sales"]["profit"], -kv[1]["sales"]["units"], kv[1]["name"])
+    )
+    return [
+        {"part": pid, "profitShare": round(p["sales"]["profit"] / total, 4) if total > 0 else None}
+        for pid, p in ordered
+    ]
+
+
 def load(db, since: datetime) -> tuple[list[dict], list[dict], dict[str, dict], dict | None]:
     movements = []
     for doc in db.collection("stock_movements").where(filter=FieldFilter("at", ">=", since)).stream():
@@ -180,6 +247,9 @@ def compute(
     for pid in chosen:
         own = sales(movements, start, now, pid)
         average_daily = own["units"] / days
+        open_order = next(
+            (o["state"] for o in orders if o.get("product") == pid and o.get("state") in OPEN_STATES), None
+        )
         shelf = counts.get(pid) if counts and isinstance(counts.get(pid), int) else None
         own_times = [m["at"] for m in movements if m["product"] == pid]
         history_days = (now - min(own_times)).total_seconds() / 86400 if own_times else 0
@@ -193,7 +263,11 @@ def compute(
             "cover": cover(shelf, average_daily, level),
             "historyDays": round(history_days, 2),
             "recommendation": recommendation(average_daily, lead, history_days),
+            "openOrder": open_order,
         }
+        parts[pid]["action"] = what_to_do(
+            shelf, level, average_daily, parts[pid]["recommendation"], open_order
+        )
     covered = [(p["cover"]["days"], pid) for pid, p in parts.items() if p["cover"]["kind"] == "cover"]
     by_day: dict[str, dict] = {}
     for offset in range(days):
@@ -218,7 +292,11 @@ def compute(
         "part": part,
         "sales": total,
         "change": sales_change(total["value"], previous["value"]),
+        "profitChange": sales_change(total["profit"], previous["profit"]),
+        "margin": round(total["profit"] / total["profitBase"], 4) if total["profitBase"] > 0 else None,
         "byDay": by_day,
+        "buckets": buckets(by_day, WEEK if days > 30 else 1),
+        "ranking": ranking(parts),
         "shrinkage": shrinkage(movements, start, now, total["value"], part),
         "lead": lead,
         "lowestCover": min(covered)[1] if covered else None,

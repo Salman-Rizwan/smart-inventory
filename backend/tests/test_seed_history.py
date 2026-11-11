@@ -42,8 +42,8 @@ def test_the_history_covers_the_period_with_no_future_dates(history):
         a["resolvedAt"] for a in history.alerts.values()
     ]
     assert max(times) < NOW
-    assert min(m["at"] for m in history.movements.values()) > NOW - timedelta(days=31)
-    assert min(m["at"] for m in history.movements.values()) < NOW - timedelta(days=25)
+    assert min(m["at"] for m in history.movements.values()) > NOW - timedelta(days=91)
+    assert min(m["at"] for m in history.movements.values()) < NOW - timedelta(days=85)
 
 
 def test_every_document_is_marked_as_demo_data(history):
@@ -93,11 +93,26 @@ def test_sales_happen_in_shop_hours_in_colombo(history):
             assert 9 <= local.hour < 18
 
 
-def test_sales_volume_is_plausible_for_a_month(history):
+def test_sales_volume_is_plausible_for_three_months(history):
     plug_sales = sum(1 for m in entries_of(history, "spark_plug") if m["type"] == "Sale")
     filter_sales = sum(1 for m in entries_of(history, "petrol_filter") if m["type"] == "Sale")
-    assert 20 <= plug_sales <= 45
-    assert 5 <= filter_sales <= 18
+    assert 70 <= plug_sales <= 130  # about one a day
+    assert 18 <= filter_sales <= 45  # about one every three days
+
+
+def test_there_is_a_delivery_in_every_month_so_the_lead_time_has_something_to_work_on(history):
+    deliveries = [m["at"] for m in history.movements.values() if m["type"] == "OrderReceived"]
+    assert len(deliveries) >= 6
+    for month in range(3):
+        newest = NOW - timedelta(days=30 * month)
+        assert any(newest - timedelta(days=30) <= at < newest for at in deliveries)
+
+
+def test_returns_and_write_offs_are_spread_over_the_whole_period(history):
+    adjustments = [m for m in history.movements.values() if m["type"] == "Adjustment"]
+    assert sum(1 for m in adjustments if m["reason"] == "CustomerReturn") >= 4
+    assert sum(1 for m in adjustments if m["reason"] in {"Damaged", "LostOrStolen"}) >= 6
+    assert max(m["at"] for m in adjustments) - min(m["at"] for m in adjustments) > timedelta(days=45)
 
 
 def test_every_entry_carries_the_part_cost_and_price(history):
@@ -107,7 +122,7 @@ def test_every_entry_carries_the_part_cost_and_price(history):
 
 
 def test_alerts_are_resolved_mismatches_at_the_count_of_that_moment(history):
-    assert len(history.alerts) == 6
+    assert len(history.alerts) == 18
     for alert in history.alerts.values():
         assert alert["state"] == "Resolved" and alert["visualCount"] != alert["posCount"]
         assert alert["createdAt"] < alert["resolvedAt"]
@@ -149,3 +164,11 @@ def test_the_summary_names_each_part_and_its_counts(history):
     assert "spark_plug:" in text and "-> 4 (now 4)" in text
     assert "petrol_filter:" in text and "-> 1 (now 1)" in text
     assert "Received" in text and "Resolved" in text
+
+
+@pytest.mark.parametrize("days", [14, 30, 60, 90])
+def test_any_length_replays_to_the_real_counts(days):
+    history = plan_history(PARTS, NOW, days=days)
+    assert replay(history, "spark_plug") == 4 and replay(history, "petrol_filter") == 1
+    assert len(history.alerts) == max(1, 6 * days // 30)
+    assert max(m["at"] for m in history.movements.values()) < NOW

@@ -1,4 +1,4 @@
-"""Seed about 30 days of demo trading history so Insights has something to show.
+"""Seed 90 days of demo trading history so Insights has something to show.
 
 Run from backend/:
     python -m scripts.seed_history            # dry run: shows what would be written, writes nothing
@@ -31,15 +31,16 @@ from app.firebase_db import init_firebase
 
 PREFIX = "seedh-"
 BY = "seed_history"
-DAYS = 30
+DAYS = 90
 DELIVERY_QTY = 10
 LEAD_DAYS = (2, 4)  # dealer lead time, inclusive range in days
 SALES_PER_DAY = {"spark_plug": 1.0, "petrol_filter": 1 / 3}
 DEFAULT_SALES_PER_DAY = 0.5
 DEMO_PRICES = {"spark_plug": (350, 500), "petrol_filter": (900, 1200)}  # (unitCost, unitPrice), LKR
 WRITE_OFFS = {"spark_plug": ("Damaged", "LostOrStolen"), "petrol_filter": ("Damaged",)}
-RETURNS_PER_PART = 1
-ALERTS = 6
+RETURNS_PER_30_DAYS = 1  # per part
+WRITE_OFFS_PER_30_DAYS = 1  # per part and reason
+ALERTS_PER_30_DAYS = 6
 SHOP_OPEN, SHOP_CLOSE = 9, 18  # local hours when sales happen
 DEFAULT_TZ = "Asia/Colombo"
 
@@ -91,14 +92,16 @@ def _plan_events(part: Part, now: datetime, days: int, tz: ZoneInfo, rng: random
         for _ in range(_daily_sales(rate, rng)):
             events.append({"type": "Sale", "change": -1, "at": _moment(day, rng.uniform(SHOP_OPEN, close))})
     # customer returns and write-offs, on days safely inside the window
-    for _ in range(RETURNS_PER_PART):
+    months = max(1, days // 30)
+    for _ in range(RETURNS_PER_30_DAYS * months):
         day = today - timedelta(days=rng.randint(5, days - 5))
         at = _moment(day, rng.uniform(SHOP_OPEN, SHOP_CLOSE))
         events.append({"type": "Adjustment", "change": 1, "reason": "CustomerReturn", "at": at})
     for reason in WRITE_OFFS.get(part.id, ("Damaged",)):
-        day = today - timedelta(days=rng.randint(3, days - 3))
-        at = _moment(day, rng.uniform(SHOP_OPEN, SHOP_CLOSE))
-        events.append({"type": "Adjustment", "change": -1, "reason": reason, "at": at})
+        for _ in range(WRITE_OFFS_PER_30_DAYS * months):
+            day = today - timedelta(days=rng.randint(3, days - 3))
+            at = _moment(day, rng.uniform(SHOP_OPEN, SHOP_CLOSE))
+            events.append({"type": "Adjustment", "change": -1, "reason": reason, "at": at})
     events.sort(key=lambda e: e["at"])
     return events
 
@@ -208,7 +211,7 @@ def plan_history(
     # a few mismatches that were noticed and resolved, spread over the period
     local_now = now.astimezone(zone)
     today = datetime.combine(local_now.date(), time(0), tzinfo=zone)
-    for index in range(1, ALERTS + 1):
+    for index in range(1, max(1, ALERTS_PER_30_DAYS * days // 30) + 1):
         part = sorted(parts, key=lambda p: p.id)[index % len(parts)]
         created = _moment(
             today - timedelta(days=rng.randint(2, days - 2)), rng.uniform(SHOP_OPEN, SHOP_CLOSE - 2)
