@@ -28,7 +28,7 @@ def test_the_first_low_scan_only_starts_the_count():
 
 def test_the_second_low_scan_in_a_row_raises_one_order_and_resets_the_count():
     plan = plan_orders({"spark_plug": 1}, {"spark_plug": product(level=2, qty=12, streak=1)}, [], 2, now=T0)
-    assert plan.create == (NewOrder("spark_plug", 12),)
+    assert plan.create == (NewOrder("spark_plug", 12, "Spark Plug"),)
     assert plan.streaks == {"spark_plug": 0}
 
 
@@ -81,6 +81,22 @@ def test_a_received_order_is_not_open_so_the_part_can_be_ordered_again():
     assert plan_orders({"spark_plug": 0}, {"spark_plug": product(level=2, streak=1)}, [], 2, now=T0).create
 
 
+def test_a_cancelled_order_is_not_open():
+    from app.orders import CANCELLED, OPEN_STATES
+
+    assert CANCELLED not in OPEN_STATES
+
+
+def test_the_order_carries_the_shops_name_for_the_part_or_a_readable_one():
+    named = ProductRecord(
+        pos_count=4, reorder_level=2, reorder_qty=10, low_streak=1, name="  NGK Spark Plug "
+    )
+    plan = plan_orders({"spark_plug": 0}, {"spark_plug": named}, [], 2, now=T0)
+    assert plan.create == (NewOrder("spark_plug", 10, "NGK Spark Plug"),)
+    plan = plan_orders({"air_filter": 0}, {"air_filter": product(level=2, streak=1)}, [], 2, now=T0)
+    assert plan.create == (NewOrder("air_filter", 10, "Air Filter"),)
+
+
 def test_an_open_order_for_another_part_does_not_block_this_one():
     plan = plan_orders(
         {"spark_plug": 0, "petrol_filter": 0},
@@ -89,7 +105,7 @@ def test_an_open_order_for_another_part_does_not_block_this_one():
         2,
         now=T0,
     )
-    assert plan.create == (NewOrder("spark_plug", 10),)
+    assert plan.create == (NewOrder("spark_plug", 10, "Spark Plug"),)
 
 
 def test_each_part_is_handled_independently():
@@ -144,7 +160,7 @@ def test_waiting_with_the_streak_already_met_writes_nothing():
 
 def test_streak_and_delay_both_met_order_once_and_reset_both():
     plan = delayed(1, product(level=2, qty=12, streak=2, low_since=T0), at=later(DELAY))
-    assert plan.create == (NewOrder("spark_plug", 12),)
+    assert plan.create == (NewOrder("spark_plug", 12, "Spark Plug"),)
     assert plan.streaks == {"spark_plug": 0} and plan.low_since == {"spark_plug": None}
 
 
@@ -165,7 +181,7 @@ def test_a_delay_of_zero_and_two_scans_order_as_before_for_the_demo():
         now=later(5),
         delay_seconds=0,
     )
-    assert second.create == (NewOrder("spark_plug", 10),)
+    assert second.create == (NewOrder("spark_plug", 10, "Spark Plug"),)
 
 
 def test_back_above_the_level_clears_the_streak_and_the_timer():

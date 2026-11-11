@@ -55,6 +55,12 @@ class AuthError(AppError):
     message = "Authentication required."
 
 
+class ForbiddenError(AppError):
+    status_code = 403
+    code = "forbidden"
+    message = "Only the shopkeeper can scan the shelf or see its photo. Sign in with the shopkeeper account."
+
+
 def _error_body(code: str, message: str, details=None) -> dict:
     body = {"error": {"code": code, "message": message}}
     if details is not None:

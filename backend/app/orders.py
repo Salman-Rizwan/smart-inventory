@@ -4,13 +4,15 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from app.clock import has_lasted, started_at
-from app.products import ProductRecord
+from app.products import ProductRecord, part_name
 
 PENDING = "Pending"
 ACCEPTED = "Accepted"
 DISPATCHED = "Dispatched"
 RECEIVED = "Received"
-OPEN_STATES = (PENDING, ACCEPTED, DISPATCHED)  # an order in any of these is still on its way
+CANCELLED = "Cancelled"  # set by the shopkeeper from the browser while Pending or Accepted
+# An order in any of these is still on its way; a received or cancelled one is not.
+OPEN_STATES = (PENDING, ACCEPTED, DISPATCHED)
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,7 @@ class ActiveOrder:
 class NewOrder:
     product: str
     qty: int
+    product_name: str  # stored on the order, so the dealer sees names without reading products
 
 
 @dataclass(frozen=True)
@@ -76,7 +79,7 @@ def plan_orders(
             streak = min(previous + 1, confirm_scans)
             since = (None if restart_timers else started_at(product.low_since, now)) or now
             if streak >= confirm_scans and has_lasted(since, now, delay_seconds):
-                create.append(NewOrder(part, product.reorder_qty))
+                create.append(NewOrder(part, product.reorder_qty, part_name(part, product.name)))
                 streak = 0
                 since = None
         if streak != product.low_streak:

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app import main
 from app.core.config import Settings
-from tests.conftest import FakeCamera, FakeDetector, FakeRepository
+from tests.conftest import FakeCamera, FakeDetector, FakeRepository, FakeUsers
 
 
 class ReleasableCamera(FakeCamera):
@@ -23,6 +23,7 @@ def start(monkeypatch, tmp_path):
         repo = repo or FakeRepository()
         monkeypatch.setattr(main, "init_firebase", lambda key_path: None)
         monkeypatch.setattr(main, "ScanRepository", lambda: repo)
+        monkeypatch.setattr(main, "UserRepository", lambda: FakeUsers())
         monkeypatch.setattr(main, "Camera", ReleasableCamera)
         monkeypatch.setattr(main.Detector, "from_path", lambda *args: FakeDetector())
         app = main.create_app(Settings(_env_file=None, snapshot_path=tmp_path / "latest.jpg", **settings))

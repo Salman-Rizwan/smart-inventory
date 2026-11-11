@@ -11,6 +11,7 @@ from app.detector import Detection
 from app.main import create_app
 from app.orders import OPEN_STATES, ActiveOrder
 from app.products import ProductRecord
+from app.services.role_checker import RoleChecker
 from app.services.scan_service import ScanService
 from app.services.snapshot_store import SnapshotStore
 
@@ -49,6 +50,21 @@ class FakeDetector:
 
     def detect(self, frame):
         return Detection(dict(self.counts), 412.4, np.zeros((10, 10, 3), dtype=np.uint8))
+
+
+class FakeUsers:
+    """users/{uid}.role by uid; counts reads so the role cache can be tested."""
+
+    def __init__(self, roles=None, fail=False):
+        self.roles = roles or {}
+        self.fail = fail
+        self.reads = 0
+
+    def get_role(self, uid):
+        self.reads += 1
+        if self.fail:
+            raise StorageError()
+        return self.roles.get(uid)
 
 
 class FakeRepository:
@@ -129,7 +145,13 @@ class FakeRepository:
         self.writes += 0 if plan.is_empty else 1
         for new in plan.create:
             self.orders.append(
-                {"id": f"o{len(self.orders) + 1}", "product": new.product, "qty": new.qty, "state": "Pending"}
+                {
+                    "id": f"o{len(self.orders) + 1}",
+                    "product": new.product,
+                    "productName": new.product_name,
+                    "qty": new.qty,
+                    "state": "Pending",
+                }
             )
         self.streaks.update(plan.streaks)
         self.low_since.update(plan.low_since)
@@ -173,7 +195,9 @@ class FakeRepository:
 
 @pytest.fixture
 def make_client(tmp_path):
-    def _make(camera=None, repository=None, detector=None, authenticated=True, policy=None):
+    def _make(
+        camera=None, repository=None, detector=None, authenticated=True, policy=None, role="shopkeeper"
+    ):
         app = create_app()
         repo = repository or FakeRepository()
         store = SnapshotStore(tmp_path / "latest.jpg")
@@ -181,6 +205,7 @@ def make_client(tmp_path):
         app.state.scan_service = ScanService(
             camera or FakeCamera(), detector or FakeDetector(), repo, store, policy=policy
         )
+        app.state.role_checker = RoleChecker(FakeUsers({"test-user": role} if role else {}))
         if authenticated:
             app.dependency_overrides[get_current_user] = lambda: {"uid": "test-user"}
         return TestClient(app, raise_server_exceptions=False), repo

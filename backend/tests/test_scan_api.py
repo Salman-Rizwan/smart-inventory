@@ -1,4 +1,8 @@
-from tests.conftest import FakeCamera, FakeRepository
+import pytest
+
+from app.core.exceptions import ForbiddenError
+from app.services.role_checker import RoleChecker
+from tests.conftest import FakeCamera, FakeRepository, FakeUsers
 
 
 def test_health(make_client):
@@ -126,3 +130,36 @@ def test_scan_now_in_the_dark_returns_a_typed_422_with_a_next_step(make_client):
         }
     }
     assert repo.saved == []
+
+
+# --- M10: the camera and the shelf photo are the shopkeeper's ---
+
+
+@pytest.mark.parametrize("role", ["dealer", None, "admin"])
+def test_only_the_shopkeeper_can_scan_or_see_the_shelf(make_client, role):
+    # a dealer, a user with no profile and an unknown role all hold valid tokens, and all are refused
+    client, repo = make_client(role=role)
+    for res in (client.post("/scan"), client.get("/snapshot/latest.jpg")):
+        assert res.status_code == 403
+        assert res.json()["error"] == {
+            "code": "forbidden",
+            "message": ForbiddenError.message,
+        }
+        assert "Sign in with the shopkeeper account" in ForbiddenError.message
+    assert repo.saved == [] and repo.status_writes == []
+
+
+def test_an_unreadable_profile_is_a_storage_error_not_a_refusal(make_client):
+    client, repo = make_client()
+    client.app.state.role_checker = RoleChecker(FakeUsers(fail=True))
+    res = client.post("/scan")
+    assert res.status_code == 502 and res.json()["error"]["code"] == "storage_failed"
+    assert repo.saved == []
+
+
+def test_a_missing_token_is_still_401_before_any_role_lookup(make_client):
+    client, _ = make_client(authenticated=False)
+    users = FakeUsers({"test-user": "shopkeeper"})
+    client.app.state.role_checker = RoleChecker(users)
+    assert client.get("/snapshot/latest.jpg").status_code == 401
+    assert users.reads == 0

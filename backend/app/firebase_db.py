@@ -61,6 +61,23 @@ def init_firebase(key_path: Path) -> None:
         firebase_admin.initialize_app(credentials.Certificate(str(key_path)))
 
 
+class UserRepository:
+    """Reads a user's profile (users/{uid}) for the backend's role check."""
+
+    def __init__(self):
+        self.db = firestore.client()
+
+    def get_role(self, uid: str) -> str | None:
+        """The user's role, or None when the profile is missing or has no role."""
+        try:
+            snap = self.db.collection("users").document(uid).get(**BOUNDED)
+        except Exception as exc:
+            logger.exception("Firestore read of a user profile failed")
+            raise StorageError() from exc
+        role = (snap.to_dict() or {}).get("role") if snap.exists else None
+        return role if isinstance(role, str) else None
+
+
 def _auto_scan_fields(auto_scan: AutoScanState) -> dict:
     return {"enabled": auto_scan.enabled, "intervalSeconds": auto_scan.interval_seconds}
 
@@ -151,6 +168,7 @@ class ScanRepository:
                 status=data.get("status") if isinstance(data.get("status"), str) else None,
                 mismatch_since=_time_or_none(data.get("mismatchSince")),
                 low_since=_time_or_none(data.get("lowSince")),
+                name=data["name"] if isinstance(data.get("name"), str) else None,
             )
         return products
 
@@ -250,6 +268,7 @@ class ScanRepository:
                     orders.document(),
                     {
                         "product": new.product,
+                        "productName": new.product_name,
                         "qty": new.qty,
                         "state": PENDING,
                         "createdAt": firestore.SERVER_TIMESTAMP,

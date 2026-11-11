@@ -37,6 +37,25 @@ def test_the_filter_is_already_low_so_it_orders_on_the_second_scan_only(setup):
     assert orders(repo) == [("petrol_filter", 10, "Pending")]
 
 
+def test_a_new_order_carries_the_part_name_for_the_dealer(setup):
+    service, _, repo = setup()
+    service.scan()
+    service.scan()
+    assert [o["productName"] for o in repo.orders] == ["Petrol Filter"]
+
+
+def test_a_cancelled_order_no_longer_blocks_a_new_one_while_the_part_stays_low(setup):
+    # the shopkeeper cancels from the browser; the part is still low, so the usual streak raises a fresh order
+    service, _, repo = setup()
+    service.scan()
+    service.scan()
+    repo.orders[0]["state"] = "Cancelled"
+    service.scan()
+    assert len(repo.orders) == 1  # one low scan since the cancel is not enough
+    service.scan()
+    assert orders(repo) == [("petrol_filter", 10, "Cancelled"), ("petrol_filter", 10, "Pending")]
+
+
 def test_removing_plugs_below_the_reorder_level_raises_one_order_however_many_scans(setup):
     service, detector, repo = setup()
     detector.counts = {"spark_plug": 1, "petrol_filter": 5}  # plugs removed; filter well stocked

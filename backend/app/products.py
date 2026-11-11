@@ -13,3 +13,12 @@ class ProductRecord:
     status: str | None = None  # Matched or Mismatch as last stored, so unchanged statuses are not rewritten
     mismatch_since: datetime | None = None  # when the current mismatch began (alert delay)
     low_since: datetime | None = None  # when the part went low (reorder delay)
+    name: str | None = None  # the shop's display name for the part, if one is set
+
+
+def part_name(part: str, name: str | None = None) -> str:
+    """The part's display name: the shop's own name when set, otherwise the class name made readable
+    (spark_plug -> Spark Plug), so a new class from the model always has a name (NFR7)."""
+    if name and name.strip():
+        return name.strip()
+    return " ".join(word.capitalize() for word in part.split("_") if word)

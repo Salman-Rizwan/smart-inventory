@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
-from app.api.deps import get_scan_service, get_snapshot_store
-from app.core.security import get_current_user
+from app.api.deps import get_scan_service, get_snapshot_store, require_shopkeeper
 from app.schemas.scan import ScanResponse
 from app.services.scan_service import ScanService
 from app.services.snapshot_store import SnapshotStore
 
-router = APIRouter(tags=["scan"], dependencies=[Depends(get_current_user)])
+# Shopkeeper only (M10): the dealer may sign in, but the camera and the shelf photo are the shop's.
+router = APIRouter(tags=["scan"], dependencies=[Depends(require_shopkeeper)])
 
 
 @router.post("/scan", response_model=ScanResponse)

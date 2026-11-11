@@ -12,8 +12,9 @@ from app.core.config import Settings, get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
 from app.detector import Detector
-from app.firebase_db import ScanRepository, init_firebase
+from app.firebase_db import ScanRepository, UserRepository, init_firebase
 from app.services.auto_scanner import AutoScanner, pause_check
+from app.services.role_checker import RoleChecker
 from app.services.scan_service import ScanPolicy, ScanService
 from app.services.snapshot_store import SnapshotStore
 
@@ -30,6 +31,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         init_firebase(settings.firebase_key_path)
         app.state.snapshot_store = SnapshotStore(settings.snapshot_path)
         repository = ScanRepository()
+        app.state.role_checker = RoleChecker(UserRepository(), utc_now)
         app.state.scan_service = ScanService(
             camera=Camera(settings.camera_index, keep_open=settings.auto_scan_enabled),
             detector=Detector.from_path(

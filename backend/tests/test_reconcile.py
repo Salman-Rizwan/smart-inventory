@@ -33,3 +33,12 @@ def test_reconcile_ignores_products_the_model_did_not_report():
 def test_reconcile_with_nothing_to_compare():
     assert reconcile({}, {"spark_plug": 3}) == {}
     assert reconcile({"spark_plug": 3}, {}) == {}
+
+
+def test_a_part_name_is_the_shops_own_or_the_class_name_made_readable():
+    from app.products import part_name
+
+    assert part_name("spark_plug", "NGK Spark Plug") == "NGK Spark Plug"
+    assert part_name("spark_plug", "   ") == "Spark Plug"
+    assert part_name("petrol_filter") == "Petrol Filter"
+    assert part_name("air__filter_") == "Air Filter"
