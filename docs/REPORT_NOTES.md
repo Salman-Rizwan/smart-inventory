@@ -63,6 +63,8 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | Insights read cost (90-day seed, Nov 12) | 147 stock changes and 17 orders, about 165 document reads per session, shared by the tiles and the page; afterwards one read per new change | `insights_check.py` `loaded` counts, Nov 12 |
 | Insights bundle (Nov 12) | Main bundle 1,144 kB (353 kB gzipped); Insights page with the charts 351 kB (110 kB gzipped), loaded on first visit | `npm run build`, Nov 12 |
 
+**Status at Nov 12 (end of the Insights work, groups 1, 2 and 2b done):** not yet done are Hosting (M11), the simple Stock Log, the M12 evidence below, the release (v1.0.0), and the user's usability test with their brother. The Group 7 items (undo on Record Sale, stockouts, stock value, the extra Insights sections, Apply, the hosted thumbnail) are proposed cuts the user has not confirmed; they are written up as future work.
+
 Still to measure in M12 (`docs/TASKS.md`): detection accuracy over 20 arrangements under 3 lighting conditions, Scan Now timing over 50 runs, sync latency over 10 trials, one day of real free-tier usage, functional test cases FR1 to FR9, and a usability test with 3 people.
 
 ## Insights as built (Implementation, for the report)

@@ -7,6 +7,8 @@ Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the deta
 
 **Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1, M6 automatic scanning (every live check finished Nov 11), M10 access control, Cancel Order, simulated parts for live testing (all checked live Nov 11), Group 2 Insights core (Nov 11 evening: seeded history, analytics, dashboard tiles, Insights page, independent check; all checked live), and the Insights decisions and dashboard layout (Nov 12, items 38 to 43: gross profit, What To Do, a 90-day seed, the Products tab, the reordered dashboard). Tests: backend 305, frontend 819.
 
+**Open decisions and parked items (Nov 12):** the Group 7 cuts (item 8 undo, 16, 17, 23, 24, 30) are proposed and unconfirmed; the usability test is parked with the user (they run it with their brother and report the outcome); the two Pending orders are kept; the camera is the laptop's own; the code freeze is Nov 14 morning. Automatic scanning is ON in `.env` (30 s interval), so the one-day free-tier usage count (item 33) can start any time the laptop is awake and facing the parts.
+
 **Before any live test:**
 - The shelf camera is the MacBook Air's built-in camera (`CAMERA_INDEX=0`, the user's decision). Whoever uses the laptop is in the frame: on Nov 11 it read 0 and 0 while the laptop was being used, and a face once scored 0.54 as a spark plug. Open `backend/snapshots/latest.jpg` and check `status/latest.counts` = 4 and 1 before any live test; ask the user to Pause Scanning while they work on the laptop.
 - `SIMULATED_PARTS` must be empty except during a simulated-part test (`docs/TESTING.md`).
