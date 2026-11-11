@@ -32,10 +32,10 @@ const provide = (alerts: Alert[], extra: Partial<ReturnType<typeof useAlerts>> =
     ...extra,
   });
 
-const renderSummary = () =>
+const renderSummary = (mismatches?: number) =>
   render(
     <MemoryRouter>
-      <AlertsSummary />
+      <AlertsSummary mismatches={mismatches} />
     </MemoryRouter>,
   );
 
@@ -66,6 +66,16 @@ describe("AlertsSummary", () => {
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
     expect(screen.queryByText(/\d+ Open/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View All Alerts" })).toHaveAttribute("href", "/alerts");
+  });
+
+  it.each([
+    [1, "No active alerts yet. 1 part differs from the POS record"],
+    [2, "No active alerts yet. 2 parts differ from the POS record"],
+  ])("does not claim everything matches while %i mismatch waits out the alert delay", (mismatches, text) => {
+    provide([]);
+    renderSummary(mismatches);
+    expect(screen.getByText(new RegExp(`^${text} \\(see Stock Check below\\); a mismatch that lasts is raised here`))).toBeInTheDocument();
+    expect(screen.queryByText(/Everything on the shelf matches/)).not.toBeInTheDocument();
   });
 
   it("shows an open alert on one line with its counts and an Acknowledge button", () => {

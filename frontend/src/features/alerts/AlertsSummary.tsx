@@ -82,8 +82,10 @@ function SummaryItem({ alert, onDone }: { alert: Alert; onDone: (message: string
 /**
  * The dashboard's view of alerts: the few active ones, each acknowledgeable in one click, and a link to
  * the Alerts page for the rest and the history. Shown above the counts so a mismatch is seen first.
+ * `mismatches` is how many parts differ right now: an alert is raised only once a mismatch has lasted, so
+ * "no alerts" must not claim that everything matches.
  */
-export default function AlertsSummary() {
+export default function AlertsSummary({ mismatches = 0 }: { mismatches?: number }) {
   const { alerts, openCount, loading, error } = useAlerts();
   const shown = useMemo(() => dashboardAlerts(alerts, DASHBOARD_ALERT_LIMIT), [alerts]);
   const [outcome, setOutcome] = useState("");
@@ -120,7 +122,9 @@ export default function AlertsSummary() {
       )}
       {ready && shown.length === 0 && (
         <EmptyState component="p" compact>
-          No active alerts. Everything on the shelf matches the POS records.
+          {mismatches === 0
+            ? "No active alerts. Everything on the shelf matches the POS records."
+            : `No active alerts yet. ${formatInteger(mismatches)} ${mismatches === 1 ? "part differs" : "parts differ"} from the POS record (see Stock Check below); a mismatch that lasts is raised here as an alert.`}
         </EmptyState>
       )}
       {ready && shown.length > 0 && (

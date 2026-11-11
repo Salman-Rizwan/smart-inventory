@@ -6,6 +6,11 @@ export function stockState(visual: number | null, pos: number): StockState {
   return visual === pos ? "matched" : "mismatch";
 }
 
+/** How many parts the camera counted differently from the POS record (parts not yet scanned are left out). */
+export function countMismatches(products: Product[], counts: Record<string, number> | null): number {
+  return buildStockRows(products, counts).filter((row) => row.state === "mismatch").length;
+}
+
 export function buildStockRows(products: Product[], counts: Record<string, number> | null): StockRow[] {
   return products
     .map((product): StockRow => {

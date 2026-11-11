@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStockRows, stockState } from "./reconcile";
+import { buildStockRows, countMismatches, stockState } from "./reconcile";
 import type { Product } from "./types";
 
 const product = (id: string, name: string, posCount: number): Product => ({
@@ -60,5 +60,23 @@ describe("buildStockRows", () => {
 
   it("sorts by name so row order is stable", () => {
     expect(buildStockRows(products, null).map((r) => r.product.name)).toEqual(["Petrol Filter", "Spark Plug"]);
+  });
+});
+
+describe("countMismatches", () => {
+  const parts = [product("spark_plug", "Spark Plug", 4), product("petrol_filter", "Petrol Filter", 1)];
+
+  it.each([
+    [{ spark_plug: 4, petrol_filter: 1 }, 0],
+    [{ spark_plug: 0, petrol_filter: 1 }, 1],
+    [{ spark_plug: 0, petrol_filter: 0 }, 2],
+    [{ spark_plug: 3 }, 1], // a part not yet scanned is not a mismatch
+  ])("counts %j as %i", (counts, expected) => {
+    expect(countMismatches(parts, counts)).toBe(expected);
+  });
+
+  it("is 0 before the first scan and with no products", () => {
+    expect(countMismatches(parts, null)).toBe(0);
+    expect(countMismatches([], { spark_plug: 4 })).toBe(0);
   });
 });
