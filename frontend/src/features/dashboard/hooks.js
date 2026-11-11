@@ -2,12 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { useSubscription } from "../../shared/hooks/useSubscription";
 import { fetchLatestSnapshot } from "./scanApi";
 import { subscribeLatestStatus, subscribeRecentScans } from "./inventoryRepository";
+import { subscribeScanningSettings } from "./scanningRepository";
 
 const LOAD_ERROR = "Live data could not be loaded. Check your connection and sign in again if this continues.";
 
 const subscribeStatus = (onData, onError) => subscribeLatestStatus(onData, onError);
 
 export const useLatestStatus = () => useSubscription(subscribeStatus, LOAD_ERROR);
+
+/** Pause Scanning (settings/scanning), live. */
+export const useScanningSettings = () => useSubscription(subscribeScanningSettings, LOAD_ERROR);
 
 export function useRecentScans(count) {
   const subscribe = useCallback((onData, onError) => subscribeRecentScans(count, onData, onError), [count]);

@@ -9,13 +9,16 @@ import { useProducts } from "./hooks";
 import { buildStockRows } from "./reconcile";
 import StockRowItem from "./StockRowItem";
 import { Muted, VisuallyHidden } from "../../shared/components/text";
+import { formatDateTime } from "../../shared/format";
 
 interface Props {
   counts: Record<string, number> | null;
+  /** When the camera last counted the shelf; the counts are as of then. */
+  countedAt?: Date | null;
 }
 
 /** Camera count against the (mock) POS record for every product, with the POS simulation buttons. */
-export default function StockCheckPanel({ counts }: Props) {
+export default function StockCheckPanel({ counts, countedAt = null }: Props) {
   const products = useProducts();
   const [announcement, setAnnouncement] = useState("");
   const rows = useMemo(() => buildStockRows(products.data ?? [], counts), [products.data, counts]);
@@ -78,6 +81,11 @@ export default function StockCheckPanel({ counts }: Props) {
             </DataTable>
           </TableScroll>
           <PanelFooter component="p">
+            {countedAt && (
+              <>
+                Shelf counts as of <time dateTime={countedAt.toISOString()}>{formatDateTime(countedAt)}</time>.{" "}
+              </>
+            )}
             Difference is shelf minus POS. A negative number means the records show stock that is not on the
             shelf.
           </PanelFooter>

@@ -33,6 +33,31 @@ describe("parseStatus", () => {
   it("tolerates a pending server timestamp (null)", () => {
     expect(parseStatus({ counts: {}, scannedAt: null }).scannedAt).toBeNull();
   });
+
+  it("reads the outcome of the last attempt and the scanning settings", () => {
+    const s = parseStatus({
+      counts: {},
+      lastAttemptAt: ts("2026-11-11T09:00:00Z"),
+      lastOutcome: "skipped",
+      skipReason: "too_dark",
+      lastError: null,
+      autoScan: { enabled: true, intervalSeconds: 30 },
+    });
+    expect(s.lastAttemptAt.toISOString()).toBe("2026-11-11T09:00:00.000Z");
+    expect([s.lastOutcome, s.skipReason, s.lastError]).toEqual(["skipped", "too_dark", null]);
+    expect(s.autoScan).toEqual({ enabled: true, intervalSeconds: 30 });
+  });
+
+  it("treats a document from before automatic scanning as unknown, never as an error", () => {
+    const s = parseStatus({ counts: { spark_plug: 4 }, scannedAt: ts("2026-10-31T05:46:50Z") });
+    expect([s.lastAttemptAt, s.lastOutcome, s.skipReason, s.lastError, s.autoScan]).toEqual([null, null, null, null, null]);
+  });
+
+  it("ignores malformed fields", () => {
+    const s = parseStatus({ lastOutcome: "exploded", skipReason: 3, autoScan: { enabled: "yes" } });
+    expect([s.lastOutcome, s.skipReason, s.autoScan]).toEqual([null, null, null]);
+    expect(parseStatus({ autoScan: { enabled: true, intervalSeconds: -5 } }).autoScan).toEqual({ enabled: true, intervalSeconds: null });
+  });
 });
 
 describe("parseScan", () => {

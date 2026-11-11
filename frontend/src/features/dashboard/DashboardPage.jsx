@@ -1,5 +1,5 @@
 import { Page, PageHead } from "../../shared/components/Page";
-import { formatDateTime } from "../../shared/format";
+import CameraStatus from "./CameraStatus";
 import CountsGrid from "./CountsGrid";
 import AlertsSummary from "../alerts/AlertsSummary";
 import PartSettingsPanel from "../inventory/PartSettingsPanel";
@@ -8,7 +8,7 @@ import { useLatestStatus, useRecentScans } from "./hooks";
 import ScanControl from "./ScanControl";
 import ScanHistoryTable from "./ScanHistoryTable";
 import SnapshotPanel from "./SnapshotPanel";
-import { Muted, VisuallyHidden } from "../../shared/components/text";
+import { VisuallyHidden } from "../../shared/components/text";
 
 const HISTORY_SIZE = 10;
 
@@ -22,10 +22,7 @@ export default function DashboardPage() {
       <PageHead>
         <div>
           <h1>Shelf Overview</h1>
-          <Muted>
-            Last scan:{" "}
-            {scannedAt ? <time dateTime={scannedAt.toISOString()}>{formatDateTime(scannedAt)}</time> : "none yet"}
-          </Muted>
+          <CameraStatus status={status.data ?? null} />
         </div>
         <ScanControl />
       </PageHead>
@@ -39,7 +36,7 @@ export default function DashboardPage() {
         <CountsGrid status={status.data} loading={status.loading} error={status.error} />
       </section>
 
-      <StockCheckPanel counts={status.data?.counts ?? null} />
+      <StockCheckPanel counts={status.data?.counts ?? null} countedAt={scannedAt} />
       <PartSettingsPanel />
 
       <SnapshotPanel scannedAt={scannedAt} />

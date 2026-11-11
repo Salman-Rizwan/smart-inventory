@@ -284,4 +284,10 @@ describe("StockCheckPanel", () => {
       expect(receiveStock).toHaveBeenCalled();
     });
   });
+
+  it("says when the shelf counts were taken", () => {
+    ready(PRODUCTS);
+    render(<StockCheckPanel counts={{ spark_plug: 3, petrol_filter: 1 }} countedAt={new Date("2026-11-11T09:00:00Z")} />);
+    expect(screen.getByText(/Shelf counts as of/)).toBeInTheDocument();
+  });
 });

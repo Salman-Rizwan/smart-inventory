@@ -46,4 +46,16 @@ describe("ScanControl", () => {
     expect(alert).not.toHaveTextContent("secrets");
     expect(alert).toHaveTextContent(/could not be completed/);
   });
+
+  it("says to turn on the light when the frame is too dark to count", async () => {
+    runScan.mockRejectedValue(new ApiError("Too dark.", { status: 422, code: "frame_too_dark" }));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<ScanControl />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Scan Now" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Too dark to count the parts. Turn on the shelf light, then scan again.",
+    );
+    expect(screen.getByRole("button", { name: "Scan Now" })).toBeEnabled();
+  });
 });

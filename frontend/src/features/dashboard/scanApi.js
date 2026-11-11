@@ -25,6 +25,8 @@ export function scanErrorMessage(error) {
       return "The scan took too long. Try again in a moment.";
     case "unauthorized":
       return "Your session has expired. Sign in again to continue.";
+    case "frame_too_dark":
+      return "Too dark to count the parts. Turn on the shelf light, then scan again.";
     case "camera_unavailable":
       return "The webcam is not available. Check that it is connected and that camera access is allowed, then try again.";
     default:

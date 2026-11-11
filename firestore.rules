@@ -178,6 +178,23 @@ service cloud.firestore {
                getAfter(path('products', resource.data.product)).data.lastMovementId)).data.orderId == orderId);
     }
 
+    // Pause Scanning (settings/scanning): the shopkeeper pauses automatic scanning for restocking, at
+    // most 30 minutes ahead (it resumes by itself), or resumes it (pausedUntil null). Stamped with who and
+    // the server's time; nothing else can be written. The backend reads it before each automatic scan.
+    match /settings/{settingId} {
+      allow read: if request.auth != null;
+      allow create, update: if isShopkeeper()
+        && settingId == 'scanning'
+        && request.resource.data.keys().hasOnly(['pausedUntil', 'pausedBy', 'pausedAt'])
+        && request.resource.data.pausedBy == request.auth.uid
+        && request.resource.data.pausedAt == request.time
+        && (request.resource.data.pausedUntil == null
+          || (request.resource.data.pausedUntil is timestamp
+            && request.resource.data.pausedUntil > request.time
+            && request.resource.data.pausedUntil <= request.time + duration.value(30, 'm')));
+      allow delete: if false;
+    }
+
     // Per-user read state for the notification bell: only the owner can read or change it, it holds
     // nothing but a capped list of keys, and it cannot be deleted.
     match /notification_reads/{uid} {
