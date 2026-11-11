@@ -2,13 +2,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Interim rules (M7 to F1). Signed-in users can read the shared inventory collections, and a
-    // user can read only their own profile. The only browser writes are made by the shopkeeper's POS
-    // actions (each POS change together with its stock_movements entry), the shopkeeper's part
-    // settings, acknowledging an open alert, the dealer moving a purchase order forward
-    // (Pending -> Accepted -> Dispatched), and the shopkeeper confirming a Dispatched order as Received.
-    // Each user also owns one document of read keys for the notification bell. The backend uses the
-    // Admin SDK and bypasses these rules. M10 replaces this with the full role-based rule set.
+    // Final role-based rules (M10). Least privilege: the shopkeeper reads the shop's data; the dealer
+    // reads purchase orders only (each order carries its part's name), never stock, prices, sales,
+    // alerts or scans. A user reads only their own profile and bell read state. The only browser
+    // writes are the shopkeeper's POS actions (each POS change together with its stock_movements
+    // entry), part settings, acknowledging an open alert, Pause Scanning, the dealer moving an order
+    // forward (Pending -> Accepted -> Dispatched), and the shopkeeper confirming a Dispatched order as
+    // Received or cancelling one that is Pending or Accepted. The backend uses the Admin SDK and
+    // bypasses these rules. Nothing can be deleted.
 
     function hasRole(role) {
       return request.auth != null
@@ -152,8 +153,10 @@ service cloud.firestore {
     // Orders are created by the backend. Each role moves an order one step, touching nothing but the
     // state and that step's timestamp (the server's own time): the dealer accepts and dispatches, the
     // shopkeeper confirms receipt. Receiving must also add the quantity to the POS through an Order
-    // Received log entry for this order, in the same write.
+    // Received log entry for this order, in the same write. The shopkeeper may cancel an order before
+    // it is dispatched (goods on the way are received, not cancelled), with who, when and a reason.
     match /purchase_orders/{orderId} {
+      allow read: if isShopkeeper() || isDealer();
       allow update: if
         (isDealer()
           && (
@@ -175,14 +178,24 @@ service cloud.firestore {
           && request.resource.data.receivedAt == request.time
           && request.resource.data.receivedBy == request.auth.uid
           && getAfter(path('stock_movements',
-               getAfter(path('products', resource.data.product)).data.lastMovementId)).data.orderId == orderId);
+               getAfter(path('products', resource.data.product)).data.lastMovementId)).data.orderId == orderId)
+        ||
+        (isShopkeeper()
+          && resource.data.state in ['Pending', 'Accepted']
+          && request.resource.data.state == 'Cancelled'
+          && changedKeys().hasOnly(['state', 'cancelledAt', 'cancelledBy', 'cancelReason'])
+          && changedKeys().hasAll(['state', 'cancelledAt', 'cancelledBy', 'cancelReason'])
+          && request.resource.data.cancelledAt == request.time
+          && request.resource.data.cancelledBy == request.auth.uid
+          && request.resource.data.cancelReason in ['NotNeeded', 'OrderedByMistake', 'Other']);
+      allow create, delete: if false;
     }
 
     // Pause Scanning (settings/scanning): the shopkeeper pauses automatic scanning for restocking, at
     // most 30 minutes ahead (it resumes by itself), or resumes it (pausedUntil null). Stamped with who and
     // the server's time; nothing else can be written. The backend reads it before each automatic scan.
     match /settings/{settingId} {
-      allow read: if request.auth != null;
+      allow read: if isShopkeeper();
       allow create, update: if isShopkeeper()
         && settingId == 'scanning'
         && request.resource.data.keys().hasOnly(['pausedUntil', 'pausedBy', 'pausedAt'])
@@ -206,9 +219,10 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // The shop's own data: the camera's counts and history, stock records and alerts.
     match /{collection}/{document=**} {
-      allow read: if request.auth != null
-        && collection in ['status', 'scans', 'products', 'alerts', 'purchase_orders'];
+      allow read: if isShopkeeper()
+        && collection in ['status', 'scans', 'products', 'alerts'];
       allow write: if false;
     }
   }
