@@ -4,7 +4,7 @@ Material for the final report (M13), collected while building. Each section says
 
 ## Before writing
 - Replace ESP32 with webcam, and Realtime Database with Firestore, everywhere in the earlier chapters.
-- State that the demo history is synthetic and marked `seeded: true` (once `seed_history` exists).
+- State that the demo history is synthetic and marked `seeded: true` (`seed_history`, Nov 11): 30 days planned backwards from the real POS counts, 55 stock changes, 4 received orders, 6 resolved alerts; demo cost and price figures (spark plug 350/500, petrol filter 900/1,200 LKR).
 - Include the licence note: Ultralytics is AGPL-3.0.
 - Any disclosure of tool use follows the university policy; that decision is the author's.
 
@@ -22,7 +22,8 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | Nov 4 | F1 | Every POS change logged in the same transaction (`stock_movements`), enforced by the rules; Adjust Stock with reasons; Part Settings (cost, price in LKR, margin, reorder settings); delivery guard; who acknowledged or received |
 | Nov 4 to 11 | M6 automatic scanning | Background loop; time rules for alerts (3 min) and orders (5 min); dark-frame skip; change-only writes; bounded database calls; camera kept open; gap rule; camera status line; Pause Scanning |
 | Nov 11 | M10 and Cancel Order | Final least-privilege rules (the dealer reads purchase orders only), shopkeeper-only Scan Now and shelf image on the backend, part names stored on orders; the shopkeeper can cancel an order before dispatch, with a reason |
-| Still to do | Stock Log, Insights (F3), M11, M12 | See `docs/TASKS.md`, "Remaining work" |
+| Nov 11 (evening) | F3 Insights core | Seeded demo history; pure analytics (sales net of returns, shrinkage, days of cover, dealer lead time, reorder recommendation) in the browser; four "Business at a Glance" tiles; lazy-loaded Insights page with charts and table alternatives; an independent Python recomputation that matched the page on every figure |
+| Still to do | Stock Log, M11, M12 | See `docs/TASKS.md`, "Remaining work" |
 
 ## Engineering approach (Implementation)
 - Layered backend: routes (HTTP only), services (use cases), adapters (camera, detector, Firestore). Decisions live in pure, unit-tested functions: `reconcile.py`, `alerts.py`, `orders.py`, `scan_policy.py`, `frame_quality.py`.
@@ -47,11 +48,16 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | Writes from automatic scanning | Overnight: 8 scan records over the hours the laptop was awake (5 heartbeats every 10 minutes, 2 changes, 1 manual) instead of about 300; a quiet scan costs 1 write | Live soak, Nov 4 to 5 |
 | Brightness (0 to 255) | Lights on 171 to 183; lights off with daylight 40 to 53 (counts still right); lens covered 18 and 39 (skipped); threshold 40 | Live, Nov 4 to 5 |
 | Free-tier budget (estimate) | About 1,500 writes and 7,000 reads a day from the backend at a 60 s interval, plus about 1,440 reads a day per open dashboard; limits are 20,000 and 50,000 | Design calculation; to be measured in M12 |
+| Insights read cost | 64 document reads per session (55 stock changes and 9 orders over a 180-day window), shared by the dashboard tiles and the page; afterwards one read per new change | `insights_check.py` `loaded` counts, Nov 11 |
+| Insights bundle | Main bundle 1,126 to 1,140 kB (347 to 352 kB gzipped) for the analytics, tiles and loader; the Insights page with the charts library is a separate 347 kB chunk (109 kB gzipped) loaded on first visit | `npm run build`, Nov 11 |
+| Insights correctness | Page figures equal to an independent Python recomputation at 7, 30 and 90 days and with the part filter: 25 checks per run, all equal (tiles, per-part cover and recommendations, 30 per-day sales rows, shrinkage lines) | `insights_live.mjs`, Nov 11 |
+| Seeded demo figures (30 days) | 44 units sold, LKR 31,800; shrinkage 3 units, LKR 1,600 (5% of sales); cover 2.1 days (filter) and 4.0 days (plug); dealer lead time 2.9 days over 7 deliveries; suggested levels 3 (filter, from 0) and 5 (plug, from 2) | `insights_check.py`, Nov 11 |
 
 Still to measure in M12 (`docs/TASKS.md`): detection accuracy over 20 arrangements under 3 lighting conditions, Scan Now timing over 50 runs, sync latency over 10 trials, one day of real free-tier usage, functional test cases FR1 to FR9, and a usability test with 3 people.
 
 ## Testing (Evaluation)
-- Automated, Nov 11: backend 273 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 674 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
+- Automated, Nov 11 evening: backend 294 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock; plus the seed_history planner and the Insights check script); frontend 762 tests (Vitest and Testing Library; the analytics are tested case by case: price changes mid-period, returns larger than sales, unpriced units, no sales, no scan, short history, a part added later); type checks, linters and the production build on every change.
+- Insights, live Nov 11: the page compared with an independent recomputation (`insights_check.py`) at every period and with the part filter, all equal; axe 0 at six widths from 320 px; a dashboard tile opens its section with focus on the heading; the dealer has no tab and is redirected; a race between two quick filter clicks was found by the browser script and fixed.
 - Live testing without touching real stock: a `.env` test setting adds made-up `zz_` parts to every scan, so order and Cancel flows run through the real backend and rules (7 checks, Nov 11). A name without the `zz_` prefix stops the backend at startup (seen live).
 - Rules: 63 cases written for the Rules API test endpoint; live attack checks over REST with real sign-ins: 32 for the stock change log and Part Settings, 11 for Pause Scanning, 38 for M10 (reads per role, every Cancel Order case, and the backend's 403 for the dealer), all passing on Nov 11.
 - Live, Nov 11: full regression 56 checks passing; all six camera states produced for real (lens covered, backend stopped, wrong camera index, scanning off, paused, live), each at 6 widths with axe 0; Pause Scanning by keyboard, end to end.

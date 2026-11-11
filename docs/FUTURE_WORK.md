@@ -12,7 +12,8 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 | Filters seen end-on or cut off at the frame edge | Score about 0.35 and are missed | Shelf arrangement guidance; retraining (below) |
 | A dark room reads as an empty shelf | False mismatches and, with automatic scanning, false orders | Frames that are too dark are skipped (planned in M6) |
 | Single shop, single camera | No chain stores or several shelves | Product ids equal class names, so new parts need no code change (NFR7) |
-| Demo history is synthetic | Insights over the demo period are not real trading data | Seeded records are marked `seeded: true` and the page says "Includes demo data" |
+| Demo history is synthetic | Insights over the demo period are not real trading data | Seeded records are marked `seeded: true` (ids `seedh-*`), the page and the dashboard say "Includes demo data", and the chain ends at the real POS counts |
+| Days of cover follows the camera | While someone works at the laptop the camera reads 0 and the tile says 0 days, like the dashboard | The user's decision (Nov 11): it is the count that drives ordering; the tile shows the scan's age on the Insights page |
 | Scan Now works only on the shop laptop | The hosted app can view but not scan | By design: the laptop does all processing (Spark plan, no Cloud Functions) |
 | The laptop must stay awake and online | A sleeping laptop scans nothing (gaps of 2 and 4.5 hours seen); short network drops slow a scan by up to 10 s per call | The dashboard says "No Recent Scan"; calls are bounded; the README says to turn off sleep |
 | Brightness cannot detect a partly covered lens | A hand half over the lens counts as an empty shelf | Alerts wait 3 minutes and orders 5, so short obstructions raise nothing |
@@ -64,6 +65,13 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 ### Analytics
 | Item | Why it matters | Why deferred | How |
 |---|---|---|---|
+| Stockouts and lost sales (AN-6, IN-5) | Hours at zero and the sales missed while the shelf was empty | Deferred at the Nov 11 plan: needs the scan series (thousands of heartbeat records) and a gap rule; seeded scans were not written for the same reason | Hours at zero from the scan records, gaps longer than the heartbeat counted as unknown, lost sales = hours × average hourly sales |
+| Stock value, stock flow, response and dealer sections (AN-7, IN-5) | Value on the shelf and in the POS at cost; sold against received; time to acknowledge and resolve alerts; time per order stage | Deferred at the Nov 11 plan (Group 7); the loader already reads the orders, and alerts would be one more query | Sections on the Insights page from the same pure functions |
+| Period comparison for every figure | Only the sales tile and section compare with the previous period | Deferred (AN-7) | Previous-period figures for shrinkage and cover, "New" when the earlier period is zero |
+| Apply a recommendation (IN-6) | One click to set the suggested reorder level | Deferred (Group 7); the page says to use Part Settings | A confirm dialog that writes `reorderLevel` through the existing Part Settings path |
+| Recommendations over 7 days | The 7-day view can never meet the 14-day history rule, so it always says "Not enough history yet" | Honest, but a reader may expect a figure | Compute the recommendation over 30 days whatever the view, and say so |
+| Chart stacking gaps | The stacked bars have no 2 px gap between a day's two parts (the dataviz guideline) | The charts library draws stacks edge to edge | A custom bar element, or a thin surface-coloured stroke |
+| Lead time and the Oct 28 test orders | Three real orders received within minutes during live tests are in the median | Medians absorb them with four seeded deliveries | Exclude orders received under an hour after creation, or clear test orders before the demo |
 | Forecasting with seasonality | Medians miss weekly and seasonal patterns | Needs months of real data | Day-of-week profiles, then a simple forecasting model |
 | Economic order quantity | A better reorder quantity than days of cover | Needs ordering and holding costs | EOQ from the dealer's order cost and the holding cost |
 

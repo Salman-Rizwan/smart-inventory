@@ -46,12 +46,13 @@ backend/
     orders.py        automatic reorder planner (pure)
     products.py      product record read from Firestore
   models/            best.pt (trained YOLOv8 weights)
-  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), seed_orders.py (sample orders), demo_reset.py (clean demo state), capture_dataset.py
+  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), seed_orders.py (sample orders), seed_history.py (30 days of demo trading history for Insights), insights_check.py (recomputes every Insights figure), demo_reset.py (clean demo state), capture_dataset.py
   tests/             pytest suite (fakes only, no webcam or Firebase needed)
 frontend/
   src/
     features/auth/       login, auth context (user + role profile), route guards, roles, validation
     features/alerts/     Alerts page (history), dashboard summary and shared live listener (TypeScript)
+    features/insights/   Insights page (lazy-loaded), dashboard tiles, pure analytics and the shared loader (TypeScript)
     features/notifications/  the bell: derived notifications, per-user read state, dropdown wiring (TypeScript)
     features/inventory/  Stock Check panel (camera vs POS), POS buttons, stock rules (TypeScript)
     features/orders/     orders page for dealer and shopkeeper: summary tiles, filter, action queue, Mark Received (TypeScript)
@@ -101,8 +102,8 @@ Nine collections (`settings/scanning` holds Pause Scanning). The backend writes 
 | `scans/{auto id}` | `counts`, `scannedAt`, `inferenceMs` | Backend | M3 |
 | `users/{uid}` | `name`, `role` (shopkeeper or dealer) | `seed_users.py` or the console | M4 |
 | `products/{spark_plug}` | `name`, `posCount`, `lastMovementId`, `reorderLevel`, `reorderQty`, `unitCost`, `unitPrice` (LKR, null until set), `updatedBy`, `updatedAt`, `status` (Matched or Mismatch), `lowScanStreak` | Seeded once; shopkeeper (`posCount` with its log entry; Part Settings); backend (`status`, `lowScanStreak`) | M7, F1 |
-| `stock_movements/{auto id}` | `product`, `type` (Sale, Receipt, OrderReceived, Adjustment, Reset), `change` (signed), `posBefore`, `posAfter`, `unitCost`, `unitPrice` (as at the change), `reason` (Adjustment: Damaged, LostOrStolen, Miscount, Found, CustomerReturn), `orderId` (OrderReceived), `at`, `by` | Shopkeeper, in the same write as the POS change; scripts (Reset only). Never edited or deleted; shopkeeper only | F1 |
-| `alerts/{auto id}` | `product`, `visualCount`, `posCount`, `state` (Open, Acknowledged, Resolved), `createdAt`, `acknowledgedAt`, `acknowledgedBy`, `resolvedAt` | Backend; shopkeeper (acknowledge) | M8 |
+| `stock_movements/{auto id}` | `product`, `type` (Sale, Receipt, OrderReceived, Adjustment, Reset), `change` (signed), `posBefore`, `posAfter`, `unitCost`, `unitPrice` (as at the change), `reason` (Adjustment: Damaged, LostOrStolen, Miscount, Found, CustomerReturn), `orderId` (OrderReceived), `at`, `by`, `seeded` (demo history only, ids `seedh-*`) | Shopkeeper, in the same write as the POS change; scripts (Reset, and `seed_history`). Never edited or deleted; shopkeeper only | F1 |
+| `alerts/{auto id}` | `product`, `visualCount`, `posCount`, `state` (Open, Acknowledged, Resolved), `createdAt`, `acknowledgedAt`, `acknowledgedBy`, `resolvedAt`, `seeded` (demo history only) | Backend; shopkeeper (acknowledge) | M8 |
 | `purchase_orders/{auto id}` | `product`, `productName` (the part's name when raised; the dealer cannot read products), `qty`, `state` (Pending, Accepted, Dispatched, Received, Cancelled), `createdAt`, `acceptedAt`, `dispatchedAt`, `receivedAt`, `receivedBy`, `cancelledAt`, `cancelledBy`, `cancelReason` (NotNeeded, OrderedByMistake, Other), `source` (auto), `seeded` (sample data only) | Backend; dealer; shopkeeper | M9, M10 |
 | `notification_reads/{uid}` | `readKeys` (list, at most 500) | The signed-in user, own document only | Notifications |
 
@@ -136,6 +137,7 @@ Each part has a mock POS record in `products/{class name}` (`posCount`, `reorder
 - Seed the records from the model's class names: `python -m scripts.seed_products` (from `backend/`; existing records are left alone, `--reset` restores them).
 - Only a shopkeeper can change `posCount`, as a whole number from 0 to 100000, and only together with its stock log entry (enforced in `firestore.rules`).
 - **Stock change log (F1):** every POS change (Record Sale, Receive Stock, Adjust Stock, Mark Received) writes a `stock_movements` entry in the same transaction, with who, when, the before and after counts, and the part's cost and price at that moment. Entries cannot be edited or deleted.
+- **Insights (F3):** the shopkeeper's Insights tab and the dashboard's "Business at a Glance" tiles compute, in the browser, over the last 7, 30 or 90 local calendar days: sales net of customer returns at each entry's own price; shrinkage (Damaged, Lost or Stolen) at cost and as a share of sales; days of cover (camera shelf count over average daily sales, with the days until the reorder level); the dealer's median lead time; and a suggested reorder level (average daily sales × lead time, plus a safety margin of half that demand, at least one unit, rounded up; needs 14 days of history and 2 received deliveries). Each chart has a table alternative; every "no data" case says what is missing. The page is lazy-loaded (`@mui/x-charts` 9.17.0) and shows "Includes demo data" when seeded records are in the period. `scripts/insights_check.py` recomputes every figure independently.
 - **Adjust Stock:** sets the POS record to a count the shopkeeper made, with a reason (Damaged, Lost or Stolen, Miscount; Found, Customer Return), so write-offs never show up as sales.
 - **Part Settings:** each part's cost, selling price (LKR, `VITE_CURRENCY`), margin, reorder level and reorder quantity, editable by the shopkeeper. A reorder quantity of 0 turns automatic orders off.
 - **One delivery, counted once:** Receive Stock warns when a dealer order for the part has been dispatched, and points to Mark Received.
@@ -166,6 +168,8 @@ The shopkeeper has an **Alerts** tab (`/alerts`, with a badge for open alerts): 
 
 - `firestore.rules` lets each role make only its own step, touching nothing but the state and that step's server timestamp. Orders are created by the backend, never from the browser.
 - `python -m scripts.seed_orders` (from `backend/`) puts one sample order per state into the real `purchase_orders` collection, marked `seeded`; `--clear` removes them. **Run `--clear` before demonstrating automatic ordering**: an open order for a part, seeded or not, stops a new one being raised for it.
+- `python -m scripts.seed_history` (dry run; `--apply` writes, `--clear` removes) gives Insights about 30 days of demo trading history: sales, customer returns, write-offs, deliveries with their Received orders, and a few Resolved alerts. It is planned backwards from each part's real POS count, so the log ends exactly where the real record is, and every document is marked `seeded: true` with an id starting `seedh-`. `demo_reset` keeps it. A part with no cost or price gets demo figures (spark plug 350/500, petrol filter 900/1,200 LKR).
+- `python -m scripts.insights_check [--days 7|30|90] [--part id]` recomputes every Insights figure from Firestore independently of the browser code and prints it as JSON, for checking the page.
 
 ## Notifications
 
@@ -213,7 +217,7 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 
 ## Before a demo or rehearsal
 
-1. **Reset to a clean state:** `python -m scripts.demo_reset` shows what it would change; add `--apply` to do it. It sets 4 spark plugs and 1 filter in the POS, restores the demo reorder settings, clears the alert and reorder timers, and clears orders, alerts and read state (scan history, the stock change log, users and the model are kept). Run it between rehearsals.
+1. **Reset to a clean state:** `python -m scripts.demo_reset` shows what it would change; add `--apply` to do it. It sets 4 spark plugs and 1 filter in the POS, restores the demo reorder settings, clears the alert and reorder timers, and clears orders, alerts and read state (scan history, the stock change log, the seeded demo history, users and the model are kept). Run it between rehearsals.
 2. **Start the servers**, each in its own VS Code terminal (the backend must run there, where the camera permission is granted): `cd backend && source .venv/bin/activate && uvicorn app.main:app` (leave `--reload` off for a demo) and `cd frontend && npm run dev`. Open http://localhost:5173.
 3. **Set up the shelf:** good, even light and no shadows across the parts; a plain light background; every part fully in frame with space around it; the filter on its side or upright (not end-on) and away from the edges; nobody in the frame. A dark room reads as an empty shelf.
 4. **Choose the scanning settings for the demo** in `.env`: either `AUTO_SCAN_ENABLED=false`, or keep it on with `ALERT_DELAY_SECONDS=0` and `REORDER_DELAY_SECONDS=0` so alerts and orders appear without waiting minutes. Restart the backend after changing `.env`.
@@ -231,7 +235,7 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - [x] Supervisor feedback, part 1: alert history on the Alerts tab (Oct 31)
 - [x] Stock change log, Adjust Stock and Part Settings (F1, Nov 4; checked live)
 - [x] M6 automatic scanning (Nov 11): time rules, dark-frame skip, change-only writes, camera status, Pause Scanning; live checks finished Nov 11 (docs/TASKS.md)
-- [ ] Supervisor feedback, part 2: Stock Log tab, business intelligence (dashboard summary and Insights page)
+- [x] Supervisor feedback, part 2: business intelligence (the "Business at a Glance" tiles and the Insights page; Nov 11). Stock Log tab: Nov 13.
 - [x] M10 least-privilege rules and backend role check, Cancel Order, simulated parts for live testing (Nov 11; checked live)
 - [ ] M11 Hosting, M12 evaluation, M13 report
 

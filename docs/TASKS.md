@@ -5,7 +5,7 @@ The roadmap (`docs/ROADMAP.md`) says what and why; this file breaks each step in
 ## Remaining work (as of Nov 11 evening)
 Everything left, numbered 1 to 37; IDs point to the detailed rows below, each with its script tests and live tests. "User" marks a step only the user can do. The plan for the last days (agreed Nov 11) is under **Plan to the freeze** below the list.
 
-**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1, M6 automatic scanning (every live check finished Nov 11), M10 access control, Cancel Order, simulated parts for live testing (all checked live Nov 11). Tests: backend 273, frontend 674.
+**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1, M6 automatic scanning (every live check finished Nov 11), M10 access control, Cancel Order, simulated parts for live testing (all checked live Nov 11), Group 2 Insights core (Nov 11 evening: seeded history, analytics, dashboard tiles, Insights page, independent check; all checked live). Tests: backend 294, frontend 762.
 
 **Before any live test:**
 - The shelf camera is the MacBook Air's built-in camera (`CAMERA_INDEX=0`, the user's decision). Whoever uses the laptop is in the frame: on Nov 11 it read 0 and 0 while the laptop was being used, and a face once scored 0.54 as a spark plug. Open `backend/snapshots/latest.jpg` and check `status/latest.counts` = 4 and 1 before any live test; ask the user to Pause Scanning while they work on the laptop.
@@ -25,20 +25,20 @@ Everything left, numbered 1 to 37; IDs point to the detailed rows below, each wi
    - [ ] 8. Undo on Record Sale; rules change (SL-4). User publishes the rules.
    - [x] 9. One name per part; `productName` on new orders (SL-5). Nov 11: built, script-tested and seen live (the dealer's row shows the stored name) (orders and order notifications use it; alerts still use the class-name label, see FUTURE_WORK).
 3. Demo history and analytics
-   - [ ] 10. `seed_history`, ending exactly at the real POS counts (SH-1).
-   - [ ] 11. Data loader for a period (AN-1).
-   - [ ] 12. Sales, net of returns (AN-2).
-   - [ ] 13. Shrinkage (AN-3).
-   - [ ] 14. Days of cover (AN-4).
-   - [ ] 15. Reorder recommendations (AN-5).
+   - [x] 10. `seed_history`, ending exactly at the real POS counts (SH-1). Nov 11: planned backwards from the real POS counts (55 entries, 4 Received orders, 6 Resolved alerts, ids `seedh-*`); applied, cleared, verified identical apart from the agreed cost and price fields, applied again. The two Pending orders untouched. Seeded scans left out (user's decision: only the cut stockouts section would read them).
+   - [x] 11. Data loader for a period (AN-1). Nov 11: `InsightsProvider` holds two live queries (stock changes by `at`, orders by `createdAt`, 180-day window, single-field filters, no index); 64 reads per session on the seeded data, shared by the dashboard tiles and the page.
+   - [x] 12. Sales, net of returns (AN-2). Nov 11: `analytics.ts`, 40 tests with the parsers.
+   - [x] 13. Shrinkage (AN-3). Nov 11.
+   - [x] 14. Days of cover (AN-4). Nov 11: shelf count over average daily sales (user's decision: the camera count).
+   - [x] 15. Reorder recommendations (AN-5). Nov 11: dealer-wide median lead time; 14 days of history and 2 deliveries required.
    - [ ] 16. Stockouts and lost sales (AN-6).
    - [ ] 17. Stock value and period comparison (AN-7).
-   - [ ] 18. `insights_check.py`, an independent recomputation (AN-L1).
+   - [x] 18. `insights_check.py`, an independent recomputation (AN-L1). Nov 11: `insights_live.mjs` compared the page with the script at 7, 30 and 90 days and with the part filter: every tile, table row and per-day figure equal (25 checks per run).
 4. Insights
-   - [ ] 19. Charts library at an exact version; Insights lazy-loaded (IN-1).
-   - [ ] 20. Insights page: 7, 30 or 90 days, part filter, "Includes demo data" (IN-2).
-   - [ ] 21. Core sections with table alternatives (IN-3).
-   - [ ] 22. Four dashboard tiles linking to their sections (IN-4).
+   - [x] 19. Charts library at an exact version; Insights lazy-loaded (IN-1). Nov 11: `@mui/x-charts` 9.17.0 pinned; `React.lazy` route; a test keeps the library behind the page; main bundle 1,126 to 1,140 kB (analytics and tiles), Insights chunk 347 kB (109 kB gzipped).
+   - [x] 20. Insights page: 7, 30 or 90 days, part filter, "Includes demo data" (IN-2). Nov 11: period and part in the URL (a race between two quick clicks found live and fixed with a functional update); axe 0 at 320, 390, 768, 1024, 1360 and 1470 px; four tabs fit at 320 px; keyboard reach checked (`insights_ui.mjs`, 27 checks).
+   - [x] 21. Core sections with table alternatives (IN-3). Nov 11: sales and shrinkage charts each with a table disclosure; days of cover and recommendations as tables; every section states its definition.
+   - [x] 22. Four dashboard tiles linking to their sections (IN-4). Nov 11: "Business at a Glance" panel; a tile opens its section with focus on the heading (seen live).
    - [ ] 23. Stock flow, stock value, stockouts, response and dealer (IN-5).
    - [ ] 24. Apply a recommended reorder level (IN-6).
 5. M10 security
@@ -69,7 +69,7 @@ Final submission Nov 15. **Code freeze Nov 14 morning** (the user's decision), t
 |---|---|---|---|---|
 | 0, user | Camera (laptop camera kept), leftover order (kept), freeze date (Nov 14), usability test (the user with their brother, outcome reported later) | Decided | — | Done Nov 11 |
 | 1 | 9, 25, 26, 27, plus Cancel Order (27a) | Must | Least-privilege access for the dealer; FR9 and NFR6 done | **Done Nov 11** |
-| 2 | 10 to 15, 18 to 22 (Insights core) | Must: the supervisor's feedback | Insights tab (sales, shrinkage, days of cover, reorder suggestions) and four dashboard tiles, on seeded demo history | Nov 12 |
+| 2 | 10 to 15, 18 to 22 (Insights core) | Must: the supervisor's feedback | Insights tab (sales, shrinkage, days of cover, reorder suggestions) and four dashboard tiles, on seeded demo history | **Done Nov 11 evening** (a day early) |
 | 3 | 28, 29 (Hosting) | Must | Public URL for both roles; Scan Now from the hosted page on the laptop | Nov 13 morning |
 | 5 | 5 to 7 (simple Stock Log), and a focus check on the other busy buttons | Should; first to drop if Insights runs long | Every POS change visible on its own tab | Nov 13 morning |
 | 4 | 31 to 35 (M12 evidence) | Must for the report | Numbers for NFR1 to NFR4 | Start the one-day usage count and accuracy runs Nov 12 (laptop facing the parts, awake); scripted parts and functional cases Nov 13 afternoon; usability by the user |
