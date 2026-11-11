@@ -4,6 +4,8 @@ from pathlib import Path
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.simulation import parse_simulated_parts
+
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 ROOT_DIR = BACKEND_DIR.parent
 
@@ -25,6 +27,9 @@ class Settings(BaseSettings):
     alert_delay_seconds: int = Field(default=180, ge=0)
     reorder_delay_seconds: int = Field(default=300, ge=0)
     min_frame_brightness: float = Field(default=40, ge=0, le=255)
+    # Live testing only: made-up parts added to every scan, e.g. "zz_part:0" (see app/simulation.py).
+    # Must be empty in normal use and at release.
+    simulated_parts: str = ""
     cors_origins: list[str] = ["http://localhost:5173"]
     model_path: Path = BACKEND_DIR / "models" / "best.pt"
     snapshot_path: Path = BACKEND_DIR / "snapshots" / "latest.jpg"
@@ -38,6 +43,11 @@ class Settings(BaseSettings):
                 "SCAN_HEARTBEAT_SECONDS must be at least SCAN_INTERVAL_SECONDS "
                 f"({self.scan_heartbeat_seconds} < {self.scan_interval_seconds})"
             )
+        return self
+
+    @model_validator(mode="after")
+    def simulated_parts_are_valid(self) -> "Settings":
+        parse_simulated_parts(self.simulated_parts)  # raises ValueError with a readable message
         return self
 
 

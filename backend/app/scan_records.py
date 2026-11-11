@@ -19,6 +19,7 @@ class ScanRecord:
     capture_ms: int
     detect_ms: int
     heartbeat: bool = False
+    simulated: tuple[str, ...] = ()  # simulated parts included in `counts` (live testing only)
 
 
 @dataclass(frozen=True)

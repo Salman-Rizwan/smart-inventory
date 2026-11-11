@@ -1,7 +1,7 @@
 import logging
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from app.alerts import plan_alerts
@@ -19,6 +19,7 @@ from app.scan_policy import MANUAL, Trigger, should_save_scan
 from app.scan_records import AutoScanState, ScanRecord, ScanStatus
 from app.schemas.scan import ProductCheck, ScanResponse
 from app.services.snapshot_store import SnapshotStore
+from app.simulation import parse_simulated_parts, with_simulated
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class ScanPolicy:
     heartbeat_seconds: int = 600
     auto_scan_enabled: bool = False
     scan_interval_seconds: int = 60
+    simulated_parts: dict[str, int] = field(default_factory=dict)  # live testing only (SIMULATED_PARTS)
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "ScanPolicy":
@@ -47,6 +49,7 @@ class ScanPolicy:
             heartbeat_seconds=settings.scan_heartbeat_seconds,
             auto_scan_enabled=settings.auto_scan_enabled,
             scan_interval_seconds=settings.scan_interval_seconds,
+            simulated_parts=parse_simulated_parts(settings.simulated_parts),
         )
 
 
@@ -121,12 +124,14 @@ class ScanService:
         detect_ms = _ms_since(start)
         inference_ms = round(detection.inference_ms)
         self.snapshots.save(detection.annotated)
+        counts = with_simulated(detection.counts, self.policy.simulated_parts)
+        simulated = tuple(sorted(set(counts) - set(detection.counts)))
 
         now = self.clock()
         start = time.perf_counter()
         decision = should_save_scan(
             trigger,
-            detection.counts,
+            counts,
             self._last_saved_counts,
             self._last_saved_at,
             now,
@@ -134,10 +139,17 @@ class ScanService:
         )
         if decision.save:
             record = ScanRecord(
-                detection.counts, inference_ms, trigger, brightness, capture_ms, detect_ms, decision.heartbeat
+                counts,
+                inference_ms,
+                trigger,
+                brightness,
+                capture_ms,
+                detect_ms,
+                decision.heartbeat,
+                simulated,
             )
             self.repository.save_scan(record)
-            self._last_saved_counts, self._last_saved_at = dict(detection.counts), now
+            self._last_saved_counts, self._last_saved_at = dict(counts), now
         save_ms = _ms_since(start)
 
         # A gap with no counted scan (backend restarted, laptop asleep, frames too dark) is not evidence
@@ -148,9 +160,9 @@ class ScanService:
         # Everything after the save is best effort: a failure here must not lose the scan.
         start = time.perf_counter()
         products = self._load_products()
-        results = self._reconcile(detection.counts, products)
+        results = self._reconcile(counts, products)
         self._update_alerts(results, products, now, restart_timers)
-        self._update_orders(detection.counts, products, now, restart_timers)
+        self._update_orders(counts, products, now, restart_timers)
         process_ms = _ms_since(start)
 
         timings = {"captureMs": capture_ms, "detectMs": detect_ms, "saveMs": save_ms, "processMs": process_ms}
@@ -159,18 +171,16 @@ class ScanService:
                 trigger,
                 "counted",
                 self._auto_state(),
-                counts=detection.counts,
+                counts=counts,
                 brightness=brightness,
                 timings=timings,
             )
         )
-        logger.info(
-            "%s scan: %s (%s, saved=%s)", trigger.capitalize(), detection.counts, timings, decision.save
-        )
+        logger.info("%s scan: %s (%s, saved=%s)", trigger.capitalize(), counts, timings, decision.save)
         response_products = {
             part: ProductCheck(visual=r.visual, pos=r.pos, status=r.status) for part, r in results.items()
         }
-        return ScanResponse(counts=detection.counts, inference_ms=inference_ms, products=response_products)
+        return ScanResponse(counts=counts, inference_ms=inference_ms, products=response_products)
 
     def publish_settings(self) -> None:
         """Tell the dashboard at startup whether automatic scanning is on. Without this it learns of a

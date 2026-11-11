@@ -53,6 +53,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             settings.reorder_confirm_scans,
             settings.min_frame_brightness,
         )
+        if settings.simulated_parts:
+            logger.warning(
+                "TEST MODE: simulated parts %s are added to every scan (SIMULATED_PARTS). "
+                "Empty it in .env for normal use.",
+                settings.simulated_parts,
+            )
         if settings.auto_scan_enabled:
             app.state.auto_scanner = AutoScanner(
                 app.state.scan_service,

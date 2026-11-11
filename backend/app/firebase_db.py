@@ -101,6 +101,8 @@ class ScanRepository:
                     "captureMs": record.capture_ms,
                     "detectMs": record.detect_ms,
                     "heartbeat": record.heartbeat,
+                    # marked, so a test scan can always be told apart from a real one
+                    **({"simulated": list(record.simulated)} if record.simulated else {}),
                 },
                 **BOUNDED,
             )
