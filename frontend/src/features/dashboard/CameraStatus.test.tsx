@@ -86,6 +86,39 @@ describe("CameraStatus", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/Only a shopkeeper can pause scanning/);
   });
 
+  it("says it is checking while the status or the pause setting loads, and does not announce the first state", () => {
+    const { rerender } = render(<CameraStatus status={null} loading />);
+    expect(screen.getByText("Checking Camera…")).toBeInTheDocument();
+    expect(screen.queryByText("Waiting for First Scan")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+    vi.mocked(useScanningSettings).mockReturnValue({ data: undefined, error: "", loading: true });
+    rerender(<CameraStatus status={live()} />);
+    expect(screen.getByText("Checking Camera…")).toBeInTheDocument(); // a pause may still arrive
+
+    paused(new Date(NOW.getTime() + 600_000));
+    rerender(<CameraStatus status={live()} />);
+    expect(screen.getByText("Scanning Paused")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(""); // loaded, not changed
+
+    paused(null);
+    rerender(<CameraStatus status={live()} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/^Scanning Every 30 s\. Last scan/);
+  });
+
+  it("returns keyboard focus to the button after saving (a disabled button drops it)", async () => {
+    let finish = () => {};
+    vi.mocked(pauseScanning).mockReturnValue(new Promise((resolve) => (finish = () => resolve(new Date()))));
+    render(<CameraStatus status={live()} />);
+    const button = screen.getByRole("button", { name: "Pause Scanning (15 Min)" });
+    button.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+    act(() => (document.activeElement as HTMLElement).blur()); // what Chrome does to a disabled button
+    await act(async () => finish());
+    expect(screen.getByRole("button", { name: "Pause Scanning (15 Min)" })).toHaveFocus();
+  });
+
   it("waits for a first scan when there is no status yet", () => {
     render(<CameraStatus status={null} />);
     expect(screen.getByText("Waiting for First Scan")).toBeInTheDocument();

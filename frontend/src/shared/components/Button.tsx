@@ -1,5 +1,5 @@
 import MuiButton from "@mui/material/Button";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import Spinner from "./Spinner";
 
 type Variant = "primary" | "secondary" | "ghost";
@@ -11,6 +11,7 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "col
   loading?: boolean;
   loadingLabel?: string;
   block?: boolean;
+  ref?: Ref<HTMLButtonElement>;
   children: ReactNode;
 }
 
