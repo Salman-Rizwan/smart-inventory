@@ -9,6 +9,7 @@ import { pageLabel, ROLES } from "../features/auth/roles";
 import NotificationBell from "../features/notifications/NotificationBell";
 import { NotificationsProvider } from "../features/notifications/NotificationsContext";
 import { OrdersProvider, useOrders } from "../features/orders/OrdersContext";
+import { InsightsProvider } from "../features/insights/InsightsContext";
 import { ProductsProvider } from "../features/inventory/ProductsContext";
 import Avatar from "../shared/components/Avatar";
 import Button from "../shared/components/Button";
@@ -70,6 +71,7 @@ export default function AppShell() {
 
   return (
     <ProductsProvider enabled={role.stock}>
+      <InsightsProvider enabled={role.insights}>
       <AlertsProvider enabled={role.alerts}>
         <OrdersProvider enabled={role.orders} role={profile.role}>
           <NotificationsProvider uid={user.uid} role={profile.role} page={pageLabel(role.nav, pathname)}>
@@ -160,6 +162,7 @@ export default function AppShell() {
           </NotificationsProvider>
         </OrdersProvider>
       </AlertsProvider>
+      </InsightsProvider>
     </ProductsProvider>
   );
 }

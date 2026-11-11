@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { color } from "./tokens";
+import { chart, color } from "./tokens";
 
 function luminance(hex: string): number {
   const channels = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -36,6 +36,8 @@ describe("WCAG AA contrast of the token pairs", () => {
   });
 
   const uiPairs: [string, string, string][] = [
+    ["chart series 1 on canvas", chart.series[0], color.canvas],
+    ["chart series 2 on canvas", chart.series[1], color.canvas],
     ["strong border on canvas", color.borderStrong, color.canvas],
     ["strong border on surface (input underline)", color.borderStrong, color.surface],
     ["focus ring on canvas", color.accent, color.canvas],

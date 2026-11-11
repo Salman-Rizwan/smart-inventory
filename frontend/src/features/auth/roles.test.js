@@ -2,18 +2,21 @@ import { describe, expect, it } from "vitest";
 import { pageLabel, ROLES } from "./roles";
 
 describe("ROLES", () => {
-  it("gives the shopkeeper Dashboard, Alerts and Orders, each count on its own tab", () => {
+  it("gives the shopkeeper Dashboard, Alerts, Orders and Insights, each count on its own tab", () => {
     expect(ROLES.shopkeeper.nav).toEqual([
       { to: "/dashboard", label: "Dashboard" },
       { to: "/alerts", label: "Alerts", badge: "alerts" },
       { to: "/orders", label: "Orders", badge: "orders" },
+      { to: "/insights", label: "Insights" },
     ]);
+    expect(ROLES.shopkeeper.insights).toBe(true);
   });
 
   it("gives the dealer purchase orders only, with no alerts", () => {
     expect(ROLES.dealer.nav.map((item) => item.to)).toEqual(["/orders"]);
     expect(ROLES.dealer.alerts).toBe(false);
     expect(ROLES.dealer.stock).toBe(false); // never sees the shop's stock, costs or prices
+    expect(ROLES.dealer.insights).toBe(false);
     expect(ROLES.shopkeeper.stock).toBe(true);
   });
 

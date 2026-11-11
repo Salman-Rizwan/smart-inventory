@@ -4,6 +4,7 @@ import { Page, PageHead } from "../../shared/components/Page";
 import CameraStatus from "./CameraStatus";
 import CountsGrid from "./CountsGrid";
 import AlertsSummary from "../alerts/AlertsSummary";
+import InsightsTiles from "../insights/InsightsTiles";
 import PartSettingsPanel from "../inventory/PartSettingsPanel";
 import StockCheckPanel from "../inventory/StockCheckPanel";
 import { useProducts } from "../inventory/hooks";
@@ -45,6 +46,7 @@ export default function DashboardPage() {
       </section>
 
       <StockCheckPanel counts={counts} countedAt={scannedAt} />
+      <InsightsTiles counts={counts} />
       <PartSettingsPanel />
 
       <SnapshotPanel scannedAt={scannedAt} />

@@ -6,11 +6,13 @@ export const ROLES = {
     stock: true, // sees and changes stock records (Stock Check, Part Settings)
     alerts: true, // sees discrepancy alerts (bell, dashboard summary and the Alerts page)
     orders: true, // sees the orders page and confirms receipt
+    insights: true, // business intelligence: the dashboard tiles and the Insights page
     // badge: the count of work waiting on that tab (open alerts; orders waiting for this role to act)
     nav: [
       { to: "/dashboard", label: "Dashboard" },
       { to: "/alerts", label: "Alerts", badge: "alerts" },
       { to: "/orders", label: "Orders", badge: "orders" },
+      { to: "/insights", label: "Insights" },
     ],
   },
   dealer: {
@@ -19,6 +21,7 @@ export const ROLES = {
     stock: false,
     alerts: false,
     orders: true, // sees purchase orders (page and bell)
+    insights: false,
     nav: [{ to: "/orders", label: "Purchase Orders" }],
   },
 };
