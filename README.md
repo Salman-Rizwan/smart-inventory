@@ -8,7 +8,7 @@ The shop laptop does all the work. Firebase (free Spark plan) stores and serves 
 
 ```
 Shop laptop                      Firebase (free plan)        Browsers
-USB webcam (Scan Now; every 60 s planned, M6) -> Firestore  ------------->   Shopkeeper view
+USB webcam (Scan Now; every 60 s when on, M6) -> Firestore  ------------->   Shopkeeper view
 FastAPI backend                  Authentication  \            Dealer view
   - loads best.pt (YOLOv8)       Hosting (React)  `---------> Purchase orders
   - counts parts per scan
@@ -93,7 +93,7 @@ python scripts/test_webcam.py
 
 ## Firestore data model
 
-Eight collections. The backend writes the counts, alerts and orders; the browser writes only POS changes (each with its stock log entry), part settings, acknowledgements, order steps and the user's own read state. `firestore.rules` enforces each of these.
+Nine collections (`settings/scanning` holds Pause Scanning). The backend writes the counts, alerts and orders; the browser writes only POS changes (each with its stock log entry), part settings, acknowledgements, order steps and the user's own read state. `firestore.rules` enforces each of these.
 
 | Collection / document | Key fields | Written by | Built in |
 |---|---|---|---|
@@ -145,7 +145,7 @@ Each part has a mock POS record in `products/{class name}` (`posCount`, `reorder
 
 After every scan the backend decides what to do with alerts for each part (`app/alerts.py`, a pure function with unit tests):
 
-- First mismatch: one **Open** alert is created.
+- First mismatch: a timer starts (`mismatchSince` on the product). When the mismatch has lasted `ALERT_DELAY_SECONDS` (default 180), one **Open** alert is created; at 0 it is created at once. The Stock Check row shows the mismatch at once either way.
 - Still mismatched on later scans: no new alert (5 scans give 1 alert); its camera and POS counts are refreshed.
 - Counts match again: the alert becomes **Resolved** automatically. A mismatch that returns opens a new alert, and resolved alerts stay in Firestore as history.
 - An empty shelf raises alerts too, since stock the POS expects is missing.
@@ -154,7 +154,7 @@ The shopkeeper has an **Alerts** tab (`/alerts`, with a badge for open alerts): 
 
 ## Purchase orders (M9)
 
-**Automatic ordering.** After every scan the backend (`app/orders.py`, a pure function with unit tests) checks each part against its `reorderLevel`. A part is *low* when the camera count is at or below that level. A **Pending** order for `reorderQty` is raised when the part has been low for `REORDER_CONFIRM_SCANS` scans in a row (default 2, so one bad frame, such as a hand over the camera, cannot order stock) **and** has no open order. A part therefore never has two orders. While an order is open the count is held at zero, so after it is received the part must be low for fresh scans before the next order, which leaves time to restock the shelf. Orders are marked `source: auto`.
+**Automatic ordering.** After every scan the backend (`app/orders.py`, a pure function with unit tests) checks each part against its `reorderLevel`. A part is *low* when the camera count is at or below that level. A **Pending** order for `reorderQty` is raised when the part has been low for `REORDER_CONFIRM_SCANS` scans in a row (default 2, so one bad frame, such as a hand over the camera, cannot order stock), **and** for `REORDER_DELAY_SECONDS` (default 300, `lowSince` on the product, so restocking or a person standing in front of the shelf cannot order once scanning is automatic), **and** has no open order. A part therefore never has two orders. While an order is open both are held at zero, so after it is received the part must be low for fresh scans and a fresh delay before the next order, which leaves time to restock the shelf. A `reorderQty` of 0 turns automatic orders off for the part. Orders are marked `source: auto`.
 
 **Dealer** (Purchase Orders page): summary tiles (Pending, Accepted, Dispatched, Received), an Open, Completed and All filter kept in the URL (`?status=completed`), and an action queue with Pending first and the oldest first. **Accept Order** (Pending to Accepted), then **Mark Dispatched** ("the goods have left my warehouse"). The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance (see Notifications below).
 
@@ -197,12 +197,23 @@ npm run typecheck && npm test      # TypeScript check, then the unit and compone
 
 `POST /scan` and `GET /snapshot/latest.jpg` require a Firebase ID token (`Authorization: Bearer <token>`); the frontend adds it automatically.
 
+### Automatic scanning (M6)
+
+Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (default 60) on a background thread that starts and stops with the backend. **A sleeping laptop scans nothing** (the Nov 4 overnight run had gaps of 2 and 4.5 hours): on the shop laptop turn off sleep while plugged in (System Settings, Battery, Options), or start the backend with `caffeinate -i uvicorn app.main:app`. While scanning is on, the camera stays open between scans (capture about 0.19 s instead of 1.25 s), so the camera light stays on. Every Firestore call gives up after 5 s per attempt and 10 s in total, so a network hiccup cannot hold a scan (or Scan Now) for minutes. Scan Now works whether it is on or off, and the two never overlap. Run the backend as **one worker** (plain `uvicorn app.main:app`); several workers would each run a loop. The settings, with their reasons, are in `.env.example`:
+
+- **Camera status** on the dashboard: Scanning Every N s (last scan and its age), Automatic Scanning Off, Scanning Paused, Too Dark to Count, Camera Not Responding, Last Scan Failed, or No Recent Scan (nothing for more than twice the interval: the laptop is asleep or the backend stopped), each with a next step. Stock Check says when its shelf counts were taken.
+- **Pause Scanning (15 Min)** for restocking: written to `settings/scanning` (shopkeeper only, at most 30 minutes ahead, resumes by itself); the loop checks it before each scan and releases the camera while paused. Resume Scanning ends it early.
+- **Time rules:** an alert waits `ALERT_DELAY_SECONDS`; an order needs `REORDER_CONFIRM_SCANS` low scans in a row and `REORDER_DELAY_SECONDS` of being low.
+- **Dark frames** below `MIN_FRAME_BRIGHTNESS` are skipped: nothing changes, and `status/latest` records the skip. Scan Now in the dark answers "Too dark to count the parts. Turn on the shelf light, then scan again."
+- **Writes:** an automatic scan is saved to `scans` only when the counts change, plus a heartbeat every `SCAN_HEARTBEAT_SECONDS`; manual scans are always saved. `status/latest` is updated after every attempt with `lastAttemptAt`, `lastOutcome` (counted, skipped, failed), `skipReason`, `lastError`, `brightness`, `timings` and the scanning settings. Scan records carry `trigger`, `brightness`, `captureMs`, `detectMs` and `heartbeat`.
+
 ## Before a demo or rehearsal
 
-1. **Reset to a clean state:** `python -m scripts.demo_reset` shows what it would change; add `--apply` to do it. It sets 4 spark plugs and 1 filter in the POS, restores the demo reorder settings, and clears orders, alerts and read state (scan history, users and the model are kept). Run it between rehearsals.
+1. **Reset to a clean state:** `python -m scripts.demo_reset` shows what it would change; add `--apply` to do it. It sets 4 spark plugs and 1 filter in the POS, restores the demo reorder settings, clears the alert and reorder timers, and clears orders, alerts and read state (scan history, the stock change log, users and the model are kept). Run it between rehearsals.
 2. **Start the servers**, each in its own VS Code terminal (the backend must run there, where the camera permission is granted): `cd backend && source .venv/bin/activate && uvicorn app.main:app` (leave `--reload` off for a demo) and `cd frontend && npm run dev`. Open http://localhost:5173.
 3. **Set up the shelf:** good, even light and no shadows across the parts; a plain light background; every part fully in frame with space around it; the filter on its side or upright (not end-on) and away from the edges; nobody in the frame. A dark room reads as an empty shelf.
-4. **Press Scan Now once** to refresh the dashboard. Automatic ordering needs **two low scans in a row**, so press it twice after removing a plug.
+4. **Choose the scanning settings for the demo** in `.env`: either `AUTO_SCAN_ENABLED=false`, or keep it on with `ALERT_DELAY_SECONDS=0` and `REORDER_DELAY_SECONDS=0` so alerts and orders appear without waiting minutes. Restart the backend after changing `.env`.
+5. **Press Scan Now once** to refresh the dashboard. Automatic ordering needs **two low scans in a row**, so press it twice after removing a plug (with `REORDER_DELAY_SECONDS=0`).
 
 ## Status
 
