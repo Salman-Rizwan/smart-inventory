@@ -3,9 +3,9 @@
 The roadmap (`docs/ROADMAP.md`) says what and why; this file breaks each step into small actions, each with its **script tests** (automated: pytest, vitest, rule checks) and its **live tests** (real Firebase, real Chrome, real webcam). A task is done only when both pass. Tick items here as they are finished.
 
 ## Remaining work (as of Nov 11 evening)
-Everything left, numbered 1 to 37; IDs point to the detailed rows below, each with its script tests and live tests. "User" marks a step only the user can do. The plan for the last days (agreed Nov 11) is under **Plan to the freeze** below the list.
+Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the detailed rows below, each with its script tests and live tests. "User" marks a step only the user can do. The plan for the last days (agreed Nov 11) is under **Plan to the freeze** below the list.
 
-**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1, M6 automatic scanning (every live check finished Nov 11), M10 access control, Cancel Order, simulated parts for live testing (all checked live Nov 11), Group 2 Insights core (Nov 11 evening: seeded history, analytics, dashboard tiles, Insights page, independent check; all checked live). Tests: backend 294, frontend 762.
+**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1, M6 automatic scanning (every live check finished Nov 11), M10 access control, Cancel Order, simulated parts for live testing (all checked live Nov 11), Group 2 Insights core (Nov 11 evening: seeded history, analytics, dashboard tiles, Insights page, independent check; all checked live), and the Insights decisions and dashboard layout (Nov 12, items 38 to 43: gross profit, What To Do, a 90-day seed, the Products tab, the reordered dashboard). Tests: backend 305, frontend 819.
 
 **Before any live test:**
 - The shelf camera is the MacBook Air's built-in camera (`CAMERA_INDEX=0`, the user's decision). Whoever uses the laptop is in the frame: on Nov 11 it read 0 and 0 while the laptop was being used, and a face once scored 0.54 as a spark plug. Open `backend/snapshots/latest.jpg` and check `status/latest.counts` = 4 and 1 before any live test; ask the user to Pause Scanning while they work on the laptop.
@@ -60,6 +60,15 @@ Everything left, numbered 1 to 37; IDs point to the detailed rows below, each wi
    - [ ] 36. Full regression, screenshots, fresh-clone check, no secrets, version 1.0.0 (M12-7, R-1, R-2).
    - [ ] 37. PR dev to main (merge commit), tag `v1.0.0`, deploy, smoke test (R-3). User.
 
+9. Insights decisions and dashboard layout (added Nov 12 by the user's decision; each step tested before the next)
+   - [x] 38. Tile figures never split mid-number: the tile is a size container and the figure scales with it. Live: `tilefit.mjs`, 24 combinations (4 pages x 6 widths), after a Chrome walk found "LKR 31,800." / "00" on the dashboard.
+   - [x] 39. Analytics: gross profit and margin (each entry's own price and cost; uncosted units noted), part ranking, weekly bars over 90 days, What To Do (first matching rule). Pure, tested; `insights_check.py` rewritten from the definitions.
+   - [x] 40. Seed 90 days instead of 30 (147 stock changes, 12 received orders, 18 resolved alerts); snapshot, clear, apply, verified: POS still 4 and 1, both Pending orders and the 14 real alerts untouched.
+   - [x] 41. Insights page: Gross Profit tile replaces Dealer Lead Time (lead time now beside Recommendations), What To Do list, Sales and Profit with the ranking, a data table per bar. Live: `insights_live.mjs` equal to the script at 7, 30, 90 days and per part (193 checks, 0 differences). Found live: the 90-day table said "raise to 3" while the advice said "raise to 2"; recommendations now use the same 30-day basis.
+   - [x] 42. Products tab (`/products`, shopkeeper only): Part Settings moved off the dashboard, `?part=ID` highlights the row and focuses its Edit button, the Insights advice links to it. Live: `products_ui.mjs` 19 checks (axe 0 at six widths, Cancel returns focus, dealer redirected). Five tabs fit from 375 px; narrower the strip scrolls and the current tab is kept in view.
+   - [x] 43. Dashboard order: alerts (one row when none), Business at a Glance, Stock Check with the counts folded in, shelf image beside Recent Scans from 1100 px. 2,864 px to 1,517 px at 1360 px wide. Live: `insights_ui.mjs` 37 checks, `states.mjs` 43 states axe 0, F1 33/33 with Part Settings on Products.
+   - [ ] 44. Not run: the full regression with a real Scan Now (56 checks), which needs the shelf in the camera's view. Run it once with the shelf in view and scanning off or paused.
+
 Then the report (M13, user), using `docs/REPORT_NOTES.md` and `docs/FUTURE_WORK.md`.
 
 ## Plan to the freeze (agreed Nov 11)
@@ -70,6 +79,7 @@ Final submission Nov 15. **Code freeze Nov 14 morning** (the user's decision), t
 | 0, user | Camera (laptop camera kept), leftover order (kept), freeze date (Nov 14), usability test (the user with their brother, outcome reported later) | Decided | — | Done Nov 11 |
 | 1 | 9, 25, 26, 27, plus Cancel Order (27a) | Must | Least-privilege access for the dealer; FR9 and NFR6 done | **Done Nov 11** |
 | 2 | 10 to 15, 18 to 22 (Insights core) | Must: the supervisor's feedback | Insights tab (sales, shrinkage, days of cover, reorder suggestions) and four dashboard tiles, on seeded demo history | **Done Nov 11 evening** (a day early) |
+| 2b | 38 to 44 (Insights decisions, dashboard order, Products tab) | Must: the user's decision Nov 12 | The shopkeeper sees profit and one next step per part, and a dashboard of about 1,500 px | **Done Nov 12** (item 44 pending the shelf in view) |
 | 3 | 28, 29 (Hosting) | Must | Public URL for both roles; Scan Now from the hosted page on the laptop | Nov 13 morning |
 | 5 | 5 to 7 (simple Stock Log), and a focus check on the other busy buttons | Should; first to drop if Insights runs long | Every POS change visible on its own tab | Nov 13 morning |
 | 4 | 31 to 35 (M12 evidence) | Must for the report | Numbers for NFR1 to NFR4 | Start the one-day usage count and accuracy runs Nov 12 (laptop facing the parts, awake); scripted parts and functional cases Nov 13 afternoon; usability by the user |
