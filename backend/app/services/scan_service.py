@@ -172,6 +172,15 @@ class ScanService:
         }
         return ScanResponse(counts=detection.counts, inference_ms=inference_ms, products=response_products)
 
+    def publish_settings(self) -> None:
+        """Tell the dashboard at startup whether automatic scanning is on. Without this it learns of a
+        change only from the next scan attempt, and with scanning off there may never be one. Best
+        effort: the backend still starts when the database cannot be reached."""
+        try:
+            self.repository.record_scanning_settings(self._auto_state())
+        except StorageError:
+            logger.warning("Scanning settings not published: could not reach the database")
+
     def _is_after_gap(self, now: datetime) -> bool:
         """True for the first counted scan since the backend started, or after more than 3 intervals."""
         if self._last_counted_at is None:

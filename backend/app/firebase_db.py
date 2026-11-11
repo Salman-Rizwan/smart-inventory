@@ -17,7 +17,7 @@ from app.alerts import ACTIVE_STATES, OPEN, RESOLVED, ActiveAlert, AlertPlan
 from app.core.exceptions import StorageError
 from app.orders import OPEN_STATES, PENDING, ActiveOrder, OrderPlan
 from app.products import ProductRecord
-from app.scan_records import ScanRecord, ScanStatus
+from app.scan_records import AutoScanState, ScanRecord, ScanStatus
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,10 @@ def init_firebase(key_path: Path) -> None:
         firebase_admin.initialize_app(credentials.Certificate(str(key_path)))
 
 
+def _auto_scan_fields(auto_scan: AutoScanState) -> dict:
+    return {"enabled": auto_scan.enabled, "intervalSeconds": auto_scan.interval_seconds}
+
+
 class ScanRepository:
     """Firestore reads and writes for scans. The only place that knows the schema."""
 
@@ -96,10 +100,7 @@ class ScanRepository:
             "brightness": status.brightness,
             "skipReason": status.skip_reason,
             "lastError": status.error,
-            "autoScan": {
-                "enabled": status.auto_scan.enabled,
-                "intervalSeconds": status.auto_scan.interval_seconds,
-            },
+            "autoScan": _auto_scan_fields(status.auto_scan),
         }
         if status.outcome == "counted":
             data.update(counts=status.counts, scannedAt=firestore.SERVER_TIMESTAMP, timings=status.timings)
@@ -107,6 +108,17 @@ class ScanRepository:
             self.db.collection("status").document("latest").set(data, merge=True, **BOUNDED)
         except Exception as exc:
             logger.exception("Firestore write of status/latest failed")
+            raise StorageError() from exc
+
+    def record_scanning_settings(self, auto_scan: AutoScanState) -> None:
+        """Say whether automatic scanning is on, without recording an attempt (merge). Written at startup,
+        so the dashboard does not wait for the next scan to learn that scanning was turned off or on."""
+        try:
+            self.db.collection("status").document("latest").set(
+                {"autoScan": _auto_scan_fields(auto_scan)}, merge=True, **BOUNDED
+            )
+        except Exception as exc:
+            logger.exception("Firestore write of the scanning settings failed")
             raise StorageError() from exc
 
     def get_paused_until(self) -> datetime | None:

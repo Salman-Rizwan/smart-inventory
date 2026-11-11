@@ -75,6 +75,7 @@ class FakeRepository:
         self.saved = []  # ScanRecord per scan record written
         self.statuses = []  # each save_product_statuses call
         self.status_writes = []  # ScanStatus per status/latest write
+        self.settings_writes = []  # AutoScanState per startup write of the scanning settings
         self.product_status = {}
         self.mismatch_since = {}
         self.low_since = {}
@@ -91,6 +92,12 @@ class FakeRepository:
         if self.status_fail:
             raise StorageError()
         self.status_writes.append(status)
+        self.writes += 1
+
+    def record_scanning_settings(self, auto_scan):
+        if self.status_fail:
+            raise StorageError()
+        self.settings_writes.append(auto_scan)
         self.writes += 1
 
     def get_products(self):

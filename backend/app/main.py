@@ -42,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             snapshots=app.state.snapshot_store,
             policy=ScanPolicy.from_settings(settings),
         )
+        app.state.scan_service.publish_settings()
         app.state.auto_scanner = None
         logger.info(
             "Scanning rules: alert delay %d s, reorder delay %d s after %d low scans, min brightness %.0f",

@@ -29,6 +29,7 @@ def bounds(mock):
 def test_every_read_and_write_has_an_attempt_limit_and_a_total_limit(repo):
     repo.save_scan(ScanRecord({"spark_plug": 4}, 25, "auto", 174.0, 1250, 25))
     repo.record_status(ScanStatus("auto", "counted", AutoScanState(True, 30), counts={"spark_plug": 4}))
+    repo.record_scanning_settings(AutoScanState(True, 30))
     repo.get_products()
     repo.save_product_statuses({"spark_plug": "Matched"})
     repo.get_active_alerts()
@@ -38,7 +39,7 @@ def test_every_read_and_write_has_an_attempt_limit_and_a_total_limit(repo):
     repo.get_open_orders()
     repo.apply_order_plan(OrderPlan(create=(NewOrder("spark_plug", 1),), streaks={"spark_plug": 0}))
     found = bounds(repo.db)
-    assert len(found) == 8
+    assert len(found) == 9
     assert all(timeout == ATTEMPT_SECONDS and retry.timeout == TOTAL_SECONDS for timeout, retry in found)
 
 
@@ -88,6 +89,19 @@ def test_a_skipped_attempt_keeps_the_last_counts(repo):
     data = repo.db.collection.return_value.document.return_value.set.call_args
     assert "counts" not in data.args[0] and data.kwargs["merge"] is True
     assert data.args[0]["skipReason"] == "too_dark" and data.args[0]["lastOutcome"] == "skipped"
+
+
+def test_the_scanning_settings_are_written_alone_so_no_attempt_is_claimed(repo):
+    repo.record_scanning_settings(AutoScanState(False, 30))
+    data = repo.db.collection.return_value.document.return_value.set.call_args
+    assert data.args[0] == {"autoScan": {"enabled": False, "intervalSeconds": 30}}
+    assert data.kwargs["merge"] is True  # the last counts, attempt time and outcome stay as they were
+
+
+def test_a_failed_settings_write_becomes_a_storage_error(repo):
+    repo.db.collection.return_value.document.return_value.set.side_effect = TimeoutError("deadline exceeded")
+    with pytest.raises(StorageError):
+        repo.record_scanning_settings(AutoScanState(True, 30))
 
 
 def test_timers_are_written_and_cleared_on_the_product(repo):

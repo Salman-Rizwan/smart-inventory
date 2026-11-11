@@ -152,6 +152,24 @@ def test_every_counted_attempt_updates_the_status_with_counts_timings_and_settin
     assert (status.auto_scan.enabled, status.auto_scan.interval_seconds) == (True, 45)
 
 
+@pytest.mark.parametrize("enabled", [True, False])
+def test_startup_publishes_whether_scanning_is_on_without_claiming_an_attempt(setup, enabled):
+    # with scanning off there may be no scan at all, so the dashboard must not wait for one to find out
+    service, _, repo, _ = setup(policy=ScanPolicy(auto_scan_enabled=enabled, scan_interval_seconds=45))
+    service.publish_settings()
+    assert [(s.enabled, s.interval_seconds) for s in repo.settings_writes] == [(enabled, 45)]
+    assert repo.status_writes == [] and repo.saved == [] and repo.writes == 1
+
+
+def test_startup_carries_on_when_the_settings_cannot_be_published(setup):
+    service, _, repo, _ = setup()
+    repo.status_fail = True
+    service.publish_settings()  # logged, never raised: the backend must still start offline
+    assert repo.settings_writes == []
+    repo.status_fail = False
+    assert service.scan("manual").counts == MATCHING
+
+
 def test_a_quiet_automatic_scan_costs_one_write(setup):
     # steady state: nothing changed, so only status/latest is written (the free-tier budget assumes this)
     service, _, repo, clock = setup()
