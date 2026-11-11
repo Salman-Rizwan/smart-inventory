@@ -46,7 +46,7 @@ backend/
     orders.py        automatic reorder planner (pure)
     products.py      product record read from Firestore
   models/            best.pt (trained YOLOv8 weights)
-  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), seed_orders.py (sample orders), seed_history.py (30 days of demo trading history for Insights), insights_check.py (recomputes every Insights figure), demo_reset.py (clean demo state), capture_dataset.py
+  scripts/           test_webcam.py (M1), test_firebase.py (M2), seed_users.py (role profiles), seed_products.py (POS records), seed_orders.py (sample orders), seed_history.py (90 days of demo trading history for Insights), insights_check.py (recomputes every Insights figure), demo_reset.py (clean demo state), capture_dataset.py
   tests/             pytest suite (fakes only, no webcam or Firebase needed)
 frontend/
   src/
@@ -236,7 +236,8 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - [x] Supervisor feedback, part 1: alert history on the Alerts tab (Oct 31)
 - [x] Stock change log, Adjust Stock and Part Settings (F1, Nov 4; checked live)
 - [x] M6 automatic scanning (Nov 11): time rules, dark-frame skip, change-only writes, camera status, Pause Scanning; live checks finished Nov 11 (docs/TASKS.md)
-- [x] Supervisor feedback, part 2: business intelligence (the "Business at a Glance" tiles and the Insights page; Nov 11). Stock Log tab: Nov 13.
+- [x] Supervisor feedback, part 2: business intelligence (the "Business at a Glance" tiles and the Insights page; Nov 11). Gross profit, the part ranking and the What To Do list followed on Nov 12. The Stock Log (a second view inside the Products tab) is planned for Nov 13.
+- [x] Dashboard reordered by the shopkeeper's questions and a Products tab for Part Settings (Nov 12; checked live, full regression 56/56)
 - [x] M10 least-privilege rules and backend role check, Cancel Order, simulated parts for live testing (Nov 11; checked live)
 - [ ] M11 Hosting, M12 evaluation, M13 report
 

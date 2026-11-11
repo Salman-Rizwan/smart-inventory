@@ -4,7 +4,7 @@ Material for the final report (M13), collected while building. Each section says
 
 ## Before writing
 - Replace ESP32 with webcam, and Realtime Database with Firestore, everywhere in the earlier chapters.
-- State that the demo history is synthetic and marked `seeded: true` (`seed_history`, Nov 11): 30 days planned backwards from the real POS counts, 55 stock changes, 4 received orders, 6 resolved alerts; demo cost and price figures (spark plug 350/500, petrol filter 900/1,200 LKR).
+- State that the demo history is synthetic and marked `seeded: true` (`seed_history`): 90 days (first written as 30 days on Nov 11, extended on Nov 12), planned backwards from the real POS counts so the log ends exactly at the real counts; 147 stock changes, 12 received orders, 18 resolved alerts; demo cost and price figures (spark plug 350/500, petrol filter 900/1,200 LKR). Every figure on the Insights page over that period is therefore illustrative, not trading data; the page and the dashboard say "Includes demo data".
 - Include the licence note: Ultralytics is AGPL-3.0.
 - Any disclosure of tool use follows the university policy; that decision is the author's.
 
@@ -32,6 +32,9 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 - Frontend in feature folders, TypeScript for new code, one live listener per collection shared through providers.
 - Security in Firestore rules: each browser write is checked field by field (for example a POS change must arrive with its matching log entry).
 - Accessibility: WCAG AA contrast, keyboard use, screen-reader announcements, colour never alone; axe 0 on every page.
+- Every business figure has two implementations: pure, unit-tested functions in the browser (`features/insights/analytics.ts`) and an independent Python recomputation written from the definitions (`backend/scripts/insights_check.py`); a Chrome script compares the page with it, which tests the code against the definitions without trusting either copy.
+- Layout is verified by measuring it in a real browser (tile figures, tab strip, side-by-side panels, sideways scroll at six widths), because unit tests cannot see layout; the Nov 12 tile-wrapping defect passed 800 unit tests.
+- The charts library is loaded only with the Insights page (React.lazy; a test keeps it from creeping into the main bundle), and its chart colours are validated for colour-vision separation and contrast before use.
 
 ## Measurements so far (Evaluation)
 | Measure | Result | Source |
@@ -46,22 +49,44 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | Gap rule | After a 130 s pause, a timer planted 24 hours in the past was ignored; the alert opened 186 s after the restarted timer (setting 180 s) | `gap_live.py`, Nov 11 |
 | Pause Scanning | No scan attempted during a 130 s pause; scanning resumed by itself 29 s after it ended (interval 30 s); from the button, a scan arrived 4 s after Resume | `pause_live.py`, `camstates.mjs`, Nov 11 |
 | Scan Now click to result, camera kept open | 2.4 s and 2.8 s (target 3 s); 50 runs to follow in M12 | Live regression, Nov 11 |
+| Scan Now on the final layout | 2,829 ms click to result with 29 ms inference; counted 1 filter and 4 plugs correctly | Live regression, Nov 12 |
 | Writes from automatic scanning | Overnight: 8 scan records over the hours the laptop was awake (5 heartbeats every 10 minutes, 2 changes, 1 manual) instead of about 300; a quiet scan costs 1 write | Live soak, Nov 4 to 5 |
 | Brightness (0 to 255) | Lights on 171 to 183; lights off with daylight 40 to 53 (counts still right); lens covered 18 and 39 (skipped); threshold 40 | Live, Nov 4 to 5 |
 | Free-tier budget (estimate) | About 1,500 writes and 7,000 reads a day from the backend at a 60 s interval, plus about 1,440 reads a day per open dashboard; limits are 20,000 and 50,000 | Design calculation; to be measured in M12 |
-| Insights read cost | 64 document reads per session (55 stock changes and 9 orders over a 180-day window), shared by the dashboard tiles and the page; afterwards one read per new change | `insights_check.py` `loaded` counts, Nov 11 |
-| Insights bundle | Main bundle 1,126 to 1,140 kB (347 to 352 kB gzipped) for the analytics, tiles and loader; the Insights page with the charts library is a separate 347 kB chunk (109 kB gzipped) loaded on first visit | `npm run build`, Nov 11 |
-| Insights correctness | Page figures equal to an independent Python recomputation at 7, 30 and 90 days and with the part filter: 25 checks per run, all equal (tiles, per-part cover and recommendations, 30 per-day sales rows, shrinkage lines) | `insights_live.mjs`, Nov 11 |
+| Insights read cost (first 30-day seed, Nov 11) | 64 document reads per session (55 stock changes and 9 orders over a 180-day window), shared by the dashboard tiles and the page; afterwards one read per new change | `insights_check.py` `loaded` counts, Nov 11 |
+| Insights bundle (Nov 11) | Main bundle 1,126 to 1,140 kB (347 to 352 kB gzipped) for the analytics, tiles and loader; the Insights page with the charts library is a separate 347 kB chunk (109 kB gzipped) loaded on first visit | `npm run build`, Nov 11 |
+| Insights correctness (first version, Nov 11) | Page figures equal to an independent Python recomputation at 7, 30 and 90 days and with the part filter: 25 checks per run, all equal | `insights_live.mjs`, Nov 11 |
+| Insights correctness (final, Nov 12) | The same comparison after gross profit, the part ranking, weekly bars and What To Do: 175 checks over five runs (7, 30 and 90 days, and two part filters), 0 differences | `insights_live.mjs`, Nov 12 |
 | Seeded demo figures (30 days, first 30-day seed) | 44 units sold, LKR 31,800; shrinkage 3 units, LKR 1,600 (5% of sales); cover 2.1 days (filter) and 4.0 days (plug); dealer lead time 2.9 days over 7 deliveries; suggested levels 3 (filter, from 0) and 5 (plug, from 2) | `insights_check.py`, Nov 11 |
 | Seeded demo figures (90-day seed, Nov 12) | 114 units in 90 days, LKR 80,100 sales, LKR 22,050 gross profit (28% margin); spark plug 30% margin and 55% of the profit, petrol filter 25% and 45%; shrinkage 9 units, LKR 4,800 (6% of sales); dealer lead time 3.1 days over 15 deliveries | `insights_check.py`, Nov 12 |
 | Dashboard length | 2,864 px to 1,517 px at 1360 px wide; 3,650 px to 2,886 px at 390 px; the first screen now holds alerts, the business figures and Stock Check | Chrome full-page measurement, Nov 12 |
-| Insights read cost (90-day seed) | About 150 stock changes and 17 orders per session, shared by the tiles and the page | `insights_check.py` `loaded` counts, Nov 12 |
+| Insights read cost (90-day seed, Nov 12) | 147 stock changes and 17 orders, about 165 document reads per session, shared by the tiles and the page; afterwards one read per new change | `insights_check.py` `loaded` counts, Nov 12 |
 | Insights bundle (Nov 12) | Main bundle 1,144 kB (353 kB gzipped); Insights page with the charts 351 kB (110 kB gzipped), loaded on first visit | `npm run build`, Nov 12 |
 
 Still to measure in M12 (`docs/TASKS.md`): detection accuracy over 20 arrangements under 3 lighting conditions, Scan Now timing over 50 runs, sync latency over 10 trials, one day of real free-tier usage, functional test cases FR1 to FR9, and a usability test with 3 people.
 
+## Insights as built (Implementation, for the report)
+Everything is computed in the browser over the last 7, 30 or 90 local calendar days (today included); the previous period is the same number of days before it. A part with no data never shows 0 or infinity: each case names what is missing.
+
+| Figure | Definition |
+|---|---|
+| Sales | Units of Sale entries minus units of Customer Return adjustments, each entry at its own stored price. Reset entries are left out. Units with no price are counted and reported, not valued at 0. |
+| Gross profit and margin | (price - cost) x units over the entries that have both, each at its own price and cost; margin is profit over the sales value of those same entries. Entries with a price but no cost are counted and noted. |
+| Shrinkage | Damaged and Lost or Stolen write-offs at each entry's own cost, and as a share of sales value ("—" with no sales). Miscount, Found and returns are record corrections, not shrinkage. |
+| Days of cover | Camera shelf count divided by average daily net sales over the period (an average, because the median of mostly-zero days is 0), and days until the shelf reaches the reorder level. "No recent sales" or "No scan yet" when it cannot be worked out. |
+| Dealer lead time | Median of received minus created over orders received in the period (a median, so one slow order does not skew it). |
+| Suggested reorder level | Average daily sales x median lead time, plus a safety margin of half that demand (at least 1 unit), rounded up; withheld until the part has 14 days of history and the dealer 2 received deliveries, with the missing condition named. |
+| What To Do | One step per part from the first matching rule: no scan yet; at or below the reorder level with an order open (waiting) or not (an order is due); the suggested level differs from the current one (raise or lower it); no sales; too early for a suggestion; otherwise OK. |
+| Basis | What To Do and the recommendations always use the last 30 days, whichever period the page shows, so the advice does not change with the view. |
+| Part ranking | Parts by gross profit, then units, then name, with units, revenue, margin and share of profit. |
+| Charts | Units per day (per week over 90 days) stacked by part, and units written off by reason; each chart has its data as a table. |
+
+The demo run on the 90-day seed (30-day view): 36 units, LKR 26,400 sales, LKR 7,200 gross profit (27% margin); the first 30-day seed and the 90-day seed give the figures in the measurements table. These are synthetic.
+
 ## Testing (Evaluation)
 - Automated, Nov 12: backend 305 tests, frontend 819 (the new analytics, the What To Do rules, weekly grouping, the Products page and its focus-by-link behaviour, and the dashboard order each have their own tests). Earlier, Nov 11 evening: backend 294 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock; plus the seed_history planner and the Insights check script); frontend 762 tests (Vitest and Testing Library; the analytics are tested case by case: price changes mid-period, returns larger than sales, unpriced units, no sales, no scan, short history, a part added later); type checks, linters and the production build on every change.
+- Live, Nov 12, on the final layout (each script writes nothing unless noted): tile figures fit at six widths on four pages (24 combinations); the Insights page equals the independent recomputation (175 checks over five runs); the dashboard order, height and side-by-side panels at six widths, five tabs, keyboard reach and the dealer kept out (37 checks); the Products tab with the link from the advice, focus return and axe at six widths (19 checks); 43 interface states with axe 0; the stock-change flow (F1) on temporary data, 33 browser checks and 8 data checks, with the real data verified identical afterwards.
+- Full regression, Nov 12 (after the Products tab and the new dashboard): 56 of 56 checks across both roles, including a real Scan Now, with axe on every screen and the phone layout. The run exercises the real POS flow, so the real data was restored from a snapshot afterwards and verified identical.
 - Insights, live Nov 11: the page compared with an independent recomputation (`insights_check.py`) at every period and with the part filter, all equal; axe 0 at six widths from 320 px; a dashboard tile opens its section with focus on the heading; the dealer has no tab and is redirected; a race between two quick filter clicks was found by the browser script and fixed.
 - Live testing without touching real stock: a `.env` test setting adds made-up `zz_` parts to every scan, so order and Cancel flows run through the real backend and rules (7 checks, Nov 11). A name without the `zz_` prefix stops the backend at startup (seen live).
 - Rules: 63 cases written for the Rules API test endpoint; live attack checks over REST with real sign-ins: 32 for the stock change log and Part Settings, 11 for Pause Scanning, 38 for M10 (reads per role, every Cancel Order case, and the backend's 403 for the dealer), all passing on Nov 11.
@@ -86,13 +111,13 @@ These were missed by unit tests and found only on the real system; each was fixe
 | Nov 11 | After a simulated test part was switched off, the dashboard kept showing it: `status/latest` was written with a merge, which never removes a key from the counts (a class removed from the model would linger the same way) | A counted scan now replaces the counts whole; a skipped or failed one still leaves them as they were. Checked live: a planted extra count was gone after the next scan |
 | Nov 11 | Keyboard focus was lost after pressing Pause Scanning or Resume Scanning (the button is disabled while saving, and Chrome drops focus from a disabled button) | Focus is returned to the button when the save ends |
 | Nov 11 | On a phone the day labels of the sales chart ran together and a money figure overflowed its tile | Labels are thinned on a phone; tile figures shrink to fit |
-| Nov 11 | Two quick clicks on the Insights filters lost the first (the second built its address from the page as last drawn) | The filter update is built from the address at the moment of the click |
+| Nov 11 | Two clicks on the Insights filters within a few milliseconds lost the first (the second built its address from the page as last drawn) | The update is now built from the address at the moment of the click. Two clicks inside the router's update delay can still lose the first; no person clicks that fast, so the live script now waits for the new state between clicks (listed in `docs/FUTURE_WORK.md`) |
 | Nov 12 | On the dashboard the Sales and Shrinkage tile values broke mid-number ("LKR 31,800." then "00"), although they fitted on the Insights page; a wrap rule added a day earlier caused it and unit tests cannot see layout | The tile is a size container and its figure scales with it; a Chrome check measures every tile at six widths |
 | Nov 12 | The Insights advice said "raise the petrol filter's level to 2" while the table under it, on a 90-day view, said 3: the table followed the period and the advice did not | Both use the last 30 days, and say so |
 | Nov 12 | Five tabs are 364 px wide and the header offers 320 px | The strip scrolls, padding is tighter, and the current tab is scrolled into view; five tabs fit from 375 px |
 
 ## Requirements status
-| Req | Status (Nov 11) |
+| Req | Status (Nov 12) |
 |---|---|
 | FR1 capture periodically | Done: automatic scanning (M6) |
 | FR2 to FR8 | Done (detection, counting, cloud storage, POS comparison, alerts, automatic orders, dashboard) |
@@ -103,7 +128,10 @@ These were missed by unit tests and found only on the real system; each was fixe
 | NFR4 usable by a non-technical shopkeeper | Usability test in M12 |
 | NFR5 any webcam | `CAMERA_INDEX`; a wrong index shows "Camera Not Responding" on the dashboard (seen live, Nov 11) |
 | NFR6 access control | Done: least privilege per role in the rules, and a role check on the backend's camera and image endpoints (M10, Nov 11) |
-| NFR7 new parts without code changes | Product ids equal model class names |
+| NFR7 new parts without code changes | Product ids equal model class names; the Products tab, Stock Check and Insights list parts from the data |
+| Supervisor feedback 1: history of past alerts | Done: the Alerts tab (Oct 31) |
+| Supervisor feedback 2: business intelligence on the dashboard | Done (Nov 11 to 12): four dashboard tiles and the Insights page (sales and gross profit, shrinkage, days of cover, reorder recommendations, What To Do), on a synthetic 90-day history; stockouts, stock value and Apply are future work |
+| Stock history (every POS change logged) | Logged since Nov 4; the viewing page (Stock Log, inside Products) is planned for Nov 13 |
 
 ## Operational lessons (Discussion)
 - With the laptop's own camera, the person using the laptop is in the frame. On Nov 11 a face scored 0.54 as a spark plug and passed the size guards; retraining with background images (people, rooms) is the real fix (FUTURE_WORK).

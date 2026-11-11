@@ -92,16 +92,17 @@ The analytics decides what history is needed. Alerts, orders and scans are alrea
 - Tests: 598 frontend (100 new: planner, validation, repository writes, dialogs, guard, provider), 111 backend. Live (Nov 4): `f1_rest.py`, 31/31 rule checks over REST with real sign-ins on the first publish; `f1.mjs` in Chrome found that a second Part Settings save by the same person was refused (the rule wanted `updatedBy` to change; fixed, republish needed) and that MUI moved focus to the dialog box instead of the first field (fixed in the shared `Dialog`). The rules check script (`.handoff/live-tests/rules_test.py`, 65 cases through the Rules API test endpoint, nothing deployed) needs the service account to have the Firebase Rules permission to test; until then, live REST attack checks after publishing.
 - Still to do: live check in Chrome after the user publishes the rules; `seed_history` moves to F3.
 
-### Stock Log tab and undo (Nov 6)
-Shopkeeper only, between Orders and Insights. Today by default; filters by part, type and period; 50 at a time with Load More (as alert history). Columns: time, part, type, change, POS before and after, reason, who. Stock Check rows and the Insights stock-flow section link to it filtered to the part. The dealer never sees it. Five tabs are measured at 320 px; if they do not fit, the tab row scrolls (it already can).
+### Stock Log tab and undo (Nov 6; Nov 12: now a second view inside the Products tab)
+Shopkeeper only; the Stock Log lives inside the Products tab (which holds Part Settings) so the header keeps five tabs, which fit from 375 px. Today by default; filters by part, type and period; 50 at a time with Load More (as alert history). Columns: time, part, type, change, POS before and after, reason, who. Stock Check rows and the Insights stock-flow section link to it filtered to the part. The dealer never sees it. Five tabs are measured at 320 px; if they do not fit, the tab row scrolls (it already can).
 One name per part: the Orders and Alerts pages name a part from its id (`partLabel`), Stock Check from the product document; use the product name from `ProductsProvider` everywhere, with `partLabel` only as the fallback (found in the F1 live test, where `zz_part` showed as "ZZ Part" and "Zz Part").
 Undo on Record Sale: a few seconds of "Sale recorded. Undo" that writes a reversing entry (never a delete); the analytics leave out both entries.
 
 ### F2. History (done by UX-1 and the Stock Log)
-- Alert history: the Alerts tab. Order history: the Orders page. Stock changes: the Stock Log tab.
+- Alert history: the Alerts tab. Order history: the Orders page. Stock changes: the Stock Log (inside Products).
 - Notifications stay derived and are never stored; history reads the source records.
 
-### F3. Business intelligence: dashboard summary and Insights page (Nov 7 to 9)
+### F3. Business intelligence: dashboard summary and Insights page (Nov 7 to 9; built Nov 11 to 12)
+**Outcome:** built as the Insights tab and four dashboard tiles (Sales, Gross Profit, Shrinkage, Lowest Days of Cover). Sections built: What To Do, Sales and Profit (with a part ranking and weekly bars over 90 days), Shrinkage, Days of Cover, Reorder Recommendations (with the dealer's lead time). The recommendation uses an average of daily sales, not a median, and What To Do and the recommendations always use the last 30 days. Not built, and listed in `docs/FUTURE_WORK.md`: stock flow, stock value, stockouts and lost sales, Apply, and response and dealer. The definitions as built are in `docs/DESIGN_DECISIONS.md` and `docs/REPORT_NOTES.md`; the plan below is kept as it was.
 Shopkeeper only. Calculations are pure, tested functions in `features/insights/analytics.ts`, run in the browser so they also work on the hosted app. Medians, not averages (small numbers). Every chart has a table alternative. The Insights page is lazy-loaded so the main bundle does not grow. A visible "Includes demo data" label appears when the period contains seeded records. Money in LKR from each entry's own cost and price.
 
 Dashboard summary (four tiles, each linking to its Insights section): sales value for the period with the change from the previous one; shrinkage value (Damaged plus Lost or Stolen, at cost); lowest days of cover; typical dealer lead time.

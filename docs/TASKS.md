@@ -20,7 +20,7 @@ Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the deta
    - [x] 4. Full regression updated for the camera status line and run (M6-L1). Nov 11: 56/56, Scan Now 2.8 s.
 2. Stock Log, undo and part names
    - [ ] 5. Stock Log data: newest first, 50 at a time, period, part and type filters (SL-1).
-   - [ ] 6. Stock Log page as the fifth tab; header fit at 320 to 1360 px (SL-2).
+   - [ ] 6. Stock Log page as a second view inside Products (Nov 12 decision: the header stays at five tabs, which fit from 375 px); filters in the URL (SL-2).
    - [ ] 7. Link from each Stock Check row to that part's log (SL-3).
    - [ ] 8. Undo on Record Sale; rules change (SL-4). User publishes the rules.
    - [x] 9. One name per part; `productName` on new orders (SL-5). Nov 11: built, script-tested and seen live (the dealer's row shows the stored name) (orders and order notifications use it; alerts still use the class-name label, see FUTURE_WORK).
@@ -36,7 +36,7 @@ Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the deta
    - [x] 18. `insights_check.py`, an independent recomputation (AN-L1). Nov 11: `insights_live.mjs` compared the page with the script at 7, 30 and 90 days and with the part filter: every tile, table row and per-day figure equal (25 checks per run).
 4. Insights
    - [x] 19. Charts library at an exact version; Insights lazy-loaded (IN-1). Nov 11: `@mui/x-charts` 9.17.0 pinned; `React.lazy` route; a test keeps the library behind the page; main bundle 1,126 to 1,140 kB (analytics and tiles), Insights chunk 347 kB (109 kB gzipped).
-   - [x] 20. Insights page: 7, 30 or 90 days, part filter, "Includes demo data" (IN-2). Nov 11: period and part in the URL (a race between two quick clicks found live and fixed with a functional update); axe 0 at 320, 390, 768, 1024, 1360 and 1470 px; four tabs fit at 320 px; keyboard reach checked (`insights_ui.mjs`, 27 checks).
+   - [x] 20. Insights page: 7, 30 or 90 days, part filter, "Includes demo data" (IN-2). Nov 11: period and part in the URL (a race between two quick clicks found live and fixed with a functional update); axe 0 at 320, 390, 768, 1024, 1360 and 1470 px; four tabs fit at 320 px (five from Nov 12, fitting from 375 px, see item 42); keyboard reach checked (`insights_ui.mjs`, 27 checks, 37 now).
    - [x] 21. Core sections with table alternatives (IN-3). Nov 11: sales and shrinkage charts each with a table disclosure; days of cover and recommendations as tables; every section states its definition.
    - [x] 22. Four dashboard tiles linking to their sections (IN-4). Nov 11: "Business at a Glance" panel; a tile opens its section with focus on the heading (seen live).
    - [ ] 23. Stock flow, stock value, stockouts, response and dealer (IN-5).
@@ -64,10 +64,10 @@ Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the deta
    - [x] 38. Tile figures never split mid-number: the tile is a size container and the figure scales with it. Live: `tilefit.mjs`, 24 combinations (4 pages x 6 widths), after a Chrome walk found "LKR 31,800." / "00" on the dashboard.
    - [x] 39. Analytics: gross profit and margin (each entry's own price and cost; uncosted units noted), part ranking, weekly bars over 90 days, What To Do (first matching rule). Pure, tested; `insights_check.py` rewritten from the definitions.
    - [x] 40. Seed 90 days instead of 30 (147 stock changes, 12 received orders, 18 resolved alerts); snapshot, clear, apply, verified: POS still 4 and 1, both Pending orders and the 14 real alerts untouched.
-   - [x] 41. Insights page: Gross Profit tile replaces Dealer Lead Time (lead time now beside Recommendations), What To Do list, Sales and Profit with the ranking, a data table per bar. Live: `insights_live.mjs` equal to the script at 7, 30, 90 days and per part (193 checks, 0 differences). Found live: the 90-day table said "raise to 3" while the advice said "raise to 2"; recommendations now use the same 30-day basis.
+   - [x] 41. Insights page: Gross Profit tile replaces Dealer Lead Time (lead time now beside Recommendations), What To Do list, Sales and Profit with the ranking, a data table per bar. Live: `insights_live.mjs` equal to the script at 7, 30, 90 days and per part (175 checks over five runs, 0 differences). Found live: the 90-day table said "raise to 3" while the advice said "raise to 2"; recommendations now use the same 30-day basis.
    - [x] 42. Products tab (`/products`, shopkeeper only): Part Settings moved off the dashboard, `?part=ID` highlights the row and focuses its Edit button, the Insights advice links to it. Live: `products_ui.mjs` 19 checks (axe 0 at six widths, Cancel returns focus, dealer redirected). Five tabs fit from 375 px; narrower the strip scrolls and the current tab is kept in view.
    - [x] 43. Dashboard order: alerts (one row when none), Business at a Glance, Stock Check with the counts folded in, shelf image beside Recent Scans from 1100 px. 2,864 px to 1,517 px at 1360 px wide. Live: `insights_ui.mjs` 37 checks, `states.mjs` 43 states axe 0, F1 33/33 with Part Settings on Products.
-   - [ ] 44. Not run: the full regression with a real Scan Now (56 checks), which needs the shelf in the camera's view. Run it once with the shelf in view and scanning off or paused.
+   - [x] 44. Full regression with a real Scan Now, on the new layout (Nov 12, 00:45): 56/56 across both roles (sign-in, routing, notifications, the order chain, Stock Check and alerts, axe on every screen, phone width, and a real Scan Now: 1 Petrol Filter and 4 Spark Plug, 29 ms inference, 2,829 ms click to result, target 3 s). Scanning was paused for the run and resumed after; the temporary `zz` data was removed. The run changes the real POS counts (its Mark Received, Record Sale and Receive Stock steps), so the real data was restored from the snapshot with `restore --keep-scans` and verified identical (POS 4 and 1, both Pending orders, no `zz` left).
 
 Then the report (M13, user), using `docs/REPORT_NOTES.md` and `docs/FUTURE_WORK.md`.
 
@@ -79,7 +79,7 @@ Final submission Nov 15. **Code freeze Nov 14 morning** (the user's decision), t
 | 0, user | Camera (laptop camera kept), leftover order (kept), freeze date (Nov 14), usability test (the user with their brother, outcome reported later) | Decided | — | Done Nov 11 |
 | 1 | 9, 25, 26, 27, plus Cancel Order (27a) | Must | Least-privilege access for the dealer; FR9 and NFR6 done | **Done Nov 11** |
 | 2 | 10 to 15, 18 to 22 (Insights core) | Must: the supervisor's feedback | Insights tab (sales, shrinkage, days of cover, reorder suggestions) and four dashboard tiles, on seeded demo history | **Done Nov 11 evening** (a day early) |
-| 2b | 38 to 44 (Insights decisions, dashboard order, Products tab) | Must: the user's decision Nov 12 | The shopkeeper sees profit and one next step per part, and a dashboard of about 1,500 px | **Done Nov 12** (item 44 pending the shelf in view) |
+| 2b | 38 to 44 (Insights decisions, dashboard order, Products tab) | Must: the user's decision Nov 12 | The shopkeeper sees profit and one next step per part, and a dashboard of about 1,500 px | **Done Nov 12** (item 44 done at 00:45) |
 | 3 | 28, 29 (Hosting) | Must | Public URL for both roles; Scan Now from the hosted page on the laptop | Nov 13 morning |
 | 5 | 5 to 7 (simple Stock Log), and a focus check on the other busy buttons | Should; first to drop if Insights runs long | Every POS change visible on its own tab | Nov 13 morning |
 | 4 | 31 to 35 (M12 evidence) | Must for the report | Numbers for NFR1 to NFR4 | Start the one-day usage count and accuracy runs Nov 12 (laptop facing the parts, awake); scripted parts and functional cases Nov 13 afternoon; usability by the user |
@@ -144,12 +144,14 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
 | SL-1 | Repository: newest first by `at` within the period, 50 at a time plus one, cache-skip as in alert history. Part and type filters run in the browser on the period's entries (a Firestore `where` plus `orderBy` on another field would need a composite index) | Paging; cache-skip; filters; period edges in local time | 60 `zz` entries: Load More, filters, counts |
-| SL-2 | Stock Log page and fifth tab (shopkeeper): Today by default; period, part and type filters in the URL; columns time, part, type, change, before and after, reason, who; loading, empty and error states | Rendering per state; filters from and to the URL; "who": "You" for the signed-in user, the script's name for Reset, "Another user" otherwise (other users' names are not readable under the rules) | Header fit with five tabs at 320 to 1360 px; axe; keyboard; dealer sent to their home |
+| SL-2 | Stock Log page, a second view inside the Products tab (shopkeeper; changed Nov 12 from a sixth tab): Today by default; period, part and type filters in the URL; columns time, part, type, change, before and after, reason, who; loading, empty and error states | Rendering per state; filters from and to the URL; "who": "You" for the signed-in user, the script's name for Reset, "Another user" otherwise (other users' names are not readable under the rules) | Header fit with five tabs at 320 to 1360 px; axe; keyboard; dealer sent to their home |
 | SL-3 | Links: each Stock Check row opens the log filtered to its part | Link targets | Chrome: link opens the filtered log |
 | SL-4 | Undo on Record Sale: a "Sale recorded. Undo" message for 10 s; writes a `Correction` entry with id `undo-<sale id>`, reversing exactly that sale, by the same person, within 2 minutes; the analytics leave out both | Planner; UI timer, focus and keyboard; rule check cases (second undo refused because the id exists, wrong amount, someone else's sale, too late, not a sale) | User publishes; REST attack checks; Chrome: undo restores the POS; the log shows both; a second undo is refused |
 | SL-5 | One name per part: Orders, Alerts and notifications use the product name; new orders store `productName` (backend), so the dealer keeps names once M10 narrows product reads; `partLabel` only as the last fallback | Name chooser; backend order-plan test includes `productName`; old orders without it still show a name | A `zz` part with a custom name reads the same on every page, for both roles |
 
 ## Demo history and analytics: Nov 12
+
+*Outcome (Nov 11 to 12): SH-1, AN-1 to AN-5 and AN-L1 built and checked live; the seed was extended to 90 days. AN-6 (stockouts) and AN-7 (stock value, full period comparison) were not built (Group 7, proposed cuts, in `docs/FUTURE_WORK.md`); only the sales and profit comparison with the previous period exists. Gross profit, the part ranking, weekly bars and What To Do were added on Nov 12 (items 39 to 41).*
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
@@ -164,6 +166,8 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | AN-L1 | `insights_check.py` recomputes every figure from Firestore independently | — | The page's numbers equal the script's, on seeded and real data |
 
 ## Insights: Nov 12
+
+*Outcome (Nov 11 to 12): IN-1 to IN-4 built and checked live, then revised on Nov 12: the tiles are Sales, Gross Profit, Shrinkage and Lowest Days of Cover (dealer lead time moved beside the recommendations), and a What To Do list was added. IN-5 (stock flow, stock value, stockouts, response and dealer) and IN-6 (Apply) were not built; see `docs/FUTURE_WORK.md`.*
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
