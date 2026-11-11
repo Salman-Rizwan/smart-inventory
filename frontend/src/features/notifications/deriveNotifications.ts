@@ -1,7 +1,7 @@
 import { formatInteger } from "../../shared/format";
 import type { Alert } from "../alerts/types";
 import { partLabel } from "../dashboard/parts";
-import { shortId } from "../orders/orderWorkflow";
+import { orderPartName, shortId } from "../orders/orderWorkflow";
 import type { Order, OrderRole } from "../orders/types";
 import type { AppNotification, NotificationView } from "./types";
 
@@ -13,7 +13,8 @@ export const orderKey = (orderId: string, state: string): string => `order:${ord
  * is about still needs this role's attention, so resolving or handling it removes it by itself.
  * - shopkeeper: open alerts (an acknowledged alert is handled, so it is no longer listed) and
  *   dispatched orders waiting for confirmation
- * - dealer: pending orders waiting for acceptance
+ * - dealer: pending orders waiting for acceptance, and orders they had accepted that the shop then
+ *   cancelled (they may be preparing it; a cancelled Pending order simply leaves their list)
  */
 export function deriveNotifications(role: OrderRole, alerts: Alert[], orders: Order[]): AppNotification[] {
   const items: AppNotification[] = [];
@@ -33,21 +34,30 @@ export function deriveNotifications(role: OrderRole, alerts: Alert[], orders: Or
       items.push({
         key: orderKey(order.id, "Dispatched"),
         title: `Order ${shortId(order.id)} is on the way`,
-        detail: `${formatInteger(order.qty)} × ${partLabel(order.product)}. Mark it received when it arrives.`,
+        detail: `${formatInteger(order.qty)} × ${orderPartName(order)}. Mark it received when it arrives.`,
         time: order.dispatchedAt ?? order.createdAt,
         target: { kind: "order", id: order.id, state: "Dispatched" },
       });
     }
   } else {
     for (const order of orders) {
-      if (order.state !== "Pending") continue;
-      items.push({
-        key: orderKey(order.id, "Pending"),
-        title: `Order ${shortId(order.id)} needs acceptance`,
-        detail: `${formatInteger(order.qty)} × ${partLabel(order.product)}`,
-        time: order.createdAt,
-        target: { kind: "order", id: order.id, state: "Pending" },
-      });
+      if (order.state === "Pending") {
+        items.push({
+          key: orderKey(order.id, "Pending"),
+          title: `Order ${shortId(order.id)} needs acceptance`,
+          detail: `${formatInteger(order.qty)} × ${orderPartName(order)}`,
+          time: order.createdAt,
+          target: { kind: "order", id: order.id, state: "Pending" },
+        });
+      } else if (order.state === "Cancelled" && order.acceptedAt) {
+        items.push({
+          key: orderKey(order.id, "Cancelled"),
+          title: `Order ${shortId(order.id)} was cancelled by the shop`,
+          detail: `${formatInteger(order.qty)} × ${orderPartName(order)}. Do not send it.`,
+          time: order.cancelledAt ?? order.createdAt,
+          target: { kind: "order", id: order.id, state: "Cancelled" },
+        });
+      }
     }
   }
   return items;

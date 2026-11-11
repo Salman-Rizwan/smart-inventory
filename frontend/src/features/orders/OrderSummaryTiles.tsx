@@ -9,12 +9,14 @@ const HINTS: Record<OrderRole, Record<OrderState, string>> = {
     Accepted: "Being prepared",
     Dispatched: "On the way to the shop",
     Received: "Delivered",
+    Cancelled: "Cancelled by the shop",
   },
   shopkeeper: {
     Pending: "Waiting for the dealer",
     Accepted: "The dealer is preparing it",
     Dispatched: "On the way: confirm when it arrives",
     Received: "Delivered",
+    Cancelled: "Cancelled before dispatch",
   },
 };
 

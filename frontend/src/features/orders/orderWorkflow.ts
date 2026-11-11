@@ -1,6 +1,17 @@
-import type { Order, OrderRole, OrderState } from "./types";
+import { partLabel } from "../dashboard/parts";
+import type { CancelReason, Order, OrderRole, OrderState } from "./types";
 
-export const ORDER_STATES: readonly OrderState[] = ["Pending", "Accepted", "Dispatched", "Received"];
+/** The lifecycle in order; Cancelled is a second end state, reachable from Pending or Accepted. */
+export const ORDER_STATES: readonly OrderState[] = ["Pending", "Accepted", "Dispatched", "Received", "Cancelled"];
+
+/** Received and Cancelled orders are finished: nobody has anything left to do on them. */
+export const isClosed = (state: OrderState): boolean => state === "Received" || state === "Cancelled";
+
+/**
+ * The part's name as stored on the order when it was raised, so the dealer (who cannot read the
+ * shop's stock records) sees the same name as the shop. Older orders fall back to the class name.
+ */
+export const orderPartName = (order: Order): string => order.productName || partLabel(order.product);
 
 export interface OrderAction {
   label: string;
@@ -20,6 +31,18 @@ const ACTIONS: Record<OrderRole, Partial<Record<OrderState, OrderAction>>> = {
 };
 
 export const actionFor = (role: OrderRole, state: OrderState): OrderAction | undefined => ACTIONS[role][state];
+
+/** The shopkeeper may cancel an order the dealer has not dispatched yet; goods on the way are received. */
+export const canCancel = (role: OrderRole, state: OrderState): boolean =>
+  role === "shopkeeper" && (state === "Pending" || state === "Accepted");
+
+export const CANCEL_REASONS: readonly CancelReason[] = ["NotNeeded", "OrderedByMistake", "Other"];
+
+export const CANCEL_REASON_LABELS: Record<CancelReason, string> = {
+  NotNeeded: "Not needed any more",
+  OrderedByMistake: "Ordered by mistake",
+  Other: "Other reason",
+};
 
 /** The state in which an order is waiting for this role to act. */
 export const attentionState = (role: OrderRole): OrderState => (role === "dealer" ? "Pending" : "Dispatched");
@@ -52,44 +75,53 @@ export function explainRefusal(action: OrderAction, current: Order | null): Orde
   return null;
 }
 
-export type OrderFilter = "open" | "completed" | "all";
+/** Why the rules refused a cancel: the order is gone, or it has moved past Accepted (or was cancelled already). */
+export function explainCancelRefusal(current: Order | null): OrderError | null {
+  if (!current) return new OrderError("not_found");
+  if (!canCancel("shopkeeper", current.state)) return new OrderError("moved_on", current.state);
+  return null;
+}
+
+export type OrderFilter = "open" | "closed" | "all";
 
 export const FILTERS: readonly { value: OrderFilter; label: string }[] = [
   { value: "open", label: "Open" },
-  { value: "completed", label: "Completed" },
+  { value: "closed", label: "Closed" },
   { value: "all", label: "All" },
 ];
 
-/** Reads the filter from the URL; anything unknown falls back to Open. */
-export const parseFilter = (raw: string | null): OrderFilter => (raw === "completed" || raw === "all" ? raw : "open");
+/** Reads the filter from the URL; "completed" (the old name for Closed) still works; anything else is Open. */
+export function parseFilter(raw: string | null): OrderFilter {
+  if (raw === "closed" || raw === "completed") return "closed";
+  return raw === "all" ? "all" : "open";
+}
 
 export function countByState(orders: Order[]): Record<OrderState, number> {
-  const counts: Record<OrderState, number> = { Pending: 0, Accepted: 0, Dispatched: 0, Received: 0 };
+  const counts: Record<OrderState, number> = { Pending: 0, Accepted: 0, Dispatched: 0, Received: 0, Cancelled: 0 };
   for (const order of orders) counts[order.state] += 1;
   return counts;
 }
 
 export function filterOrders(orders: Order[], filter: OrderFilter): Order[] {
   if (filter === "all") return orders;
-  return orders.filter((o) => (o.state === "Received") === (filter === "completed"));
+  return orders.filter((o) => isClosed(o.state) === (filter === "closed"));
 }
 
 /**
- * An action queue for the role: orders waiting for them first, then the others in lifecycle order,
- * Received last. Open orders show the oldest first so nothing is forgotten; Received shows newest first.
+ * An action queue for the role: orders waiting for them first, then the other open ones in lifecycle
+ * order, then the closed ones together. Open orders show the oldest first so nothing is forgotten;
+ * closed ones show the newest first.
  */
 export function sortOrders(orders: Order[], role: OrderRole = "dealer"): Order[] {
   const attention = attentionState(role);
-  const priority: OrderState[] = [
-    attention,
-    ...ORDER_STATES.filter((s) => s !== attention && s !== "Received"),
-    "Received",
-  ];
+  const open = ORDER_STATES.filter((s) => !isClosed(s));
+  const priority: OrderState[] = [attention, ...open.filter((s) => s !== attention)];
+  const rank = (o: Order) => (isClosed(o.state) ? priority.length : priority.indexOf(o.state));
   const time = (o: Order) => o.createdAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
   return [...orders].sort((a, b) => {
-    const byState = priority.indexOf(a.state) - priority.indexOf(b.state);
+    const byState = rank(a) - rank(b);
     if (byState !== 0) return byState;
-    return a.state === "Received" ? time(b) - time(a) : time(a) - time(b);
+    return isClosed(a.state) ? time(b) - time(a) : time(a) - time(b);
   });
 }
 
@@ -100,6 +132,14 @@ export function describeAttention(role: OrderRole, count: number): string {
   const noun = count === 1 ? "order" : "orders";
   if (role === "dealer") return count === 0 ? "No pending orders." : `${count} pending ${noun}.`;
   return count === 0 ? "No orders waiting to be received." : `${count} ${noun} waiting to be received.`;
+}
+
+/**
+ * After a cancel: the camera still decides when to order, so say what happens if the part stays low
+ * and how to stop it.
+ */
+export function describeCancelled(orderLabel: string, partName: string): string {
+  return `Order ${orderLabel} cancelled. The dealer sees it as cancelled. If ${partName} stays low on the shelf, a new order is raised automatically; to stop that, lower its reorder level or set its reorder quantity to 0 in Part Settings.`;
 }
 
 /** What just happened, in words the user can act on. */

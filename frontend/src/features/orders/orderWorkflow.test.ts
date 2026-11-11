@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   actionFor,
   attentionState,
+  canCancel,
   countByState,
   describeAttention,
+  describeCancelled,
   describeOutcome,
   filterOrders,
+  explainCancelRefusal,
   explainRefusal,
+  ORDER_STATES,
   OrderError,
+  orderPartName,
   parseFilter,
   shortId,
   sortOrders,
@@ -50,7 +55,8 @@ describe("attentionState", () => {
 
 describe("parseFilter", () => {
   it.each([
-    ["completed", "completed"],
+    ["closed", "closed"],
+    ["completed", "closed"], // the filter's old name, in links made before Cancel existed
     ["all", "all"],
     ["open", "open"],
     [null, "open"],
@@ -63,24 +69,30 @@ describe("parseFilter", () => {
 describe("countByState", () => {
   it("counts every state, including zeros", () => {
     const counts = countByState([order("a", "Pending"), order("b", "Pending"), order("c", "Received")]);
-    expect(counts).toEqual({ Pending: 2, Accepted: 0, Dispatched: 0, Received: 1 });
-    expect(countByState([])).toEqual({ Pending: 0, Accepted: 0, Dispatched: 0, Received: 0 });
+    expect(counts).toEqual({ Pending: 2, Accepted: 0, Dispatched: 0, Received: 1, Cancelled: 0 });
+    expect(countByState([])).toEqual({ Pending: 0, Accepted: 0, Dispatched: 0, Received: 0, Cancelled: 0 });
   });
 });
 
 describe("filterOrders", () => {
-  const all = [order("p", "Pending"), order("a", "Accepted"), order("d", "Dispatched"), order("r", "Received")];
+  const all = [
+    order("p", "Pending"),
+    order("a", "Accepted"),
+    order("d", "Dispatched"),
+    order("r", "Received"),
+    order("c", "Cancelled"),
+  ];
 
-  it("open is everything not yet received", () => {
+  it("open is everything still on its way", () => {
     expect(filterOrders(all, "open").map((o) => o.id)).toEqual(["p", "a", "d"]);
   });
 
-  it("completed is only received orders", () => {
-    expect(filterOrders(all, "completed").map((o) => o.id)).toEqual(["r"]);
+  it("closed is received and cancelled orders", () => {
+    expect(filterOrders(all, "closed").map((o) => o.id)).toEqual(["r", "c"]);
   });
 
   it("all keeps everything", () => {
-    expect(filterOrders(all, "all")).toHaveLength(4);
+    expect(filterOrders(all, "all")).toHaveLength(5);
   });
 });
 
@@ -174,5 +186,46 @@ describe("explainRefusal", () => {
   it("has no explanation when the order has not moved, so the refusal was about permission", () => {
     expect(explainRefusal(accept, at("Pending"))).toBeNull();
     expect(explainRefusal(receive, at("Dispatched"))).toBeNull();
+  });
+});
+
+describe("cancelling", () => {
+  it("only the shopkeeper may cancel, and only before dispatch", () => {
+    expect(canCancel("shopkeeper", "Pending")).toBe(true);
+    expect(canCancel("shopkeeper", "Accepted")).toBe(true);
+    for (const state of ["Dispatched", "Received", "Cancelled"] as const) expect(canCancel("shopkeeper", state)).toBe(false);
+    for (const state of ORDER_STATES) expect(canCancel("dealer", state)).toBe(false);
+  });
+
+  it("explains a refused cancel from the order as it is now", () => {
+    expect(explainCancelRefusal(null)?.code).toBe("not_found");
+    expect(explainCancelRefusal(order("d", "Dispatched"))).toMatchObject({ code: "moved_on", state: "Dispatched" });
+    expect(explainCancelRefusal(order("c", "Cancelled"))).toMatchObject({ code: "moved_on", state: "Cancelled" });
+    expect(explainCancelRefusal(order("p", "Pending"))).toBeNull(); // not moved: a permission problem
+  });
+
+  it("a dealer step on a cancelled order has moved on", () => {
+    const accept = actionFor("dealer", "Pending")!;
+    expect(explainRefusal(accept, order("c", "Cancelled"))).toMatchObject({ code: "moved_on", state: "Cancelled" });
+  });
+
+  it("sorts cancelled orders with the received ones, newest first, after every open order", () => {
+    const old = { ...order("old-cancel", "Cancelled"), createdAt: new Date("2026-10-27T01:00:00Z") };
+    const recent = { ...order("new-received", "Received"), createdAt: new Date("2026-10-27T09:00:00Z") };
+    const ids = sortOrders([old, order("p", "Pending"), recent], "dealer").map((o) => o.id);
+    expect(ids).toEqual(["p", "new-received", "old-cancel"]);
+  });
+
+  it("says what happens next, including how to stop a new order", () => {
+    expect(describeCancelled("#ABC123", "Spark Plug")).toMatch(
+      /^Order #ABC123 cancelled\. The dealer sees it as cancelled\. If Spark Plug stays low on the shelf, a new order is raised automatically; to stop that, .*Part Settings\.$/,
+    );
+  });
+});
+
+describe("orderPartName", () => {
+  it("uses the name stored on the order, falling back to the class name", () => {
+    expect(orderPartName({ ...order("a", "Pending"), productName: "NGK Spark Plug" })).toBe("NGK Spark Plug");
+    expect(orderPartName({ ...order("a", "Pending"), product: "air_filter", productName: null })).toBe("Air Filter");
   });
 });

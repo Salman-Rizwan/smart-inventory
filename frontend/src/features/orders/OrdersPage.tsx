@@ -16,7 +16,7 @@ import { Muted, VisuallyHidden } from "../../shared/components/text";
 
 const EMPTY: Record<OrderFilter, { title: string; hint: string }> = {
   open: { title: "No open orders", hint: "An order appears here automatically when a part stays low on the shelf." },
-  completed: { title: "No completed orders yet", hint: "Orders move here once the shop confirms they arrived." },
+  closed: { title: "No closed orders yet", hint: "Orders move here once the shop confirms they arrived, or cancels them." },
   all: { title: "No purchase orders yet", hint: "An order appears here automatically when a part stays low on the shelf." },
 };
 
@@ -27,7 +27,7 @@ const COPY: Record<OrderRole, { title: string; subtitle: string }> = {
   },
   shopkeeper: {
     title: "Orders",
-    subtitle: "Restock orders raised for your shop. Mark an order received when the goods arrive.",
+    subtitle: "Restock orders raised for your shop. Mark an order received when it arrives, or cancel one the dealer has not sent.",
   },
 };
 
@@ -42,7 +42,7 @@ export default function OrdersPage() {
   const filterCounts = useMemo(
     () => ({
       open: filterOrders(orders, "open").length,
-      completed: filterOrders(orders, "completed").length,
+      closed: filterOrders(orders, "closed").length,
       all: orders.length,
     }),
     [orders],

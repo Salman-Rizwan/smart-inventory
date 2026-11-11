@@ -59,8 +59,13 @@ describe("deriveNotifications: shopkeeper", () => {
     expect(n.time).toEqual(new Date("2026-10-27T01:00:00Z"));
   });
 
-  it.each(["Pending", "Accepted", "Received"] as const)("ignores a %s order", (state) => {
-    expect(deriveNotifications("shopkeeper", [], [order("o1", state)])).toEqual([]);
+  it.each(["Pending", "Accepted", "Received", "Cancelled"] as const)("ignores a %s order", (state) => {
+    expect(deriveNotifications("shopkeeper", [], [order("o1", state, { acceptedAt: new Date() })])).toEqual([]);
+  });
+
+  it("names the part as stored on the order", () => {
+    const [n] = deriveNotifications("shopkeeper", [], [order("o1", "Dispatched", { productName: "Bosch Filter" })]);
+    expect(n.detail).toBe("10 × Bosch Filter. Mark it received when it arrives.");
   });
 
   it("lists alerts and dispatched orders together", () => {
@@ -82,6 +87,24 @@ describe("deriveNotifications: dealer", () => {
 
   it.each(["Accepted", "Dispatched", "Received"] as const)("ignores a %s order", (state) => {
     expect(deriveNotifications("dealer", [], [order("o1", state)])).toEqual([]);
+  });
+
+  it("tells the dealer when an order they accepted is cancelled, so they stop preparing it", () => {
+    const cancelledAt = new Date("2026-10-27T04:00:00Z");
+    const [n] = deriveNotifications("dealer", [], [
+      order("o1", "Cancelled", { acceptedAt: new Date("2026-10-27T02:00:00Z"), cancelledAt, productName: "Petrol Filter" }),
+    ]);
+    expect(n).toMatchObject({
+      key: "order:o1:Cancelled",
+      title: "Order #O1 was cancelled by the shop",
+      detail: "10 × Petrol Filter. Do not send it.",
+      time: cancelledAt,
+      target: { kind: "order", id: "o1", state: "Cancelled" },
+    });
+  });
+
+  it("says nothing about a pending order the shop cancelled: it simply leaves the dealer's queue", () => {
+    expect(deriveNotifications("dealer", [], [order("o1", "Cancelled", { acceptedAt: null })])).toEqual([]);
   });
 
   it("never shows alerts to the dealer", () => {

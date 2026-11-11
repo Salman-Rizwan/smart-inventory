@@ -17,7 +17,7 @@ import { parseProduct } from "../inventory/productParsers";
 import { writeMovement } from "../inventory/productRepository";
 import { parseOrder } from "./orderParsers";
 import { OrderError, type OrderAction } from "./orderWorkflow";
-import type { Order } from "./types";
+import type { CancelReason, Order } from "./types";
 
 const MAX_ORDERS = 200;
 
@@ -42,6 +42,19 @@ export function advanceOrder(orderId: string, action: OrderAction): Promise<void
   return updateDoc(doc(db, "purchase_orders", orderId), {
     state: action.next,
     [action.timestampField]: serverTimestamp(),
+  });
+}
+
+/**
+ * The shopkeeper cancels an order before it is dispatched, stamped with who, when (the server's time)
+ * and why. The rules refuse it once the dealer has dispatched the order.
+ */
+export function cancelOrder(orderId: string, reason: CancelReason): Promise<void> {
+  return updateDoc(doc(db, "purchase_orders", orderId), {
+    state: "Cancelled",
+    cancelledAt: serverTimestamp(),
+    cancelledBy: currentUid(),
+    cancelReason: reason,
   });
 }
 

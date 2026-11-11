@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("./orderRepository", () => ({ advanceOrder: vi.fn(), fetchOrder: vi.fn(), receiveOrder: vi.fn() }));
+vi.mock("./orderRepository", () => ({ advanceOrder: vi.fn(), cancelOrder: vi.fn(), fetchOrder: vi.fn(), receiveOrder: vi.fn() }));
 
-import { performOrderAction } from "./orderActions";
-import { advanceOrder, fetchOrder, receiveOrder } from "./orderRepository";
+import { performCancel, performOrderAction } from "./orderActions";
+import { advanceOrder, cancelOrder, fetchOrder, receiveOrder } from "./orderRepository";
 import { actionFor } from "./orderWorkflow";
 import type { Order, OrderState } from "./types";
 
@@ -51,6 +51,35 @@ describe("performOrderAction", () => {
     const offline = { code: "unavailable" };
     vi.mocked(receiveOrder).mockRejectedValue(offline);
     await expect(performOrderAction("o1", receive)).rejects.toBe(offline);
+    expect(fetchOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe("performCancel", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("cancels with the reason and reads nothing when it works", async () => {
+    await performCancel("o1", "NotNeeded");
+    expect(cancelOrder).toHaveBeenCalledWith("o1", "NotNeeded");
+    expect(fetchOrder).not.toHaveBeenCalled();
+  });
+
+  it.each(["Dispatched", "Cancelled", "Received"] as const)("turns a refusal into moved on when it is now %s", async (state) => {
+    vi.mocked(cancelOrder).mockRejectedValue(denied);
+    vi.mocked(fetchOrder).mockResolvedValue(at(state));
+    await expect(performCancel("o1", "Other")).rejects.toMatchObject({ code: "moved_on", state });
+  });
+
+  it("keeps the permission error when the order could still be cancelled (a dealer, or a missing profile)", async () => {
+    vi.mocked(cancelOrder).mockRejectedValue(denied);
+    vi.mocked(fetchOrder).mockResolvedValue(at("Pending"));
+    await expect(performCancel("o1", "Other")).rejects.toBe(denied);
+  });
+
+  it("passes other failures through untouched", async () => {
+    const offline = { code: "unavailable" };
+    vi.mocked(cancelOrder).mockRejectedValue(offline);
+    await expect(performCancel("o1", "Other")).rejects.toBe(offline);
     expect(fetchOrder).not.toHaveBeenCalled();
   });
 });

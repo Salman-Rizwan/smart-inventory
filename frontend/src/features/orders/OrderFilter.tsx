@@ -9,6 +9,6 @@ interface Props {
 }
 
 export default function OrderFilterGroup({ value, counts, onChange }: Props) {
-  const formatted = { open: formatInteger(counts.open), completed: formatInteger(counts.completed), all: formatInteger(counts.all) };
+  const formatted = { open: formatInteger(counts.open), closed: formatInteger(counts.closed), all: formatInteger(counts.all) };
   return <FilterGroup label="Filter orders" options={FILTERS} value={value} counts={formatted} onChange={onChange} />;
 }

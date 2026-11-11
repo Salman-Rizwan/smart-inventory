@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { StockError } from "../inventory/stock";
-import { orderErrorMessage } from "./orderErrors";
+import { cancelErrorMessage, orderErrorMessage } from "./orderErrors";
 import { OrderError } from "./orderWorkflow";
 
 describe("orderErrorMessage", () => {
@@ -19,6 +19,12 @@ describe("orderErrorMessage", () => {
     ["Dispatched", "Order #ABC123 has already been dispatched. The list shows its latest status."],
   ] as const)("says an order already %s moved on", (state, message) => {
     expect(orderErrorMessage(new OrderError("moved_on", state), "#ABC123")).toBe(message);
+  });
+
+  it("tells the dealer an order was cancelled by the shop", () => {
+    expect(orderErrorMessage(new OrderError("moved_on", "Cancelled"), "#ABC123")).toBe(
+      "Order #ABC123 has been cancelled by the shop, so there is nothing more to do.",
+    );
   });
 
   it("falls back to a general moved-on message", () => {
@@ -45,5 +51,22 @@ describe("orderErrorMessage", () => {
     expect(message).not.toMatch(/secret/);
     expect(message).toMatch(/could not be updated/);
     expect(orderErrorMessage(undefined, "#ABC123")).toMatch(/could not be updated/);
+  });
+});
+
+describe("cancelErrorMessage", () => {
+  it("says a dispatched order is on its way and what to do instead", () => {
+    expect(cancelErrorMessage(new OrderError("moved_on", "Dispatched"), "#ABC123")).toBe(
+      "Order #ABC123 has already been dispatched, so it can no longer be cancelled. Mark it received when it arrives.",
+    );
+  });
+
+  it("names who may cancel when the account is refused", () => {
+    expect(cancelErrorMessage({ code: "permission-denied" }, "#ABC123")).toMatch(/Only the shopkeeper can cancel an order/);
+  });
+
+  it("reuses the order messages otherwise, worded for a cancel", () => {
+    expect(cancelErrorMessage(new OrderError("moved_on", "Cancelled"), "#ABC123")).toMatch(/already|has been cancelled/);
+    expect(cancelErrorMessage(new Error("x"), "#ABC123")).toBe("Order #ABC123 could not be cancelled. Please try again.");
   });
 });

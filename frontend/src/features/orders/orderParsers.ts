@@ -1,7 +1,9 @@
 import { toDate } from "../../shared/firestoreDate";
-import type { Order, OrderState } from "./types";
+import type { CancelReason, Order, OrderState } from "./types";
 
-const STATES: readonly string[] = ["Pending", "Accepted", "Dispatched", "Received"];
+const STATES: readonly string[] = ["Pending", "Accepted", "Dispatched", "Received", "Cancelled"];
+const REASONS: readonly string[] = ["NotNeeded", "OrderedByMistake", "Other"];
+const text = (value: unknown): string | null => (typeof value === "string" && value.trim() ? value.trim() : null);
 const isQuantity = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 1;
 
@@ -14,9 +16,13 @@ export function parseOrder(id: string, data: Record<string, unknown> | undefined
   return {
     id,
     product: data.product,
+    productName: text(data.productName),
     qty: data.qty,
     state: data.state as OrderState,
     createdAt: toDate(data.createdAt),
+    acceptedAt: toDate(data.acceptedAt),
     dispatchedAt: toDate(data.dispatchedAt),
+    cancelledAt: toDate(data.cancelledAt),
+    cancelReason: typeof data.cancelReason === "string" && REASONS.includes(data.cancelReason) ? (data.cancelReason as CancelReason) : null,
   };
 }

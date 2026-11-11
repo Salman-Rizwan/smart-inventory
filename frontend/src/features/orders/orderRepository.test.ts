@@ -18,9 +18,9 @@ vi.mock("firebase/firestore", () => ({
   updateDoc: vi.fn(),
 }));
 
-import { runTransaction } from "firebase/firestore";
+import { runTransaction, updateDoc } from "firebase/firestore";
 import { StockError } from "../inventory/stock";
-import { receiveOrder } from "./orderRepository";
+import { cancelOrder, receiveOrder } from "./orderRepository";
 import { OrderError } from "./orderWorkflow";
 
 type Ref = { collection: string; id: string };
@@ -98,5 +98,16 @@ describe("receiveOrder", () => {
 
   it("refuses a receipt that would overflow the POS record", async () => {
     await expect(receive({ order: dispatched, product: { ...product, posCount: 100_000 } })).rejects.toBeInstanceOf(StockError);
+  });
+});
+
+describe("cancelOrder", () => {
+  it("writes only the state, the server's time, who and why", async () => {
+    vi.mocked(updateDoc).mockResolvedValue(undefined);
+    await cancelOrder("order1", "OrderedByMistake");
+    expect(updateDoc).toHaveBeenCalledWith(
+      { collection: "purchase_orders", id: "order1" },
+      { state: "Cancelled", cancelledAt: "SERVER_TIME", cancelledBy: "shop-uid", cancelReason: "OrderedByMistake" },
+    );
   });
 });

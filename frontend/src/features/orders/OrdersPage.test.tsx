@@ -4,10 +4,10 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./OrdersContext", () => ({ useOrders: vi.fn() }));
-vi.mock("./orderActions", () => ({ performOrderAction: vi.fn() }));
+vi.mock("./orderActions", () => ({ performOrderAction: vi.fn(), performCancel: vi.fn() }));
 
 import { useOrders } from "./OrdersContext";
-import { performOrderAction } from "./orderActions";
+import { performCancel, performOrderAction } from "./orderActions";
 import OrdersPage from "./OrdersPage";
 import type { Order, OrderRole, OrderState } from "./types";
 
@@ -72,10 +72,10 @@ describe("OrdersPage", () => {
       expect(screen.queryByRole("table")).not.toBeInTheDocument();
     });
 
-    it("shows a different empty state on the Completed filter", () => {
+    it("shows a different empty state on the Closed filter", () => {
       provide([order("a", "Pending")]);
-      renderPage("/orders?status=completed");
-      expect(screen.getByText("No completed orders yet")).toBeInTheDocument();
+      renderPage("/orders?status=closed");
+      expect(screen.getByText("No closed orders yet")).toBeInTheDocument();
     });
   });
 
@@ -120,15 +120,15 @@ describe("OrdersPage", () => {
       provide(ORDERS);
       renderPage();
       expect(screen.getByRole("button", { name: "Open 3" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Completed 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Closed 1" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "All 4" })).toBeInTheDocument();
     });
 
-    it("switches to completed orders", async () => {
+    it("switches to closed orders", async () => {
       provide(ORDERS);
       renderPage();
-      await userEvent.click(screen.getByRole("button", { name: /Completed/ }));
-      expect(screen.getByRole("button", { name: /Completed/ })).toHaveAttribute("aria-pressed", "true");
+      await userEvent.click(screen.getByRole("button", { name: /Closed/ }));
+      expect(screen.getByRole("button", { name: /Closed/ })).toHaveAttribute("aria-pressed", "true");
       expect(screen.getAllByRole("row").slice(1)).toHaveLength(1);
       expect(screen.getByText("#DDDDDD")).toBeInTheDocument();
     });
@@ -142,8 +142,8 @@ describe("OrdersPage", () => {
 
     it("reads the filter from the URL, and ignores nonsense", () => {
       provide(ORDERS);
-      const { unmount } = renderPage("/orders?status=completed");
-      expect(screen.getByRole("button", { name: /Completed/ })).toHaveAttribute("aria-pressed", "true");
+      const { unmount } = renderPage("/orders?status=completed"); // the old name still opens Closed
+      expect(screen.getByRole("button", { name: /Closed/ })).toHaveAttribute("aria-pressed", "true");
       unmount();
       renderPage("/orders?status=%3Cscript%3E");
       expect(screen.getByRole("button", { name: /Open/ })).toHaveAttribute("aria-pressed", "true");
@@ -221,7 +221,7 @@ describe("OrdersPage", () => {
       provide(ORDERS, {}, "shopkeeper");
       renderPage();
       expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();
-      expect(screen.getByText(/Mark an order received when the goods arrive/)).toBeInTheDocument();
+      expect(screen.getByText(/Mark an order received when it arrives, or cancel one the dealer has not sent/)).toBeInTheDocument();
       expect(screen.getByText("On the way: confirm when it arrives")).toBeInTheDocument();
     });
 
@@ -232,12 +232,74 @@ describe("OrdersPage", () => {
       expect(rows[0]).toHaveTextContent("#CCCCCC");
     });
 
-    it("offers Mark Received on a dispatched order and nothing on the others", () => {
+    it("offers Mark Received on a dispatched order and Cancel Order only before dispatch", () => {
       provide(ORDERS, {}, "shopkeeper");
       renderPage();
-      expect(within(screen.getByRole("row", { name: /#CCCCCC/ })).getByRole("button", { name: /Mark Received/ })).toBeInTheDocument();
-      expect(within(screen.getByRole("row", { name: /#AAAAAA/ })).queryByRole("button")).not.toBeInTheDocument();
-      expect(within(screen.getByRole("row", { name: /#BBBBBB/ })).queryByRole("button")).not.toBeInTheDocument();
+      const buttons = (id: string) => within(screen.getByRole("row", { name: new RegExp(id) })).queryAllByRole("button").map((b) => b.textContent);
+      expect(buttons("#CCCCCC")).toEqual(["Mark Received"]);
+      expect(buttons("#AAAAAA")).toEqual(["Cancel Order"]);
+      expect(buttons("#BBBBBB")).toEqual(["Cancel Order"]);
+    });
+
+    it("never offers the dealer Cancel Order", () => {
+      provide(ORDERS);
+      renderPage();
+      expect(screen.queryByRole("button", { name: /^Cancel order/ })).not.toBeInTheDocument();
+    });
+
+    it("cancels with a reason, after confirming, and says what happens next", async () => {
+      provide(ORDERS, {}, "shopkeeper");
+      vi.mocked(performCancel).mockResolvedValue(undefined);
+      renderPage();
+
+      await userEvent.click(screen.getByRole("button", { name: "Cancel order #AAAAAA, 10 Spark Plug" }));
+      const dialog = await screen.findByRole("dialog", { name: "Cancel Order #AAAAAA?" });
+      await userEvent.click(within(dialog).getByRole("button", { name: "Cancel Order" }));
+      expect(await within(dialog).findByText("Choose why you are cancelling this order.")).toBeInTheDocument();
+      expect(performCancel).not.toHaveBeenCalled();
+
+      await userEvent.click(within(dialog).getByRole("radio", { name: "Ordered by mistake" }));
+      await userEvent.click(within(dialog).getByRole("button", { name: "Cancel Order" }));
+
+      expect(performCancel).toHaveBeenCalledWith("aaaaaa111", "OrderedByMistake");
+      expect(await screen.findByText(/^Order #AAAAAA cancelled\. .*If Spark Plug stays low on the shelf/)).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("Keep Order closes the dialog and changes nothing", async () => {
+      provide(ORDERS, {}, "shopkeeper");
+      renderPage();
+      await userEvent.click(screen.getByRole("button", { name: /Cancel order #BBBBBB/ }));
+      await userEvent.click(await screen.findByRole("button", { name: "Keep Order" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(performCancel).not.toHaveBeenCalled();
+    });
+
+    it("explains a cancel that came too late: the dealer dispatched it first", async () => {
+      provide(ORDERS, {}, "shopkeeper");
+      const { OrderError } = await import("./orderWorkflow");
+      vi.mocked(performCancel).mockRejectedValue(new OrderError("moved_on", "Dispatched"));
+      renderPage();
+      await userEvent.click(screen.getByRole("button", { name: /Cancel order #BBBBBB/ }));
+      const dialog = await screen.findByRole("dialog");
+      await userEvent.click(within(dialog).getByRole("radio", { name: "Not needed any more" }));
+      await userEvent.click(within(dialog).getByRole("button", { name: "Cancel Order" }));
+      expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+        "Order #BBBBBB has already been dispatched, so it can no longer be cancelled. Mark it received when it arrives.",
+      );
+    });
+
+    it("shows a cancelled order as closed, with its reason and the name stored on it", () => {
+      const cancelled: Order = { ...order("ffffff666", "Cancelled", "petrol_filter"), productName: "Bosch Petrol Filter", cancelReason: "NotNeeded" };
+      provide([...ORDERS, cancelled], {}, "shopkeeper");
+      renderPage("/orders?status=closed");
+      const row = within(screen.getByRole("row", { name: /#FFFFFF/ }));
+      expect(row.getByText("Bosch Petrol Filter")).toBeInTheDocument();
+      expect(row.getByText("Cancelled")).toBeInTheDocument();
+      expect(row.getByText("Not needed any more")).toBeInTheDocument();
+      expect(row.queryByRole("button")).not.toBeInTheDocument();
+      const tile = screen.getByText("Cancelled", { selector: "dt" }).closest("div") as HTMLElement;
+      expect(within(tile).getByText("1")).toBeInTheDocument();
     });
 
     it("marks an order received and says the POS record was updated", async () => {

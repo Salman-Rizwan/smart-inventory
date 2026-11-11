@@ -5,6 +5,8 @@ import type { OrderState } from "./types";
 /** Someone else moved the order on first. The list is live, so it already shows the new status. */
 function movedOnMessage(orderLabel: string, state: OrderState | undefined): string {
   switch (state) {
+    case "Cancelled":
+      return `Order ${orderLabel} has been cancelled by the shop, so there is nothing more to do.`;
     case "Received":
       return `Order ${orderLabel} has already been received. Its quantity was added to the POS record once, so there is nothing more to do.`;
     case "Accepted":
@@ -39,4 +41,16 @@ export function orderErrorMessage(error: unknown, orderLabel: string): string {
     return "Could not reach the database. Check your connection and try again.";
   }
   return `Order ${orderLabel} could not be updated. Please try again.`;
+}
+
+/** As orderErrorMessage, for a refused cancel: a dispatched order is on its way, so say what to do instead. */
+export function cancelErrorMessage(error: unknown, orderLabel: string): string {
+  if (error instanceof OrderError && error.code === "moved_on" && error.state === "Dispatched") {
+    return `Order ${orderLabel} has already been dispatched, so it can no longer be cancelled. Mark it received when it arrives.`;
+  }
+  const code = (error as { code?: unknown } | null)?.code;
+  if (code === "permission-denied") {
+    return `Your account was not allowed to cancel order ${orderLabel}. Only the shopkeeper can cancel an order; sign in with that account and try again.`;
+  }
+  return orderErrorMessage(error, orderLabel).replace("could not be updated", "could not be cancelled");
 }
