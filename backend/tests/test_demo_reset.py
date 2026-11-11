@@ -1,4 +1,4 @@
-from scripts.demo_reset import DEMO_PRODUCTS, describe_change, plan_reset
+from scripts.demo_reset import DEMO_PRODUCTS, describe_change, is_cleared, plan_reset
 
 
 def test_every_demo_product_gets_its_demo_values():
@@ -59,3 +59,10 @@ def test_every_backend_counter_and_timer_is_cleared_on_apply():
     from scripts.demo_reset import CLEARED_FIELDS
 
     assert set(CLEARED_FIELDS) == {"lowScanStreak", "mismatchSince", "lowSince"}
+
+
+def test_the_seeded_demo_history_survives_a_reset_but_everything_else_goes():
+    assert not is_cleared("seedh-spark_plug-o1")
+    assert not is_cleared("seedh-a3")
+    assert is_cleared("seed-1-pending")  # seed_orders' samples are open orders and must go
+    assert is_cleared("n1EUdCorkUsPWJMFjcXR")

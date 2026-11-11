@@ -7,7 +7,9 @@ Run from backend/:
 Resets each product's POS count and reorder settings to the demo values below, resets the low-scan
 counts and the alert and reorder timers (mismatchSince, lowSince), and clears all purchase orders,
 alerts and notification read state. It keeps the scan history, the stock change log (adding a Reset
-entry for each POS count it changes), part costs and prices, the users and the model. Scan once
+entry for each POS count it changes), the demo history written by scripts.seed_history (its orders
+and alerts are all closed, so they never block automatic ordering), part costs and prices, the users
+and the model. Scan once
 afterwards to refresh the dashboard.
 
 Demo values: 4 spark plugs and 1 petrol filter on the shelf, matching the POS. A spark plug reorders
@@ -24,6 +26,7 @@ from firebase_admin import firestore
 from app.core.config import get_settings
 from app.firebase_db import init_firebase
 from app.stock_log import reset_movement
+from scripts.seed_history import PREFIX as HISTORY_PREFIX
 
 DEMO_PRODUCTS: dict[str, dict[str, int]] = {
     "spark_plug": {"posCount": 4, "reorderLevel": 3, "reorderQty": 1},
@@ -31,6 +34,11 @@ DEMO_PRODUCTS: dict[str, dict[str, int]] = {
 }
 CLEARED_COLLECTIONS = ("purchase_orders", "alerts", "notification_reads")
 CLEARED_FIELDS = ("lowScanStreak", "mismatchSince", "lowSince")  # backend counters and timers
+
+
+def is_cleared(doc_id: str) -> bool:
+    """Everything in the cleared collections goes, except the closed demo history from seed_history."""
+    return not doc_id.startswith(HISTORY_PREFIX)
 
 
 def plan_reset(existing: dict[str, dict]) -> dict[str, dict[str, int]]:
@@ -65,7 +73,10 @@ def main() -> None:
     print("Dry run: nothing will be changed. Add --apply to do it.\n" if not args.apply else "Applying:\n")
     for product_id, target in updates.items():
         print(" ", describe_change(product_id, existing[product_id], target))
-    counts = {name: len(list(db.collection(name).stream())) for name in CLEARED_COLLECTIONS}
+    counts = {
+        name: sum(1 for doc in db.collection(name).stream() if is_cleared(doc.id))
+        for name in CLEARED_COLLECTIONS
+    }
     for name, count in counts.items():
         print(f"  {name}: {count} document(s) to delete")
     skipped = sorted(set(existing) - set(updates))
@@ -87,7 +98,8 @@ def main() -> None:
         batch.commit()
     for name in CLEARED_COLLECTIONS:
         for doc in db.collection(name).stream():
-            doc.reference.delete()
+            if is_cleared(doc.id):
+                doc.reference.delete()
     print("\nDone. Scan once to refresh the dashboard.")
 
 
