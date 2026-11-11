@@ -89,8 +89,16 @@ def test_a_skipped_attempt_keeps_the_last_counts(repo):
         ScanStatus("auto", "skipped", AutoScanState(True, 30), brightness=12.0, skip_reason="too_dark")
     )
     data = repo.db.collection.return_value.document.return_value.set.call_args
-    assert "counts" not in data.args[0] and data.kwargs["merge"] is True
+    assert "counts" not in data.args[0] and "counts" not in data.kwargs["merge"]
     assert data.args[0]["skipReason"] == "too_dark" and data.args[0]["lastOutcome"] == "skipped"
+
+
+def test_a_counted_scan_replaces_the_counts_whole_so_no_old_part_lingers(repo):
+    # merge=True would keep a key from an earlier scan (seen live: a simulated part stayed on the dashboard)
+    repo.record_status(ScanStatus("auto", "counted", AutoScanState(True, 30), counts={"spark_plug": 4}))
+    data = repo.db.collection.return_value.document.return_value.set.call_args
+    assert data.args[0]["counts"] == {"spark_plug": 4}
+    assert data.kwargs["merge"] == list(data.args[0]) and "counts" in data.kwargs["merge"]
 
 
 def test_the_scanning_settings_are_written_alone_so_no_attempt_is_claimed(repo):

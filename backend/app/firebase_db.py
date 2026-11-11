@@ -111,7 +111,9 @@ class ScanRepository:
             raise StorageError() from exc
 
     def record_status(self, status: ScanStatus) -> None:
-        """Update status/latest after an attempt. A skip or failure keeps the last counts (merge)."""
+        """Update status/latest after an attempt. A skip or failure keeps the last counts (merge); a
+        counted scan replaces the counts as a whole, so a part no longer counted (a simulated test part,
+        or a class removed from the model) does not linger with its last count."""
         data = {
             "lastAttemptAt": firestore.SERVER_TIMESTAMP,
             "lastTrigger": status.trigger,
@@ -124,7 +126,8 @@ class ScanRepository:
         if status.outcome == "counted":
             data.update(counts=status.counts, scannedAt=firestore.SERVER_TIMESTAMP, timings=status.timings)
         try:
-            self.db.collection("status").document("latest").set(data, merge=True, **BOUNDED)
+            # merge on the listed fields only: each is replaced whole, nothing else in the document changes
+            self.db.collection("status").document("latest").set(data, merge=list(data), **BOUNDED)
         except Exception as exc:
             logger.exception("Firestore write of status/latest failed")
             raise StorageError() from exc
