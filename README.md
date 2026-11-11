@@ -229,9 +229,10 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - [x] M7 POS reconciliation, M8 alerts, M9 automatic orders with dealer and shopkeeper flows, and notifications: built, tested and checked live in Chrome with both roles
 - [x] Move to Material UI (theme keeps the Carbon look, Oct 31)
 - [x] Supervisor feedback, part 1: alert history on the Alerts tab (Oct 31)
-- [x] Stock change log, Adjust Stock and Part Settings (F1, Nov 4; live check after the rules are published)
+- [x] Stock change log, Adjust Stock and Part Settings (F1, Nov 4; checked live)
 - [x] M6 automatic scanning (Nov 11): time rules, dark-frame skip, change-only writes, camera status, Pause Scanning; live checks finished Nov 11 (docs/TASKS.md)
 - [ ] Supervisor feedback, part 2: Stock Log tab, business intelligence (dashboard summary and Insights page)
-- [ ] M10 full role-based rules, M11 Hosting, M12 evaluation, M13 report
+- [x] M10 least-privilege rules and backend role check, Cancel Order, simulated parts for live testing (Nov 11; checked live)
+- [ ] M11 Hosting, M12 evaluation, M13 report
 
 What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md), broken into small tested actions in [docs/TASKS.md](docs/TASKS.md). Material for the final report is kept in [docs/REPORT_NOTES.md](docs/REPORT_NOTES.md) and [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).

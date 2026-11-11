@@ -1,13 +1,17 @@
-# Task Checklist (Nov 5 to Nov 13)
+# Task Checklist (Nov 5 to Nov 14)
 
 The roadmap (`docs/ROADMAP.md`) says what and why; this file breaks each step into small actions, each with its **script tests** (automated: pytest, vitest, rule checks) and its **live tests** (real Firebase, real Chrome, real webcam). A task is done only when both pass. Tick items here as they are finished.
 
-## Remaining work (as of Nov 11)
-Everything left to finish the product as planned, with no cuts. IDs point to the detailed rows below; each code item has its script tests and live tests there. "User" marks a step only the user can do.
+## Remaining work (as of Nov 11 evening)
+Everything left, numbered 1 to 37; IDs point to the detailed rows below, each with its script tests and live tests. "User" marks a step only the user can do. The plan for the last days (agreed Nov 11) is under **Plan to the freeze** below the list.
 
-**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1 (checked live), M6 backend and browser parts (script-tested; delays, soak, dark frames, the call limits and the pause rules checked live).
+**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1, M6 automatic scanning (every live check finished Nov 11), M10 access control, Cancel Order, simulated parts for live testing (all checked live Nov 11). Tests: backend 273, frontend 674.
 
-**Before any live test:** the camera must see the shelf. On Nov 11 it counted no parts in full light, which opened 2 alerts: the saved shelf image showed the camera was pointed at the room, not the shelf. Once the shelf was back in view the counts read 4 and 1 and both alerts resolved by themselves. A petrol filter order (Pending, Nov 5 03:36 UTC) is a leftover from the Nov 5 lens test: ask the user before deleting it.
+**Before any live test:**
+- The shelf camera is the MacBook Air's built-in camera (`CAMERA_INDEX=0`, the user's decision). Whoever uses the laptop is in the frame: on Nov 11 it read 0 and 0 while the laptop was being used, and a face once scored 0.54 as a spark plug. Open `backend/snapshots/latest.jpg` and check `status/latest.counts` = 4 and 1 before any live test; ask the user to Pause Scanning while they work on the laptop.
+- `SIMULATED_PARTS` must be empty except during a simulated-part test (`docs/TESTING.md`).
+- The two Pending orders (spark plug, Oct 28; petrol filter, Nov 5, a leftover from the lens test) are KEPT by the user's decision: do not delete or cancel them. They block automatic ordering for both real parts; use a simulated part to test ordering.
+- Run the regression with scanning paused (the loop resolves the `zz` alerts on its next matching scan).
 
 1. M6: finish automatic scanning
    - [x] 1. Gap recheck, live: an old timer must not open an alert after a gap (`gap_live.py`). Nov 11: 4/4.
@@ -58,7 +62,19 @@ Everything left to finish the product as planned, with no cuts. IDs point to the
 
 Then the report (M13, user), using `docs/REPORT_NOTES.md` and `docs/FUTURE_WORK.md`.
 
-**Schedule (open):** final submission Nov 15; a proposed re-plan (Nov 11: M6 live; Nov 12: Insights core; Nov 13: M10, M11 and a simple Stock Log; Nov 14 morning: M12, freeze, tag, submit; cuts: undo, extra Insights sections, Apply, thumbnail) is waiting for the user's decision.
+## Plan to the freeze (agreed Nov 11)
+Final submission Nov 15. **Code freeze Nov 14 morning** (the user's decision), then tag and submit; Nov 15 is the buffer. The remaining items were grouped by severity, what fits, and what each gives:
+
+| Group | Items | Severity | What it gives | When |
+|---|---|---|---|---|
+| 0, user | Camera (laptop camera kept), leftover order (kept), freeze date (Nov 14), usability test (the user with their brother, outcome reported later) | Decided | — | Done Nov 11 |
+| 1 | 9, 25, 26, 27, plus Cancel Order (27a) | Must | Least-privilege access for the dealer; FR9 and NFR6 done | **Done Nov 11** |
+| 2 | 10 to 15, 18 to 22 (Insights core) | Must: the supervisor's feedback | Insights tab (sales, shrinkage, days of cover, reorder suggestions) and four dashboard tiles, on seeded demo history | Nov 12 |
+| 3 | 28, 29 (Hosting) | Must | Public URL for both roles; Scan Now from the hosted page on the laptop | Nov 13 morning |
+| 5 | 5 to 7 (simple Stock Log), and a focus check on the other busy buttons | Should; first to drop if Insights runs long | Every POS change visible on its own tab | Nov 13 morning |
+| 4 | 31 to 35 (M12 evidence) | Must for the report | Numbers for NFR1 to NFR4 | Start the one-day usage count and accuracy runs Nov 12 (laptop facing the parts, awake); scripted parts and functional cases Nov 13 afternoon; usability by the user |
+| 6 | 36, 37 (release) | Must, last | v1.0.0 tagged and deployed | Nov 14 morning |
+| 7 | 8 (undo), 16, 17, 23 (extra Insights sections), 24 (Apply), 30 (hosted thumbnail) | Proposed cuts to future work: confirm with the user before dropping them | — | Only if time is left |
 
 ## Every task, every time
 1. Script gates: backend `python -m pytest` and `ruff check . && ruff format --check .`; frontend `npm run typecheck && npm test && npx oxlint && npm run build`.
@@ -113,7 +129,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | M6-L4 | Brightness calibration | — | Brightness with lights on, dim and off; set `MIN_FRAME_BRIGHTNESS` between; record the values in TESTING |
 | M6-L5 | Camera states | — | Live (running), Off (`AUTO_SCAN_ENABLED=false`), No scan (backend stopped for two intervals), Too dark (lens covered), Camera not responding (`CAMERA_INDEX` set to a missing camera), Paused |
 
-## Stock Log, undo and part names: Nov 7
+## Stock Log, undo and part names: Nov 13 (part names done Nov 11)
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
@@ -123,7 +139,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | SL-4 | Undo on Record Sale: a "Sale recorded. Undo" message for 10 s; writes a `Correction` entry with id `undo-<sale id>`, reversing exactly that sale, by the same person, within 2 minutes; the analytics leave out both | Planner; UI timer, focus and keyboard; rule check cases (second undo refused because the id exists, wrong amount, someone else's sale, too late, not a sale) | User publishes; REST attack checks; Chrome: undo restores the POS; the log shows both; a second undo is refused |
 | SL-5 | One name per part: Orders, Alerts and notifications use the product name; new orders store `productName` (backend), so the dealer keeps names once M10 narrows product reads; `partLabel` only as the last fallback | Name chooser; backend order-plan test includes `productName`; old orders without it still show a name | A `zz` part with a custom name reads the same on every page, for both roles |
 
-## Demo history and analytics: Nov 8
+## Demo history and analytics: Nov 12
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
@@ -137,7 +153,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | AN-7 | Stock value; period comparison ("New" when the previous period is zero) | Each edge case | AN-L1 |
 | AN-L1 | `insights_check.py` recomputes every figure from Firestore independently | — | The page's numbers equal the script's, on seeded and real data |
 
-## Insights: Nov 9 and Nov 10
+## Insights: Nov 12
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
@@ -148,7 +164,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | IN-5 | Nov 10: stock flow (links to the Stock Log), stock value, stockouts, response and dealer | Section tests | `insights_check.py` |
 | IN-6 | Apply recommendation through Part Settings, with confirmation | Confirm and cancel; refused write shows a next step | Apply changes the setting; the next scan uses the new level |
 
-## M10 security and M11 Hosting: Nov 11
+## M10 security (done Nov 11) and M11 Hosting (Nov 13)
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
@@ -159,7 +175,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | M11-2 | Scan Now from the hosted page on the shop laptop: Chrome may block an https page calling `http://localhost` (Private Network Access); if so, the backend answers the preflight, or the hosted app says to use the local app | Backend header test | Real Scan Now from the hosted page |
 | M11-3 | Thumbnail in `status/latest`, under 100 KB, written only when counts change or at the heartbeat | Encoder size and cadence | Hosted page shows the shelf image; phone |
 
-## M12 evaluation and regression: Nov 12 (trials from Nov 7)
+## M12 evaluation and regression: Nov 12 to 13
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
@@ -171,7 +187,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | M12-6 | Usability test with 3 people: tasks and a SUS questionnaire | — | Results and fixes |
 | M12-7 | Full regression updated for every new feature; screenshots for the report | `regress.mjs`, `states.mjs`, `baseline.mjs` updated | All pass; data restored identical |
 
-## Release: Nov 13 (code freeze)
+## Release: Nov 14 morning (code freeze)
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
