@@ -12,6 +12,7 @@ export const ROLES = {
       { to: "/dashboard", label: "Dashboard" },
       { to: "/alerts", label: "Alerts", badge: "alerts" },
       { to: "/orders", label: "Orders", badge: "orders" },
+      { to: "/products", label: "Products" },
       { to: "/insights", label: "Insights" },
     ],
   },

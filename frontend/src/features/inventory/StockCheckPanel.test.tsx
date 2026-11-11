@@ -62,6 +62,23 @@ describe("StockCheckPanel", () => {
       expect(screen.getByRole("alert")).toHaveTextContent("Stock records could not be loaded.");
     });
 
+    it("shows the live count's own load error, with the table still there", () => {
+      ready(PRODUCTS);
+      render(<StockCheckPanel counts={null} countStatus={{ loading: false, error: "Live data could not be loaded. Check your connection and sign in again if this continues." }} />);
+      expect(screen.getByRole("alert")).toHaveTextContent("Live data could not be loaded");
+      expect(screen.getByRole("table")).toBeInTheDocument();
+      expect(screen.queryByText(/No shelf count yet/)).not.toBeInTheDocument();
+    });
+
+    it("tells a new shop to press Scan Now, but not while the first count is still loading", () => {
+      ready(PRODUCTS);
+      const { unmount } = render(<StockCheckPanel counts={null} countStatus={{ loading: false, error: "" }} />);
+      expect(screen.getByText(/No shelf count yet\. Press Scan Now to count the shelf\./)).toBeInTheDocument();
+      unmount();
+      render(<StockCheckPanel counts={null} countStatus={{ loading: true, error: "" }} />);
+      expect(screen.queryByText(/No shelf count yet/)).not.toBeInTheDocument();
+    });
+
     it("shows an empty state instead of an empty table", () => {
       ready([]);
       render(<StockCheckPanel counts={null} />);
@@ -289,5 +306,11 @@ describe("StockCheckPanel", () => {
     ready(PRODUCTS);
     render(<StockCheckPanel counts={{ spark_plug: 3, petrol_filter: 1 }} countedAt={new Date("2026-11-11T09:00:00Z")} />);
     expect(screen.getByText(/Shelf counts as of/)).toBeInTheDocument();
+  });
+
+  it("points to Products for costs, prices and reorder levels", () => {
+    ready(PRODUCTS);
+    render(<StockCheckPanel counts={{ spark_plug: 3 }} />);
+    expect(screen.getByRole("link", { name: "Products" })).toHaveAttribute("href", "/products");
   });
 });

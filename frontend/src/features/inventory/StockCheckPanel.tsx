@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import EmptyState from "../../shared/components/EmptyState";
 import Notification from "../../shared/components/Notification";
 import { Panel, PanelBody, PanelFooter, PanelHeader } from "../../shared/components/Panel";
@@ -13,12 +14,14 @@ import { formatDateTime } from "../../shared/format";
 
 interface Props {
   counts: Record<string, number> | null;
+  /** The live camera count's own loading and error state (status/latest), shown here as the counts live here. */
+  countStatus?: { loading: boolean; error: string };
   /** When the camera last counted the shelf; the counts are as of then. */
   countedAt?: Date | null;
 }
 
 /** Camera count against the (mock) POS record for every product, with the POS simulation buttons. */
-export default function StockCheckPanel({ counts, countedAt = null }: Props) {
+export default function StockCheckPanel({ counts, countedAt = null, countStatus }: Props) {
   const products = useProducts();
   const [announcement, setAnnouncement] = useState("");
   const rows = useMemo(() => buildStockRows(products.data ?? [], counts), [products.data, counts]);
@@ -51,6 +54,11 @@ export default function StockCheckPanel({ counts, countedAt = null }: Props) {
           <Notification kind="error">{products.error}</Notification>
         </PanelBody>
       )}
+      {countStatus?.error && (
+        <PanelBody sx={{ pb: 0 }}>
+          <Notification kind="error">{countStatus.error}</Notification>
+        </PanelBody>
+      )}
       {products.loading && (
         <EmptyState component="p" role="status">
           Loading stock records…
@@ -81,13 +89,15 @@ export default function StockCheckPanel({ counts, countedAt = null }: Props) {
             </DataTable>
           </TableScroll>
           <PanelFooter component="p">
-            {countedAt && (
+            {countedAt ? (
               <>
                 Shelf counts as of <time dateTime={countedAt.toISOString()}>{formatDateTime(countedAt)}</time>.{" "}
               </>
+            ) : (
+              !countStatus?.loading && !countStatus?.error && <>No shelf count yet. Press Scan Now to count the shelf. </>
             )}
             Difference is shelf minus POS. A negative number means the records show stock that is not on the
-            shelf.
+            shelf. Costs, prices and reorder levels are in <Link to="/products">Products</Link>.
           </PanelFooter>
         </>
       )}

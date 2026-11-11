@@ -90,6 +90,27 @@ export default function AlertsSummary({ mismatches = 0 }: { mismatches?: number 
   const shown = useMemo(() => dashboardAlerts(alerts, DASHBOARD_ALERT_LIMIT), [alerts]);
   const [outcome, setOutcome] = useState("");
   const ready = !loading && !error;
+  const calm = ready && shown.length === 0;
+  const calmMessage =
+    mismatches === 0
+      ? "No active alerts. Everything on the shelf matches the POS records."
+      : `No active alerts yet. ${formatInteger(mismatches)} ${mismatches === 1 ? "part differs" : "parts differ"} from the POS record (see Stock Check below); a mismatch that lasts is raised here as an alert.`;
+
+  // Nothing active: one row (title, the reassurance, the link), so the space goes to what needs attention.
+  if (calm) {
+    return (
+      <Panel id="alerts" aria-labelledby="alerts-summary-title">
+        <VisuallyHidden component="p" role="status" aria-live="polite">
+          {describeOpenCount(openCount)}
+        </VisuallyHidden>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: space(5), rowGap: space(1), padding: `${space(3)} ${space(5)}` }}>
+          <h2 id="alerts-summary-title">Active Alerts</h2>
+          <Muted sx={{ flex: "1 1 18rem", fontSize: text.sm }}>{calmMessage}</Muted>
+          <Link to="/alerts">View All Alerts</Link>
+        </Box>
+      </Panel>
+    );
+  }
 
   return (
     <Panel id="alerts" tone={openCount > 0 ? "alert" : undefined} aria-labelledby="alerts-summary-title">
@@ -119,13 +140,6 @@ export default function AlertsSummary({ mismatches = 0 }: { mismatches?: number 
         <PanelBody sx={{ pb: 0 }}>
           <Notification kind="success">{outcome}</Notification>
         </PanelBody>
-      )}
-      {ready && shown.length === 0 && (
-        <EmptyState component="p" compact>
-          {mismatches === 0
-            ? "No active alerts. Everything on the shelf matches the POS records."
-            : `No active alerts yet. ${formatInteger(mismatches)} ${mismatches === 1 ? "part differs" : "parts differ"} from the POS record (see Stock Check below); a mismatch that lasts is raised here as an alert.`}
-        </EmptyState>
       )}
       {ready && shown.length > 0 && (
         <List aria-label="Active alerts, open ones first">

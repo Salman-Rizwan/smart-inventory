@@ -74,4 +74,6 @@ export const breakpoint = {
   narrow: "640px",
   /** Below this the header tabs move to a full-width second row (measured: four tabs with counts need 377 px of nav, which a single row has from about 932 px). */
   tabsRow: "959.98px",
+  /** From this width the shelf image and the scan table sit side by side; below it they stack (the table needs about 600 px). */
+  wide: "1100px",
 } as const;

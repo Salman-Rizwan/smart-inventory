@@ -100,4 +100,25 @@ describe("PartSettingsPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/Sign in as a shopkeeper/);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
+
+  it("focuses the Edit button of the part a link asks for, once per visit", async () => {
+    ready([spark, filter]);
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
+    Element.prototype.scrollIntoView = vi.fn();
+    const { rerender } = render(<PartSettingsPanel focusPart={{ id: "petrol_filter", visit: "a" }} />);
+    const edit = screen.getByRole("button", { name: "Edit settings for Petrol Filter" });
+    expect(edit).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Edit settings for Spark Plug" }));
+    await userEvent.keyboard("{Escape}");
+    rerender(<PartSettingsPanel focusPart={{ id: "petrol_filter", visit: "a" }} />);
+    expect(edit).not.toHaveFocus(); // the same visit does not steal focus again
+    rerender(<PartSettingsPanel focusPart={{ id: "petrol_filter", visit: "b" }} />);
+    expect(edit).toHaveFocus(); // a new visit does
+  });
+
+  it("highlights nothing and focuses nothing without a link", () => {
+    ready([spark]);
+    render(<PartSettingsPanel />);
+    expect(document.body).toHaveFocus();
+  });
 });

@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
-import { NavLink } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { VisuallyHidden } from "../shared/components/text";
 import { breakpoint, color, font, layout, text } from "../shared/theme/tokens";
 
@@ -39,7 +40,7 @@ const Tab = styled(NavLink)({
   "&:focus-visible": { outlineOffset: "-2px" },
   // On the second row: tabs share the row, each at least as wide as its label.
   [tabsRow]: { flex: "1 0 auto", justifyContent: "center", minHeight: layout.navRowHeight },
-  [narrow]: { padding: "0 10px" },
+  [narrow]: { padding: "0 8px" },
 });
 
 const CountBadge = styled("span")({
@@ -57,8 +58,19 @@ const CountBadge = styled("span")({
 
 /** Primary navigation. An item can carry a count of work waiting on that page. */
 export default function PrimaryNav({ items, counts }: { items: NavItem[]; counts: Record<NavBadge, number> }) {
+  const nav = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+
+  // On a narrow phone the tabs can be wider than the screen and the strip scrolls: keep the current tab in view.
+  useEffect(() => {
+    const current = nav.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    current?.scrollIntoView?.({ block: "nearest", inline: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [pathname]);
+
   return (
     <Box
+      ref={nav}
       component="nav"
       aria-label="Primary"
       sx={{

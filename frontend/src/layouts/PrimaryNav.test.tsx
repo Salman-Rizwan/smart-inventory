@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@mui/material/styles";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { theme } from "../shared/theme/theme";
 import PrimaryNav, { type NavItem } from "./PrimaryNav";
 
@@ -63,5 +63,29 @@ describe("PrimaryNav", () => {
     renderNav("/orders", 3, [{ to: "/orders", label: "Purchase Orders" }]);
     expect(screen.getByRole("link", { name: "Purchase Orders" })).toBeInTheDocument();
     expect(screen.queryByText("3")).toBeNull();
+  });
+
+  it("scrolls the current tab into view, so a tab beyond the edge of a narrow phone is never hidden", () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    window.matchMedia = vi.fn().mockReturnValue({ matches: false }) as unknown as typeof window.matchMedia;
+    renderNav("/orders", 0);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", inline: "nearest", behavior: "smooth" });
+    expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByRole("link", { name: "Orders" }));
+  });
+
+  it("does not animate that scroll when reduced motion is asked for", () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
+    renderNav("/alerts", 0);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", inline: "nearest", behavior: "auto" });
+  });
+
+  it("does nothing off the nav", () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    renderNav("/somewhere-else", 0);
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 });

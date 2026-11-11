@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { pageLabel, ROLES } from "./roles";
 
 describe("ROLES", () => {
-  it("gives the shopkeeper Dashboard, Alerts, Orders and Insights, each count on its own tab", () => {
+  it("gives the shopkeeper Dashboard, Alerts, Orders, Products and Insights, each count on its own tab", () => {
     expect(ROLES.shopkeeper.nav).toEqual([
       { to: "/dashboard", label: "Dashboard" },
       { to: "/alerts", label: "Alerts", badge: "alerts" },
       { to: "/orders", label: "Orders", badge: "orders" },
+      { to: "/products", label: "Products" },
       { to: "/insights", label: "Insights" },
     ]);
     expect(ROLES.shopkeeper.insights).toBe(true);
@@ -31,6 +32,8 @@ describe("pageLabel", () => {
   it("names the page at a path, query strings aside", () => {
     expect(pageLabel(nav, "/alerts")).toBe("Alerts");
     expect(pageLabel(nav, "/orders")).toBe("Orders");
+    expect(pageLabel(nav, "/products")).toBe("Products");
+    expect(pageLabel(nav, "/insights")).toBe("Insights");
     expect(pageLabel(ROLES.dealer.nav, "/orders")).toBe("Purchase Orders");
   });
 
