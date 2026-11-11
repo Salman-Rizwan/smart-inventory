@@ -3,7 +3,7 @@
 ## Automated (run before any hand-off)
 ```bash
 # backend (from backend/, venv on)
-python -m pytest                      # 272 tests, fakes only
+python -m pytest                      # 273 tests, fakes only
 ruff check . && ruff format --check .
 
 # frontend (from frontend/)

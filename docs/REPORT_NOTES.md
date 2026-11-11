@@ -51,7 +51,7 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 Still to measure in M12 (`docs/TASKS.md`): detection accuracy over 20 arrangements under 3 lighting conditions, Scan Now timing over 50 runs, sync latency over 10 trials, one day of real free-tier usage, functional test cases FR1 to FR9, and a usability test with 3 people.
 
 ## Testing (Evaluation)
-- Automated, Nov 11: backend 272 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 674 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
+- Automated, Nov 11: backend 273 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 674 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
 - Live testing without touching real stock: a `.env` test setting adds made-up `zz_` parts to every scan, so order and Cancel flows run through the real backend and rules (7 checks, Nov 11). A name without the `zz_` prefix stops the backend at startup (seen live).
 - Rules: 63 cases written for the Rules API test endpoint; live attack checks over REST with real sign-ins: 32 for the stock change log and Part Settings, 11 for Pause Scanning, 38 for M10 (reads per role, every Cancel Order case, and the backend's 403 for the dealer), all passing on Nov 11.
 - Live, Nov 11: full regression 56 checks passing; all six camera states produced for real (lens covered, backend stopped, wrong camera index, scanning off, paused, live), each at 6 widths with axe 0; Pause Scanning by keyboard, end to end.
@@ -72,6 +72,7 @@ These were missed by unit tests and found only on the real system; each was fixe
 | Nov 11 | The dashboard said "No active alerts. Everything on the shelf matches" while Stock Check showed 2 mismatches: alerts now wait 3 minutes, and the text predated the delay | The text counts the parts that differ and says a lasting mismatch becomes an alert |
 | Nov 11 | The Scan Now button moved below the title when the camera status text was long, so the main action was in a different place in different states | The title block wraps its text; Scan Now keeps its place |
 | Nov 11 | After a restart with automatic scanning off, the dashboard still said scanning was on, then "No Recent Scan", until Scan Now was pressed: the backend reported its setting only with a scan attempt | The backend publishes the setting once at startup; the dashboard showed "Automatic Scanning Off" 2 s after the next start, with no scan |
+| Nov 11 | After a simulated test part was switched off, the dashboard kept showing it: `status/latest` was written with a merge, which never removes a key from the counts (a class removed from the model would linger the same way) | A counted scan now replaces the counts whole; a skipped or failed one still leaves them as they were. Checked live: a planted extra count was gone after the next scan |
 | Nov 11 | Keyboard focus was lost after pressing Pause Scanning or Resume Scanning (the button is disabled while saving, and Chrome drops focus from a disabled button) | Focus is returned to the button when the save ends |
 
 ## Requirements status
