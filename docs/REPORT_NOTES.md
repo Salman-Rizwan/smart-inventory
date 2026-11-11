@@ -40,6 +40,7 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | Scan Now click to result | 2.8 to 5.4 s before the camera change (target 3 s); to be remeasured in M12 | Live regression runs, Oct 30 to Oct 31 |
 | Database steps per scan | 0.3 to 1 s normally; reads 0.15 to 0.4 s warm, 1.2 to 1.6 s for the first read on a new connection | Live, Nov 5 |
 | Alert delay | Alert opened 203 s after the mismatch began (setting 180 s plus the next 30 s scan) | Live test, Nov 4 |
+| Reorder after a cancel | On a simulated part: a fresh order 314 s after the first low scan following the cancel (delay 300 s, 30 s scans), and only one | `sim_reorder_live.py`, Nov 11 |
 | Gap rule | After a 130 s pause, a timer planted 24 hours in the past was ignored; the alert opened 186 s after the restarted timer (setting 180 s) | `gap_live.py`, Nov 11 |
 | Pause Scanning | No scan attempted during a 130 s pause; scanning resumed by itself 29 s after it ended (interval 30 s); from the button, a scan arrived 4 s after Resume | `pause_live.py`, `camstates.mjs`, Nov 11 |
 | Scan Now click to result, camera kept open | 2.4 s and 2.8 s (target 3 s); 50 runs to follow in M12 | Live regression, Nov 11 |
@@ -50,7 +51,8 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 Still to measure in M12 (`docs/TASKS.md`): detection accuracy over 20 arrangements under 3 lighting conditions, Scan Now timing over 50 runs, sync latency over 10 trials, one day of real free-tier usage, functional test cases FR1 to FR9, and a usability test with 3 people.
 
 ## Testing (Evaluation)
-- Automated, Nov 11: backend 252 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 674 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
+- Automated, Nov 11: backend 272 tests (pytest with fakes: camera, detector, a repository that counts writes, a hand-moved clock); frontend 674 tests (Vitest and Testing Library); type checks, linters and the production build on every change.
+- Live testing without touching real stock: a `.env` test setting adds made-up `zz_` parts to every scan, so order and Cancel flows run through the real backend and rules (7 checks, Nov 11). A name without the `zz_` prefix stops the backend at startup (seen live).
 - Rules: 63 cases written for the Rules API test endpoint; live attack checks over REST with real sign-ins: 32 for the stock change log and Part Settings, 11 for Pause Scanning, 38 for M10 (reads per role, every Cancel Order case, and the backend's 403 for the dealer), all passing on Nov 11.
 - Live, Nov 11: full regression 56 checks passing; all six camera states produced for real (lens covered, backend stopped, wrong camera index, scanning off, paused, live), each at 6 widths with axe 0; Pause Scanning by keyboard, end to end.
 - Live, in Chrome with Playwright and axe: full regression across both roles, screenshot comparison at 5 widths, 43 extra interface states, keyboard walks; F1 flow end to end; temporary `zz-*` data, with the real data snapshotted and restored identically after every run.
@@ -87,6 +89,7 @@ These were missed by unit tests and found only on the real system; each was fixe
 | NFR7 new parts without code changes | Product ids equal model class names |
 
 ## Operational lessons (Discussion)
+- With the laptop's own camera, the person using the laptop is in the frame. On Nov 11 a face scored 0.54 as a spark plug and passed the size guards; retraining with background images (people, rooms) is the real fix (FUTURE_WORK).
 - A sleeping laptop scans nothing: the shop laptop must not sleep (`caffeinate`, or the battery settings). The dashboard says "No Recent Scan" when it happens.
 - The shop's internet connection drops for seconds at a time; the backend must assume it will.
 - Brightness cannot tell a hand partly over the lens from a dim shelf; the time rules absorb short obstructions.

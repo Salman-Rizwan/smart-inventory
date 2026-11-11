@@ -41,7 +41,7 @@ Everything left to finish the product as planned, with no cuts. IDs point to the
    - [x] 25. Final rules; the dealer no longer reads products (M10-1). Published Nov 11 05:36 UTC (dealer reads purchase orders only, plus the Cancel Order rule). `m10_rest.py` 38/38, `f1_rest.py` 32/32, `pause_rest.py` 11/11.
    - [x] 26. Backend: Scan Now and the shelf image for the shopkeeper only (M10-2). Nov 11: built (`require_shopkeeper`, `RoleChecker` with a 5-minute cache, typed 403), backend 252 tests; live: the dealer's token gets 403 `forbidden` for both, the shopkeeper's 200, no token 401.
    - [x] 27. Dealer pages without product reads (M10-3). The dealer's pages already read no products (ProductsProvider is shopkeeper-only); names now come from `productName`. Live: full regression 56/56 under the new rules, no permission errors in either role.
-   - [x] 27a. Cancel Order (added Nov 11, user's decision): shopkeeper cancels Pending or Accepted with a reason; Cancelled state, Closed filter, Cancelled tile, dealer notified if they had accepted it; backend no longer counts it as open. Built and script-tested (frontend 674 tests). Live (`cancel_live.mjs`, both roles): cancelled with a reason, moved to Closed with the reason shown, the dealer's tile and notification updated live, no Cancel on a dispatched order, axe 0; dialog checked at 1360, 390 and 320 px (`cancelui.mjs`). Not live-tested: a real part being ordered again after a cancel (unit-tested only, to avoid a real order).
+   - [x] 27a. Cancel Order (added Nov 11, user's decision): shopkeeper cancels Pending or Accepted with a reason; Cancelled state, Closed filter, Cancelled tile, dealer notified if they had accepted it; backend no longer counts it as open. Built and script-tested (frontend 674 tests). Live (`cancel_live.mjs`, both roles): cancelled with a reason, moved to Closed with the reason shown, the dealer's tile and notification updated live, no Cancel on a dispatched order, axe 0; dialog checked at 1360, 390 and 320 px (`cancelui.mjs`). Reorder after a cancel: checked live on a simulated part, `zz_brakepads` (`sim_reorder_live.py` 7/7, Nov 11): first order after 2 low scans and the 5-minute delay, cancelled by the shopkeeper over REST, no new order one scan later, a fresh one 314 s after the first low scan following the cancel, and only one. Teardown left no trace; real orders and alerts unchanged.
 6. M11 Hosting
    - [ ] 28. Build and deploy; hosted origin in `CORS_ORIGINS` (M11-1). User deploys or approves.
    - [ ] 29. Scan Now from the hosted page on the shop laptop (M11-2).
@@ -175,6 +175,6 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
-| R-1 | All gates; `package.json` 1.0.0; no secrets in the repository (search for keys and passwords) | All gates | — |
+| R-1 | All gates; `package.json` 1.0.0; no secrets in the repository (search for keys and passwords); `SIMULATED_PARTS` empty in `.env` and no `zz_` products left | All gates | — |
 | R-2 | Fresh clone: install and run the tests by following README only | Tests pass in the clone | — |
 | R-3 | User opens the PR dev to main (merge commit), tags `v1.0.0`, deploys Hosting from the tag | — | Smoke test on the hosted URL for both roles; deployed rules equal the file |

@@ -8,7 +8,7 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 |---|---|---|
 | The camera sees one shelf only | The POS counts everything the shop holds, so stock kept in a back room shows as a mismatch | The system assumes all stock of a tracked part is on the camera's shelf; stated in the report |
 | Mock POS | Sales and deliveries are entered with Record Sale and Receive Stock, not taken from a real till | The stock change log (F1) records each entry with who and when, as a real POS would |
-| The model has no "not a part" class | People or rooms can score as parts | Box size guards (`MAX_BOX_AREA_RATIO`, `MAX_BOX_SIDE_RATIO`) until retraining |
+| The model has no "not a part" class | People or rooms can score as parts. On Nov 11 a face close to the laptop camera scored 0.54 as a spark plug with a box of about 19% of the frame, under both size guards, so the shelf read 5 instead of 4 | Box size guards (`MAX_BOX_AREA_RATIO`, `MAX_BOX_SIDE_RATIO`) until retraining; the alert delay absorbs a person passing by, not one who stays in view |
 | Filters seen end-on or cut off at the frame edge | Score about 0.35 and are missed | Shelf arrangement guidance; retraining (below) |
 | A dark room reads as an empty shelf | False mismatches and, with automatic scanning, false orders | Frames that are too dark are skipped (planned in M6) |
 | Single shop, single camera | No chain stores or several shelves | Product ids equal class names, so new parts need no code change (NFR7) |

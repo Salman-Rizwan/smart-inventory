@@ -3,7 +3,7 @@
 ## Automated (run before any hand-off)
 ```bash
 # backend (from backend/, venv on)
-python -m pytest                      # 234 tests, fakes only
+python -m pytest                      # 272 tests, fakes only
 ruff check . && ruff format --check .
 
 # frontend (from frontend/)
@@ -23,6 +23,9 @@ Rules for live tests:
 6. Do not run a snapshot and restore while someone is scanning: the restore would delete their scans. Check `status/latest.scannedAt` first. With automatic scanning on, use the `--keep-scans` restore. Pause scanning for the full regression: the loop resolves the `zz` alerts on its next matching scan.
 8. Before a live test that needs the camera, check that it actually sees the shelf (the counts in `status/latest` match the shelf); twice it counted no parts with the shelf out of view. Open `backend/snapshots/latest.jpg` to see what the camera sees.
 7. After a click that changes the URL, wait for the new state (for example `aria-pressed="true"`), not for the URL: React Router renders a long table as a low-priority update, a few tens of milliseconds after the URL changes.
+
+## Simulated parts (live testing without touching real stock)
+Set `SIMULATED_PARTS=zz_name:count` in `.env` and restart the backend: every scan then includes that made-up part as if the camera had counted it, so reconciliation, alerts, orders, Cancel and the dealer's view run for real without moving real stock or real orders. Give it a `products/zz_name` document (POS count, reorder level and quantity) to steer the case: POS equal to the count with level 0 is "matched but low" (the order path); a POS different from the count is the alert path. Guards: the name must start with `zz_` (anything else stops the backend at startup with a readable message, seen live on Nov 11 with `brakepads:0`), it never changes the count of a part the model detects, the backend logs a TEST MODE warning, and scan records carry `simulated`. `sim_reorder_live.py setup|run|teardown zz_name` uses it to check that a cancelled order is followed by a fresh one only after the full delay; teardown removes the part's product, orders, alerts and log entries and strips it from scan records and `status/latest`. **Empty it after testing and at release.**
 
 ## Rules checks
 `rules_test.py` (in `.handoff/live-tests/`, 65 cases) sends `firestore.rules` with mocked documents to the Firebase Rules API test endpoint, so a rule change is checked before the user publishes it and nothing is deployed or written. It covers the stock change log (every field, every type, the link to the product through `lastMovementId`, edits and deletes), Part Settings, who acknowledged and who received, and the unchanged rules. The service account needs the `firebaserules.rulesets.test` permission (for example the Firebase Rules Viewer role); without it the API answers 403.
