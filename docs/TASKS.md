@@ -13,13 +13,13 @@ The roadmap (`docs/ROADMAP.md`) says what and why; this file breaks each step in
 | 2 | 10 to 15, 18 to 22 | SH-1, AN-1 to AN-5, AN-L1, IN-1 to IN-4 | Insights core on seeded history | Done Nov 11 |
 | 2b | 38 to 44 | | Gross profit, What To Do, 90-day seed, Products tab, dashboard order, full regression | Done Nov 12 |
 | 3 | 28, 29 | M11-1, M11-2 | Hosting: deployed, and Scan Now from the hosted page | **Done Nov 14** (one look left, see below) |
-| 5 | 5 to 7, and 7a | SL-1 to SL-3 | Stock Log as a second view inside Products, plus a focus check on the busy buttons | **Next** |
-| 4 | 31 to 35 | M12-1 to M12-6 | Evidence for the report: accuracy, timing, sync and usage, functional cases, usability | After Group 5 |
-| 6 | 36, 37 | M12-7, R-1 to R-3 | Full regression, fresh clone, version 1.0.0, tag and deploy from it | After Group 4 |
+| 5 | 5 to 7, and 7a | SL-1 to SL-3 | Stock Log as a second view inside Products, plus a focus check on the busy buttons | After Group 4 (the user's choice, Nov 14) |
+| 4 | 31 to 35 | M12-1 to M12-6 | Evidence for the report: accuracy, timing, sync and usage, functional cases, usability | **Next** |
+| 6 | 36, 37 | M12-7, R-1 to R-3 | Full regression, fresh clone, version 1.0.0, tag and deploy from it | After Groups 4 and 5 |
 | 7 | 8, 16, 17, 23, 24, 30 | SL-4, AN-6, AN-7, IN-5, IN-6, M11-3 | Optional extras, proposed cuts | The user decides (list below) |
 | Report | | M13 | The written report, from `docs/REPORT_NOTES.md` and `docs/FUTURE_WORK.md` | The user |
 
-**Order of work (by what depends on what; the freeze date is not driving it at the moment, the user's decision Nov 14): Group 5, then Group 4, then Group 6, with Group 7 decided by the user at any point.** Group 5 comes before Group 4 because the functional test cases (item 34) cover the Stock Log; Group 6 comes last because it re-runs everything on the final code.
+**Order of work (the freeze date is not driving it at the moment, the user's decision Nov 14): Group 4 first (the user's choice on Nov 14; it was Group 5 first before), then Group 5, then Group 6, with Group 7 decided by the user at any point.** Two consequences: the one-day usage count takes 24 uninterrupted hours, so it is started first and runs while the measuring tools are built (code work and unit tests do not touch Firestore); and the functional cases (item 34) are run in two parts, FR1 to FR9 plus Insights and Hosting now, the Stock Log cases after Group 5 is built. Group 6 comes last because it re-runs everything on the final code.
 
 **Group 5, Stock Log (agreed design: `/products/log`, a second view inside Products, five tabs only).** Steps, each finished and tested before the next:
 1. Pure view logic: period (Today, 7, 30, 90 days), part filter, URL round trip, the "By" label ("You", "Another user", the script's name, "Demo data"). No type filter (trimmed Nov 12).
@@ -29,12 +29,13 @@ The roadmap (`docs/ROADMAP.md`) says what and why; this file breaks each step in
 5. Live checks on the seeded history (147 entries, no `zz` rows needed): Load More, filters, links, axe at six widths, keyboard, the dealer redirect.
 6. Item 7a, the focus check, listed in the plan but never numbered until now: a button that is disabled while it saves loses keyboard focus in Chrome (fixed for Pause and Resume Scanning only). Measure Scan Now, Record Sale, Receive Stock, Acknowledge and the order steps in Chrome, and if focus is lost fix it once in the shared `Button` (keep it focusable with `aria-disabled` while busy), with tests.
 
-**Group 4, evidence (nothing is built yet; the tools come first).** There is no accuracy, timing or latency script in the repository. Steps:
+**Group 4, evidence (nothing is built yet; the usage count starts first, then the tools).** There is no accuracy, timing or latency script in the repository. Steps:
+0. Start the one-day usage count first (it is redone, see the finding below): laptop on the charger (it was on battery on Nov 14), lid open, still, facing the parts, backend running from VS Code, `caffeinate -i` running; note the start time and the console Usage figures; the scan records prove the window afterwards. While it runs, only code work and unit tests; any live run that touches Firestore (timing, sync, regression) is logged as an exception with its time and rough size, or waits until the window ends.
 1. Build the three measuring tools with tests: the accuracy capture and scoring script (scored on a fixture), the Scan Now timing run (50 runs, once on the laptop's own page and once from the hosted page), and the sync-latency run (10 trials, two browsers).
 2. Item 31 accuracy: **the user arranges the shelf** under three lighting conditions (the number of arrangements, 20 or 10, is the user's decision); the script records each capture.
 3. Item 32 timing and item 33 sync latency: run by me with scanning paused as needed.
 4. Item 33 usage: **the one-day count must be redone** (see the finding below), then read at the end from the Firebase console Usage tab.
-5. Item 34 functional cases FR1 to FR9, plus Stock Log, Insights and Hosting, each run and recorded.
+5. Item 34 functional cases FR1 to FR9, plus Insights and Hosting, each run and recorded; the Stock Log cases are added after Group 5.
 6. Item 35 usability test: the user with their brother (parked with the user).
 
 **Group 6, release.** Item 36: the full regression updated for the Stock Log and Hosting (with real data snapshotted and restored), screenshots for the report, a fresh-clone run from the README alone, a secrets search, `SIMULATED_PARTS` empty and no `zz_` products, `package.json` 1.0.0. Item 37 (the user): pull request dev to main (merge commit), tag `v1.0.0`, deploy Hosting from the tag, then `hosting_check.mjs` on the live address and `deployed_rules.py`.
@@ -128,9 +129,9 @@ Final submission Nov 15 and the code freeze on the morning of Nov 14 were the us
 | 2 | 10 to 15, 18 to 22 (Insights core) | Must: the supervisor's feedback | Insights tab (sales, shrinkage, days of cover, reorder suggestions) and four dashboard tiles, on seeded demo history | **Done Nov 11 evening** |
 | 2b | 38 to 44 (Insights decisions, dashboard order, Products tab) | Must: the user's decision Nov 12 | The shopkeeper sees profit and one next step per part, and a dashboard of about 1,500 px | **Done Nov 12** |
 | 3 | 28, 29 (Hosting) | Must | Public URL for both roles; Scan Now from the hosted page on the laptop | **Done Nov 14** |
-| 5 | 5 to 7 (simple Stock Log) and 7a (focus check on the busy buttons) | Built next (no longer "first to drop": the deadline is not driving the order) | Every POS change visible inside Products | **Next** |
-| 4 | 31 to 35 (M12 evidence) | Must for the report | Numbers for NFR1 to NFR4 | After Group 5; the measuring tools are built first; the usage count is redone |
-| 6 | 36, 37 (release) | Must, last | v1.0.0 tagged and deployed | After Group 4 |
+| 5 | 5 to 7 (simple Stock Log) and 7a (focus check on the busy buttons) | Built (no longer "first to drop": the deadline is not driving the order) | Every POS change visible inside Products | After Group 4 |
+| 4 | 31 to 35 (M12 evidence) | Must for the report | Numbers for NFR1 to NFR4 | **Next**; the usage count starts first and is redone; the measuring tools are built while it runs |
+| 6 | 36, 37 (release) | Must, last | v1.0.0 tagged and deployed | After Groups 4 and 5 |
 | 7 | 8 (undo), 16, 17, 23 (extra Insights sections), 24 (Apply), 30 (hosted thumbnail) | Proposed cuts to future work: confirm with the user before dropping or building them | — | The user decides |
 
 ## Every task, every time
