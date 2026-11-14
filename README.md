@@ -216,6 +216,22 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - **Dark frames** below `MIN_FRAME_BRIGHTNESS` are skipped: nothing changes, and `status/latest` records the skip. Scan Now in the dark answers "Too dark to count the parts. Turn on the shelf light, then scan again."
 - **Writes:** an automatic scan is saved to `scans` only when the counts change, plus a heartbeat every `SCAN_HEARTBEAT_SECONDS`; manual scans are always saved. The backend writes whether automatic scanning is on to `status/latest` once at startup, so the dashboard shows "Automatic Scanning Off" without waiting for a scan. `status/latest` is updated after every attempt with `lastAttemptAt`, `lastOutcome` (counted, skipped, failed), `skipReason`, `lastError`, `brightness`, `timings` and the scanning settings. Scan records carry `trigger`, `brightness`, `captureMs`, `detectMs` and `heartbeat`.
 
+### Hosting (M11)
+
+The React app is served by Firebase Hosting on the free Spark plan (`firebase.json` and `.firebaserc`, project `smart-inventory-da834`; the config deploys Hosting only, never the Firestore rules, which are published by hand in the console). Both roles use the hosted address; only the shopkeeper's Scan Now and shelf image need the shop laptop.
+
+```bash
+cd frontend && npm run build        # writes frontend/dist
+cd .. && npx firebase-tools@15.35.0 login                                      # once; opens a browser
+npx firebase-tools@15.35.0 deploy --only hosting --project smart-inventory-da834
+```
+
+- The addresses are `https://smart-inventory-da834.web.app` and `https://smart-inventory-da834.firebaseapp.com`. Both are already in the backend's default `CORS_ORIGINS` (`app/core/config.py`), so `.env` needs no change; restart the backend once after pulling this change.
+- Nothing is installed globally: `npx` downloads the CLI on first use. If the deploy says the site does not exist, open the Firebase console, Hosting, Get started, then deploy again.
+- **Scan Now and the shelf image from the hosted page** call `http://localhost:8000` on the laptop. Chrome 142 and later asks the user to allow "local network access" for the site before an https page may do that (see `docs/REPORT_NOTES.md` for what was observed). When the call is blocked or the laptop is not reachable, the hosted app says Scan Now works only from the shop laptop (and what to allow), and the shelf image panel says the image lives on the laptop. Counts, alerts, orders and Insights still update everywhere, because automatic scanning writes them to Firestore.
+- The dealer never calls the backend, so the hosted site is all the dealer needs.
+- Check a build before deploying: `npm run build`, `npx vite preview --port 4173`, then `.handoff/live-tests/hosting_check.mjs` (both roles) with `BASE=http://localhost:4173`.
+
 ## Before a demo or rehearsal
 
 1. **Reset to a clean state:** `python -m scripts.demo_reset` shows what it would change; add `--apply` to do it. It sets 4 spark plugs and 1 filter in the POS, restores the demo reorder settings, clears the alert and reorder timers, and clears orders, alerts and read state (scan history, the stock change log, the seeded demo history, users and the model are kept). Run it between rehearsals.
@@ -239,6 +255,6 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - [x] Supervisor feedback, part 2: business intelligence (the "Business at a Glance" tiles and the Insights page; Nov 11). Gross profit, the part ranking and the What To Do list followed on Nov 12. The Stock Log (a second view inside the Products tab) is planned for Nov 13.
 - [x] Dashboard reordered by the shopkeeper's questions and a Products tab for Part Settings (Nov 12; checked live, full regression 56/56)
 - [x] M10 least-privilege rules and backend role check, Cancel Order, simulated parts for live testing (Nov 11; checked live)
-- [ ] M11 Hosting, M12 evaluation, M13 report
+- [ ] M11 Hosting (built and checked on a local production build Nov 12: config, CORS default, hosted wording; the deploy and the checks on the hosted address are next), M12 evaluation, M13 report
 
 What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md), broken into small tested actions in [docs/TASKS.md](docs/TASKS.md). Material for the final report is kept in [docs/REPORT_NOTES.md](docs/REPORT_NOTES.md) and [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).
