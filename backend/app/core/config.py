@@ -30,7 +30,13 @@ class Settings(BaseSettings):
     # Live testing only: made-up parts added to every scan, e.g. "zz_part:0" (see app/simulation.py).
     # Must be empty in normal use and at release.
     simulated_parts: str = ""
-    cors_origins: list[str] = ["http://localhost:5173"]
+    # The local app and the two addresses Firebase Hosting gives the project (M11). Only a browser
+    # page served from one of these may call the backend; every call still needs a signed-in user.
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "https://smart-inventory-da834.web.app",
+        "https://smart-inventory-da834.firebaseapp.com",
+    ]
     model_path: Path = BACKEND_DIR / "models" / "best.pt"
     snapshot_path: Path = BACKEND_DIR / "snapshots" / "latest.jpg"
     firebase_key_path: Path = BACKEND_DIR / "serviceAccountKey.json"
