@@ -1,4 +1,5 @@
 import { ApiError, request } from "../../shared/api/httpClient";
+import { isHostedOrigin } from "../../shared/hosting";
 
 export function runScan() {
   return request("/scan", { method: "POST" });
@@ -16,11 +17,13 @@ export async function fetchLatestSnapshot() {
 }
 
 /** User-facing message with a next step for each failure we know how to fix. */
-export function scanErrorMessage(error) {
+export function scanErrorMessage(error, hosted = isHostedOrigin()) {
   if (!(error instanceof ApiError)) return "The scan could not be completed. Please try again.";
   switch (error.code) {
     case "network_error":
-      return "Cannot reach the scanner. Make sure the backend is running on the shop laptop, then try again.";
+      return hosted
+        ? "Scan Now works only from the shop laptop, with the backend running. On the laptop, allow local network access for this site in Chrome (Site settings, from the lock icon in the address bar), or open the app at http://localhost:5173. Shelf counts still update by themselves."
+        : "Cannot reach the scanner. Make sure the backend is running on the shop laptop, then try again.";
     case "timeout":
       return "The scan took too long. Try again in a moment.";
     case "unauthorized":

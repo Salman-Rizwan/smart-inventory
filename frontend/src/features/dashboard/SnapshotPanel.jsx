@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import EmptyState from "../../shared/components/EmptyState";
 import Notification from "../../shared/components/Notification";
 import { Panel, PanelHeader } from "../../shared/components/Panel";
+import { isHostedOrigin } from "../../shared/hosting";
 import { color, space } from "../../shared/theme/tokens";
 import { useSnapshot } from "./hooks";
 
@@ -32,9 +33,16 @@ export default function SnapshotPanel({ scannedAt }) {
         )}
         {status === "error" && (
           <Box sx={{ padding: space(5) }}>
-            <Notification kind="error">
-              The image could not be loaded. Make sure the backend is running, then refresh the page.
-            </Notification>
+            {isHostedOrigin() ? (
+              <Notification kind="info">
+                The shelf image comes from the shop laptop and cannot be shown here. Open the app on the shop laptop to
+                see it.
+              </Notification>
+            ) : (
+              <Notification kind="error">
+                The image could not be loaded. Make sure the backend is running, then refresh the page.
+              </Notification>
+            )}
           </Box>
         )}
       </Box>
