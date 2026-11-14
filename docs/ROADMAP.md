@@ -1,5 +1,7 @@
 # Roadmap
 
+**Naming (Nov 14):** the live plan is by **Group** in `docs/TASKS.md` ("Where we are and what comes next"). The M-labels in this file are the original milestones and map to it like this: M10 is Group 1 (done), M11 Hosting is Group 3 (done Nov 14; the thumbnail, M11-3, is Group 7), M12 evaluation is Group 4 (its last row, M12-7, is the full regression in Group 6), M13 is the report (the user). The Stock Log is Group 5 and is built next, then Group 4, then Group 6. F1 to F3, MUI-0 to MUI-14, UX-1 to UX-4 and M6 are done. Everything dated below is the plan as it stood when it was written; where it disagrees with `docs/TASKS.md`, TASKS wins.
+
 Deadlines: final submission Nov 15, 2026; code freeze Nov 14 morning, then tag and submit (decided Nov 11; before that, freeze Nov 13). Earlier: freeze Nov 7, final Nov 9. Done so far: M1 to M5, M7, M8, M9 and notifications Stage A (see `README.md` Status).
 
 **Progress (Nov 11):** Done: MUI-0 to MUI-14 and UX-1 to UX-4 (Oct 31); F1 (built, published and checked live Nov 4); M6 automatic scanning (built, and every live check finished on Nov 11: delays, soak, dark frames, call limits, pause rules, the gap recheck, all six camera states in Chrome, pause end to end and the regression; five faults found that day were fixed, see `docs/TASKS.md`); M10 access control and Cancel Order (built, published and checked live Nov 11); simulated `zz_` parts for live testing (Nov 11); the Nov 12 Insights decisions and dashboard layout (gross profit, What To Do, a 90-day seed, a Products tab, the dashboard reordered and cut to about half its length; items 38 to 43 in `docs/TASKS.md`); Group 2 Insights core (Nov 11 evening, a day early: `seed_history`, the analytics, the four dashboard tiles, the Insights page and `insights_check.py`, all checked live). Nov 6 to 10 had no work. Left: the rest of the list in `docs/TASKS.md` ("Remaining work"). **The plan for the last days is "Plan to the freeze" in `docs/TASKS.md` (agreed Nov 11): Nov 12 Insights core; Nov 13 Hosting, a simple Stock Log and the M12 measurements; Nov 14 morning release.** The dated schedule below is the Nov 4 plan, kept for the record.
@@ -152,7 +154,8 @@ Why now: Insights reads the scan history, so its shape is decided here first; it
 - Backend role check: today any signed-in user, including a dealer, can call `/scan` and `/snapshot`. Add a shopkeeper-only dependency.
 - Rules attack tests (see `docs/TESTING.md`).
 
-## 5. M11: Firebase Hosting
+## 5. M11: Firebase Hosting (Group 3, done Nov 14)
+**Outcome:** deployed to `https://smart-inventory-da834.web.app` (and `.firebaseapp.com`) with `firebase.json` (Hosting only, so a deploy never touches the rules) and `.firebaserc`; the hosted addresses are in the backend's default `CORS_ORIGINS`; the hosted app words a blocked Scan Now and the shelf image panel for the laptop-only case; a cache-header fault found on the live site was fixed and redeployed; both roles pass `hosting_check.mjs` on the live address. Since Chrome 142 an https page needs the user's "local network access" permission to call the laptop (found and checked Nov 14, `docs/REPORT_NOTES.md`). The thumbnail below was not built (Group 7, item 30). The plan as written:
 - Deploy the React build. Add the hosted origin to `CORS_ORIGINS`. "Scan Now" still only works on the shop laptop.
 - Planned (Nov 10): a small thumbnail in `status/latest` (no Cloud Storage), so the hosted app can show the shelf image.
 - Check on a phone.
@@ -161,7 +164,8 @@ Why now: Insights reads the scan history, so its shape is decided here first; it
 - Add background and webcam photos with no parts (`python -m scripts.capture_dataset negatives --count 150`) so the model learns "not a part". Then re-validate; only then consider loosening the box guards.
 - Include filters end-on and near the frame edge.
 
-## 7. M12: evaluation (needed for the report)
+## 7. M12: evaluation (Group 4; needed for the report)
+Status Nov 14: not started. The accuracy, timing and sync-latency tools do not exist yet and are built first; the first one-day usage count (Nov 12 to 13) was invalid because the backend was not scanning, so it is redone. Steps and who does what are in `docs/TASKS.md`.
 - 20 shelf arrangements under 3 lighting conditions; average of 50 scans for inference time and for Scan Now click-to-result (live runs on Oct 30 measured 2.8 to 5.4 s against the 3 s target, with model inference under 40 ms, so the time is in camera capture or the Firestore writes; if the average is over, find which step is slow before changing anything); 10 sync-latency trials; free-tier usage; functional test cases for FR1 to FR9 plus History and Insights; usability test with 3 people.
 - The detection and lighting trials do not depend on the new UI; the user can start them earlier.
 

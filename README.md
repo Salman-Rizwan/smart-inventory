@@ -98,7 +98,7 @@ Nine collections (`settings/scanning` holds Pause Scanning). The backend writes 
 
 | Collection / document | Key fields | Written by | Built in |
 |---|---|---|---|
-| `status/latest` (one document) | `counts` {spark_plug, petrol_filter}, `scannedAt`, `imageThumb` (planned, M11) | Backend | M3 |
+| `status/latest` (one document) | `counts` {spark_plug, petrol_filter}, `scannedAt`, `imageThumb` (planned, Group 7) | Backend | M3 |
 | `scans/{auto id}` | `counts`, `scannedAt`, `inferenceMs` | Backend | M3 |
 | `users/{uid}` | `name`, `role` (shopkeeper or dealer) | `seed_users.py` or the console | M4 |
 | `products/{spark_plug}` | `name`, `posCount`, `lastMovementId`, `reorderLevel`, `reorderQty`, `unitCost`, `unitPrice` (LKR, null until set), `updatedBy`, `updatedAt`, `status` (Matched or Mismatch), `lowScanStreak` | Seeded once; shopkeeper (`posCount` with its log entry; Part Settings); backend (`status`, `lowScanStreak`) | M7, F1 |
@@ -121,14 +121,16 @@ Product document ids are the model's own class names. Adding a new part later me
 | FR6 | Raise discrepancy alerts | M8 | One alert per mismatch | Done |
 | FR7 | Automatic replenishment request | M9 | Order on the dealer screen | Done |
 | FR8 | Web dashboard | M4, M5, M9 | Shopkeeper and dealer pages | Done |
-| FR9 | User authentication | M4, M10 | Login, role-based pages, final rules, shopkeeper-only Scan Now and shelf image | Done (M10 built Nov 11; live check after the rules are published) |
-| NFR1 | Accuracy of at least 85% mAP | Done (0.995 mAP50); M12 | Colab results plus live accuracy test | Done (0.995 mAP50); live test M12 |
-| NFR2 | Inference under 1 second | M1, M12 | Measured average time | Met in M1; measure in M12 |
-| NFR3 | Free or low-cost services | M2, M6, M11 | Spark plan; usage under limits | On Spark plan; Hosting M11 |
-| NFR4 | Usable by a non-technical shopkeeper | M5, M12 | Usability test | Usability test M12 |
+| FR9 | User authentication | M4, M10 | Login, role-based pages, final rules, shopkeeper-only Scan Now and shelf image | Done (M10 built and checked live Nov 11; both roles checked on the hosted address Nov 14) |
+| NFR1 | Accuracy of at least 85% mAP | Done (0.995 mAP50); M12 | Colab results plus live accuracy test | Done (0.995 mAP50); live test in Group 4 (M12) |
+| NFR2 | Inference under 1 second | M1, M12 | Measured average time | Met in M1; measure in Group 4 (M12) |
+| NFR3 | Free or low-cost services | M2, M6, M11 | Spark plan; usage under limits | On Spark plan; Hosting done (Group 3, Nov 14); usage measured in Group 4 (M12) |
+| NFR4 | Usable by a non-technical shopkeeper | M5, M12 | Usability test | Usability test in Group 4 (M12) |
 | NFR5 | Any webcam works (camera configurable) | M3 | `CAMERA_INDEX` setting | Done |
 | NFR6 | Access restricted to logged-in users | M2, M10 | Least-privilege rules per role; backend role check; key never committed | Done (M10) |
 | NFR7 | New part categories can be added | Data model | Product ids equal class names | Done |
+
+Milestone labels (M1 to M13) are the original names of the work; the live plan, by Group, is in [docs/TASKS.md](docs/TASKS.md).
 
 ## POS reconciliation (M7)
 
@@ -216,7 +218,7 @@ Set `AUTO_SCAN_ENABLED=true` in `.env` to scan every `SCAN_INTERVAL_SECONDS` (de
 - **Dark frames** below `MIN_FRAME_BRIGHTNESS` are skipped: nothing changes, and `status/latest` records the skip. Scan Now in the dark answers "Too dark to count the parts. Turn on the shelf light, then scan again."
 - **Writes:** an automatic scan is saved to `scans` only when the counts change, plus a heartbeat every `SCAN_HEARTBEAT_SECONDS`; manual scans are always saved. The backend writes whether automatic scanning is on to `status/latest` once at startup, so the dashboard shows "Automatic Scanning Off" without waiting for a scan. `status/latest` is updated after every attempt with `lastAttemptAt`, `lastOutcome` (counted, skipped, failed), `skipReason`, `lastError`, `brightness`, `timings` and the scanning settings. Scan records carry `trigger`, `brightness`, `captureMs`, `detectMs` and `heartbeat`.
 
-### Hosting (M11)
+### Hosting (M11, Group 3)
 
 The React app is served by Firebase Hosting on the free Spark plan (`firebase.json` and `.firebaserc`, project `smart-inventory-da834`; the config deploys Hosting only, never the Firestore rules, which are published by hand in the console). Both roles use the hosted address; only the shopkeeper's Scan Now and shelf image need the shop laptop.
 
@@ -255,6 +257,7 @@ npx firebase-tools@15.35.0 deploy --only hosting --project smart-inventory-da834
 - [x] Supervisor feedback, part 2: business intelligence (the "Business at a Glance" tiles and the Insights page; Nov 11). Gross profit, the part ranking and the What To Do list followed on Nov 12. The Stock Log (a second view inside the Products tab) is planned for Nov 13.
 - [x] Dashboard reordered by the shopkeeper's questions and a Products tab for Part Settings (Nov 12; checked live, full regression 56/56)
 - [x] M10 least-privilege rules and backend role check, Cancel Order, simulated parts for live testing (Nov 11; checked live)
-- [ ] M11 Hosting (built and checked on a local production build Nov 12: config, CORS default, hosted wording; the deploy and the checks on the hosted address are next), M12 evaluation, M13 report
+- [x] Hosting (M11, Group 3, Nov 14): deployed at https://smart-inventory-da834.web.app; both roles checked on the live address; Scan Now from the hosted page works once Chrome's local network access is allowed
+- [ ] Next, in order (the live plan is by Group in [docs/TASKS.md](docs/TASKS.md)): Group 5 the Stock Log inside Products; Group 4 the evaluation evidence (M12); Group 6 the release; Group 7 optional extras (the user decides); M13 the report (the user)
 
 What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md), broken into small tested actions in [docs/TASKS.md](docs/TASKS.md). Material for the final report is kept in [docs/REPORT_NOTES.md](docs/REPORT_NOTES.md) and [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).

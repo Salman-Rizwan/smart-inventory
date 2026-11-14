@@ -2,12 +2,56 @@
 
 The roadmap (`docs/ROADMAP.md`) says what and why; this file breaks each step into small actions, each with its **script tests** (automated: pytest, vitest, rule checks) and its **live tests** (real Firebase, real Chrome, real webcam). A task is done only when both pass. Tick items here as they are finished.
 
-## Remaining work (as of Nov 11 evening)
-Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the detailed rows below, each with its script tests and live tests. "User" marks a step only the user can do. The plan for the last days (agreed Nov 11) is under **Plan to the freeze** below the list.
+## Where we are and what comes next (updated Nov 14)
 
-**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1, M6 automatic scanning (every live check finished Nov 11), M10 access control, Cancel Order, simulated parts for live testing (all checked live Nov 11), Group 2 Insights core (Nov 11 evening: seeded history, analytics, dashboard tiles, Insights page, independent check; all checked live), and the Insights decisions and dashboard layout (Nov 12, items 38 to 43: gross profit, What To Do, a 90-day seed, the Products tab, the reordered dashboard). Tests: backend 305, frontend 819.
+**One naming scheme: Groups.** The live plan is by **Group**. The older labels still appear in the detailed rows below, in `README.md` and in `docs/ROADMAP.md`, and they name the same work: **M-labels** are the original milestones (M10 security, M11 Hosting, M12 evaluation, M13 report), and SL, AN, IN, SH and R are the ids of the detailed tables. When talking about the plan, say Group.
 
-**Open decisions and parked items (Nov 12):** the Group 7 cuts (item 8 undo, 16, 17, 23, 24, 30) are proposed and unconfirmed; the usability test is parked with the user (they run it with their brother and report the outcome); the two Pending orders are kept; the camera is the laptop's own; the code freeze is Nov 14 morning. Automatic scanning is ON in `.env` (30 s interval), so the one-day free-tier usage count (item 33) can start any time the laptop is awake and facing the parts.
+| Group | Items | Original labels | What it is | Status |
+|---|---|---|---|---|
+| 0 | (decisions) | | Camera, kept orders, usability test with the user's brother | Done Nov 11 |
+| 1 | 9, 25 to 27a | M10-1 to M10-3, SL-5 | Least-privilege access, Cancel Order, one name per part | Done Nov 11 |
+| 2 | 10 to 15, 18 to 22 | SH-1, AN-1 to AN-5, AN-L1, IN-1 to IN-4 | Insights core on seeded history | Done Nov 11 |
+| 2b | 38 to 44 | | Gross profit, What To Do, 90-day seed, Products tab, dashboard order, full regression | Done Nov 12 |
+| 3 | 28, 29 | M11-1, M11-2 | Hosting: deployed, and Scan Now from the hosted page | **Done Nov 14** (one look left, see below) |
+| 5 | 5 to 7, and 7a | SL-1 to SL-3 | Stock Log as a second view inside Products, plus a focus check on the busy buttons | **Next** |
+| 4 | 31 to 35 | M12-1 to M12-6 | Evidence for the report: accuracy, timing, sync and usage, functional cases, usability | After Group 5 |
+| 6 | 36, 37 | M12-7, R-1 to R-3 | Full regression, fresh clone, version 1.0.0, tag and deploy from it | After Group 4 |
+| 7 | 8, 16, 17, 23, 24, 30 | SL-4, AN-6, AN-7, IN-5, IN-6, M11-3 | Optional extras, proposed cuts | The user decides (list below) |
+| Report | | M13 | The written report, from `docs/REPORT_NOTES.md` and `docs/FUTURE_WORK.md` | The user |
+
+**Order of work (by what depends on what; the freeze date is not driving it at the moment, the user's decision Nov 14): Group 5, then Group 4, then Group 6, with Group 7 decided by the user at any point.** Group 5 comes before Group 4 because the functional test cases (item 34) cover the Stock Log; Group 6 comes last because it re-runs everything on the final code.
+
+**Group 5, Stock Log (agreed design: `/products/log`, a second view inside Products, five tabs only).** Steps, each finished and tested before the next:
+1. Pure view logic: period (Today, 7, 30, 90 days), part filter, URL round trip, the "By" label ("You", "Another user", the script's name, "Demo data"). No type filter (trimmed Nov 12).
+2. Repository and hook: `stock_movements where at >= start, orderBy at desc, limit(size + 1)`, 50 at a time with Load More, the cache-skip rule from alert history, no composite index, no rules change; the part filter works on the loaded rows and the page says so.
+3. The page and the Parts / Stock Log switch: loading, error, empty and loaded states; shopkeeper only, the dealer is sent to Orders; the Products tab stays current and five tabs still fit.
+4. A "History" link in each Stock Check part cell, opening `/products/log?part=ID&period=30`.
+5. Live checks on the seeded history (147 entries, no `zz` rows needed): Load More, filters, links, axe at six widths, keyboard, the dealer redirect.
+6. Item 7a, the focus check, listed in the plan but never numbered until now: a button that is disabled while it saves loses keyboard focus in Chrome (fixed for Pause and Resume Scanning only). Measure Scan Now, Record Sale, Receive Stock, Acknowledge and the order steps in Chrome, and if focus is lost fix it once in the shared `Button` (keep it focusable with `aria-disabled` while busy), with tests.
+
+**Group 4, evidence (nothing is built yet; the tools come first).** There is no accuracy, timing or latency script in the repository. Steps:
+1. Build the three measuring tools with tests: the accuracy capture and scoring script (scored on a fixture), the Scan Now timing run (50 runs, once on the laptop's own page and once from the hosted page), and the sync-latency run (10 trials, two browsers).
+2. Item 31 accuracy: **the user arranges the shelf** under three lighting conditions (the number of arrangements, 20 or 10, is the user's decision); the script records each capture.
+3. Item 32 timing and item 33 sync latency: run by me with scanning paused as needed.
+4. Item 33 usage: **the one-day count must be redone** (see the finding below), then read at the end from the Firebase console Usage tab.
+5. Item 34 functional cases FR1 to FR9, plus Stock Log, Insights and Hosting, each run and recorded.
+6. Item 35 usability test: the user with their brother (parked with the user).
+
+**Group 6, release.** Item 36: the full regression updated for the Stock Log and Hosting (with real data snapshotted and restored), screenshots for the report, a fresh-clone run from the README alone, a secrets search, `SIMULATED_PARTS` empty and no `zz_` products, `package.json` 1.0.0. Item 37 (the user): pull request dev to main (merge commit), tag `v1.0.0`, deploy Hosting from the tag, then `hosting_check.mjs` on the live address and `deployed_rules.py`.
+
+**Group 7, optional extras (the user has not confirmed any; each is either built or stays in `docs/FUTURE_WORK.md`).** My suggested order if any are wanted, by value for effort: item 24 Apply a recommended reorder level (small, a clear usability gain); item 8 undo on Record Sale (a rules change the user publishes); item 30 hosted thumbnail (removes the need for Chrome's local network permission just to see the shelf image, and lets a remote shopkeeper see it); item 23 stock flow and the Response and dealer section (the dealer's side of the analytics); item 17 stock value; item 16 stockouts and lost sales (the largest, it needs the scan series).
+
+**Findings on Nov 14 that change the plan:**
+- **The one-day usage count of Nov 12 to 13 is invalid.** There are no scan records between Nov 12 01:27 and Nov 14 16:06, and a heartbeat is written every 10 minutes while scanning runs, so the backend was not scanning (most likely the laptop slept: `caffeinate -i` does not stop sleep when the lid is closed, and the camera needs the lid open anyway). The redo needs the laptop awake, lid open, facing the parts, backend running for 24 hours, and the same scan records are the proof that the window had no gap longer than about 11 minutes.
+- **Group 3 leaves one look and one decision.** Look: the Chrome permission prompt itself, once the user's Chrome has relaunched into version 157 (a fresh Chrome 157 blocks the hosted page until local network access is allowed; the user's older running Chrome did not ask). Decision, after that: whether the hosted dashboard should load the shelf image only on request, so the prompt does not appear at page load (`docs/FUTURE_WORK.md`).
+- **Model retraining is not part of any group.** It stays in future work; the accuracy runs (item 31) measure the current model, and the report says so.
+
+## Remaining work (updated Nov 14)
+Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the detailed rows below, each with its script tests and live tests. "User" marks a step only the user can do. The order and the dependencies are in the section above; the group table under **Plan by group** near the end of this list holds the severity of each.
+
+**Done:** M1 to M5, M7 to M9, notifications, the move to Material UI, UX-1 to UX-4, F1, M6 automatic scanning (every live check finished Nov 11), M10 access control, Cancel Order, simulated parts for live testing (all checked live Nov 11), Group 2 Insights core (Nov 11 evening: seeded history, analytics, dashboard tiles, Insights page, independent check; all checked live), the Insights decisions and dashboard layout (Nov 12, items 38 to 43: gross profit, What To Do, a 90-day seed, the Products tab, the reordered dashboard), and **Group 3 Hosting (Nov 14: deployed to `https://smart-inventory-da834.web.app`, CORS, hosted wording, Scan Now from the hosted page; the live check passes both roles and the cache headers)**. Tests: backend 315, frontend 838.
+
+**Open decisions and parked items (Nov 14):** the Group 7 list above is unconfirmed; the number of accuracy arrangements (20 or 10 times 3 lighting conditions) is the user's choice; the usability test is parked with the user (they run it with their brother and report the outcome); the two Pending orders are kept; the camera is the laptop's own and the laptop must stay still facing the shelf during live tests (people in the frame read as 0, 5 or a wrong count). Automatic scanning is ON in `.env` (30 s interval).
 
 **Before any live test:**
 - The shelf camera is the MacBook Air's built-in camera (`CAMERA_INDEX=0`, the user's decision). Whoever uses the laptop is in the frame: on Nov 11 it read 0 and 0 while the laptop was being used, and a face once scored 0.54 as a spark plug. Open `backend/snapshots/latest.jpg` and check `status/latest.counts` = 4 and 1 before any live test; ask the user to Pause Scanning while they work on the laptop.
@@ -24,6 +68,7 @@ Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the deta
    - [ ] 5. Stock Log data: newest first, 50 at a time, period, part and type filters (SL-1).
    - [ ] 6. Stock Log page as a second view inside Products (Nov 12 decision: the header stays at five tabs, which fit from 375 px); filters in the URL (SL-2).
    - [ ] 7. Link from each Stock Check row to that part's log (SL-3).
+   - [ ] 7a. Focus check on the other busy buttons (added Nov 14; it was in the Group 5 row of the plan but had no item): Scan Now, Record Sale, Receive Stock, Acknowledge and the order steps lose keyboard focus while they save, as Pause Scanning did; measure in Chrome, fix once in the shared `Button` if needed, with tests.
    - [ ] 8. Undo on Record Sale; rules change (SL-4). User publishes the rules.
    - [x] 9. One name per part; `productName` on new orders (SL-5). Nov 11: built, script-tested and seen live (the dealer's row shows the stored name) (orders and order notifications use it; alerts still use the class-name label, see FUTURE_WORK).
 3. Demo history and analytics
@@ -49,13 +94,13 @@ Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the deta
    - [x] 27. Dealer pages without product reads (M10-3). The dealer's pages already read no products (ProductsProvider is shopkeeper-only); names now come from `productName`. Live: full regression 56/56 under the new rules, no permission errors in either role.
    - [x] 27a. Cancel Order (added Nov 11, user's decision): shopkeeper cancels Pending or Accepted with a reason; Cancelled state, Closed filter, Cancelled tile, dealer notified if they had accepted it; backend no longer counts it as open. Built and script-tested (frontend 674 tests). Live (`cancel_live.mjs`, both roles): cancelled with a reason, moved to Closed with the reason shown, the dealer's tile and notification updated live, no Cancel on a dispatched order, axe 0; dialog checked at 1360, 390 and 320 px (`cancelui.mjs`). Reorder after a cancel: checked live on a simulated part, `zz_brakepads` (`sim_reorder_live.py` 7/7, Nov 11): first order after 2 low scans and the 5-minute delay, cancelled by the shopkeeper over REST, no new order one scan later, a fresh one 314 s after the first low scan following the cancel, and only one. Teardown left no trace; real orders and alerts unchanged.
 6. M11 Hosting
-   - [ ] 28. Build and deploy; hosted origin in `CORS_ORIGINS` (M11-1). User deploys or approves. **Nov 12 (built, not deployed):** `firebase.json` (Hosting only, SPA rewrite, cache headers) and `.firebaserc`, guarded by `hostingConfig.test.ts`; the hosted origins are in the backend's default `CORS_ORIGINS` with `test_cors.py` (10 tests; `.env` needs no change, restart the backend); the production build served locally with `hosting_check.mjs`: 21 checks for both roles on real Firebase, all pass. **Nov 14:** deployed by the user (16:04 IST); `hosting_check.mjs` on the live `.web.app` address passed 21 of 22 (the failure was the home page's cache header: `/index.html` is redirected to `/`, so its rule never applied). Fixed in `firebase.json` (no-cache on every path, assets rule after it), verified on the hosting emulator, frontend 838 tests. Left: the user redeploys, then `hosting_check.mjs` again (it must pass 22 of 22).
-   - [ ] 29. Scan Now from the hosted page on the shop laptop (M11-2). **Nov 12:** the hosted wording is built and checked in Chrome on `hosted.localhost` (`hosted_messages.mjs`, desktop and phone, axe 0, no scan run): Scan Now says it works only from the shop laptop and what to allow; the shelf image panel says the image lives on the laptop. Left: the real check on the hosted address with the backend restarted (Chrome's local network prompt; steps in `docs/REPORT_NOTES.md`).
+   - [x] 28. (Done Nov 14: redeployed 16:34 IST, `hosting_check.mjs` on the live address passes every check including both cache headers.) Build and deploy; hosted origin in `CORS_ORIGINS` (M11-1). User deploys or approves. **Nov 12 (built, not deployed):** `firebase.json` (Hosting only, SPA rewrite, cache headers) and `.firebaserc`, guarded by `hostingConfig.test.ts`; the hosted origins are in the backend's default `CORS_ORIGINS` with `test_cors.py` (10 tests; `.env` needs no change, restart the backend); the production build served locally with `hosting_check.mjs`: 21 checks for both roles on real Firebase, all pass. **Nov 14:** deployed by the user (16:04 IST); `hosting_check.mjs` on the live `.web.app` address passed 21 of 22 (the failure was the home page's cache header: `/index.html` is redirected to `/`, so its rule never applied). Fixed in `firebase.json` (no-cache on every path, assets rule after it), verified on the hosting emulator, frontend 838 tests. Left: the user redeploys, then `hosting_check.mjs` again (it must pass 22 of 22).
+   - [x] 29. (Done Nov 14: Scan Now and the shelf image work from the hosted page in the shopkeeper's Chrome; in a fresh Chrome 157 the page is blocked until local network access is allowed, and the hosted wording was checked there. Remaining: only seeing the prompt in headed Chrome 157 after the relaunch; details in `docs/REPORT_NOTES.md`.) Scan Now from the hosted page on the shop laptop (M11-2). **Nov 12:** the hosted wording is built and checked in Chrome on `hosted.localhost` (`hosted_messages.mjs`, desktop and phone, axe 0, no scan run): Scan Now says it works only from the shop laptop and what to allow; the shelf image panel says the image lives on the laptop. Left: the real check on the hosted address with the backend restarted (Chrome's local network prompt; steps in `docs/REPORT_NOTES.md`).
    - [ ] 30. Shelf thumbnail on the hosted app (M11-3).
 7. M12 evaluation (results go into `docs/REPORT_NOTES.md`)
    - [ ] 31. Detection accuracy, 20 arrangements x 3 lighting conditions (M12-1). User arranges the shelf.
    - [ ] 32. Scan Now timing, 50 runs (M12-2).
-   - [ ] 33. Sync latency and one day of free-tier usage (M12-3, M12-4).
+   - [ ] 33. Sync latency and one day of free-tier usage (M12-3, M12-4). **Nov 14: the first usage count (Nov 12 01:30 to Nov 13 01:30) is invalid**: there are no scan records from Nov 12 01:27 to Nov 14 16:06, so the backend was not scanning (the laptop most likely slept). Redo it with the lid open and the laptop awake; valid only if the scan records show no gap over about 11 minutes. The service account cannot read Cloud Monitoring (403), so the figures come from the Firebase console Usage tab. No sync-latency tool exists yet.
    - [ ] 34. Functional test cases FR1 to FR9 plus Stock Log and Insights (M12-5).
    - [ ] 35. Usability test with 3 people (M12-6). User runs it.
 8. Release
@@ -73,20 +118,20 @@ Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the deta
 
 Then the report (M13, user), using `docs/REPORT_NOTES.md` and `docs/FUTURE_WORK.md`.
 
-## Plan to the freeze (agreed Nov 11)
-Final submission Nov 15. **Code freeze Nov 14 morning** (the user's decision), then tag and submit; Nov 15 is the buffer. The remaining items were grouped by severity, what fits, and what each gives:
+## Plan by group (agreed Nov 11 as "Plan to the freeze"; reordered by dependency Nov 14)
+Final submission Nov 15 and the code freeze on the morning of Nov 14 were the user's dates (decided Nov 11). On Nov 14 the user asked to stop planning around them for now, so the **Order** column is by what depends on what, and the "Where we are and what comes next" section at the top says what each group still contains. The remaining items were grouped by severity and by what each gives:
 
-| Group | Items | Severity | What it gives | When |
+| Group | Items | Severity | What it gives | Order |
 |---|---|---|---|---|
 | 0, user | Camera (laptop camera kept), leftover order (kept), freeze date (Nov 14), usability test (the user with their brother, outcome reported later) | Decided | — | Done Nov 11 |
 | 1 | 9, 25, 26, 27, plus Cancel Order (27a) | Must | Least-privilege access for the dealer; FR9 and NFR6 done | **Done Nov 11** |
-| 2 | 10 to 15, 18 to 22 (Insights core) | Must: the supervisor's feedback | Insights tab (sales, shrinkage, days of cover, reorder suggestions) and four dashboard tiles, on seeded demo history | **Done Nov 11 evening** (a day early) |
-| 2b | 38 to 44 (Insights decisions, dashboard order, Products tab) | Must: the user's decision Nov 12 | The shopkeeper sees profit and one next step per part, and a dashboard of about 1,500 px | **Done Nov 12** (item 44 done at 00:45) |
-| 3 | 28, 29 (Hosting) | Must | Public URL for both roles; Scan Now from the hosted page on the laptop | Nov 13 morning |
-| 5 | 5 to 7 (simple Stock Log), and a focus check on the other busy buttons | Should; first to drop if Insights runs long | Every POS change visible on its own tab | Nov 13 morning |
-| 4 | 31 to 35 (M12 evidence) | Must for the report | Numbers for NFR1 to NFR4 | Start the one-day usage count and accuracy runs Nov 12 (laptop facing the parts, awake); scripted parts and functional cases Nov 13 afternoon; usability by the user |
-| 6 | 36, 37 (release) | Must, last | v1.0.0 tagged and deployed | Nov 14 morning |
-| 7 | 8 (undo), 16, 17, 23 (extra Insights sections), 24 (Apply), 30 (hosted thumbnail) | Proposed cuts to future work: confirm with the user before dropping them | — | Only if time is left |
+| 2 | 10 to 15, 18 to 22 (Insights core) | Must: the supervisor's feedback | Insights tab (sales, shrinkage, days of cover, reorder suggestions) and four dashboard tiles, on seeded demo history | **Done Nov 11 evening** |
+| 2b | 38 to 44 (Insights decisions, dashboard order, Products tab) | Must: the user's decision Nov 12 | The shopkeeper sees profit and one next step per part, and a dashboard of about 1,500 px | **Done Nov 12** |
+| 3 | 28, 29 (Hosting) | Must | Public URL for both roles; Scan Now from the hosted page on the laptop | **Done Nov 14** |
+| 5 | 5 to 7 (simple Stock Log) and 7a (focus check on the busy buttons) | Built next (no longer "first to drop": the deadline is not driving the order) | Every POS change visible inside Products | **Next** |
+| 4 | 31 to 35 (M12 evidence) | Must for the report | Numbers for NFR1 to NFR4 | After Group 5; the measuring tools are built first; the usage count is redone |
+| 6 | 36, 37 (release) | Must, last | v1.0.0 tagged and deployed | After Group 4 |
+| 7 | 8 (undo), 16, 17, 23 (extra Insights sections), 24 (Apply), 30 (hosted thumbnail) | Proposed cuts to future work: confirm with the user before dropping or building them | — | The user decides |
 
 ## Every task, every time
 1. Script gates: backend `python -m pytest` and `ruff check . && ruff format --check .`; frontend `npm run typecheck && npm test && npx oxlint && npm run build`.
@@ -141,13 +186,13 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | M6-L4 | Brightness calibration | — | Brightness with lights on, dim and off; set `MIN_FRAME_BRIGHTNESS` between; record the values in TESTING |
 | M6-L5 | Camera states | — | Live (running), Off (`AUTO_SCAN_ENABLED=false`), No scan (backend stopped for two intervals), Too dark (lens covered), Camera not responding (`CAMERA_INDEX` set to a missing camera), Paused |
 
-## Stock Log, undo and part names: Nov 13 (part names done Nov 11)
+## Stock Log, undo and part names (Group 5: SL-1 to SL-3; SL-4 undo is Group 7; SL-5 part names done Nov 11)
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
-| SL-1 | Repository: newest first by `at` within the period, 50 at a time plus one, cache-skip as in alert history. Part and type filters run in the browser on the period's entries (a Firestore `where` plus `orderBy` on another field would need a composite index) | Paging; cache-skip; filters; period edges in local time | 60 `zz` entries: Load More, filters, counts |
-| SL-2 | Stock Log page, a second view inside the Products tab (shopkeeper; changed Nov 12 from a sixth tab): Today by default; period, part and type filters in the URL; columns time, part, type, change, before and after, reason, who; loading, empty and error states | Rendering per state; filters from and to the URL; "who": "You" for the signed-in user, the script's name for Reset, "Another user" otherwise (other users' names are not readable under the rules) | Header fit with five tabs at 320 to 1360 px; axe; keyboard; dealer sent to their home |
-| SL-3 | Links: each Stock Check row opens the log filtered to its part | Link targets | Chrome: link opens the filtered log |
+| SL-1 | Repository: newest first by `at` within the period, 50 at a time plus one, cache-skip as in alert history. The part filter runs in the browser on the loaded entries (a Firestore `where` plus `orderBy` on another field would need a composite index); the type filter was dropped Nov 12 | Paging; cache-skip; filters; period edges in local time | 60 `zz` entries: Load More, filters, counts |
+| SL-2 | Stock Log page, a second view inside the Products tab (shopkeeper; changed Nov 12 from a sixth tab): Today by default; period and part filters in the URL (no type filter); columns time, part, type, change, before and after, reason, who; route `/products/log`; loading, empty and error states | Rendering per state; filters from and to the URL; "who": "You" for the signed-in user, the script's name for Reset, "Another user" otherwise (other users' names are not readable under the rules) | Header fit with five tabs at 320 to 1360 px; axe; keyboard; dealer sent to their home |
+| SL-3 | Links: each Stock Check part cell has a "History" link to `/products/log?part=ID&period=30` | Link targets | Chrome: link opens the filtered log |
 | SL-4 | Undo on Record Sale: a "Sale recorded. Undo" message for 10 s; writes a `Correction` entry with id `undo-<sale id>`, reversing exactly that sale, by the same person, within 2 minutes; the analytics leave out both | Planner; UI timer, focus and keyboard; rule check cases (second undo refused because the id exists, wrong amount, someone else's sale, too late, not a sale) | User publishes; REST attack checks; Chrome: undo restores the POS; the log shows both; a second undo is refused |
 | SL-5 | One name per part: Orders, Alerts and notifications use the product name; new orders store `productName` (backend), so the dealer keeps names once M10 narrows product reads; `partLabel` only as the last fallback | Name chooser; backend order-plan test includes `productName`; old orders without it still show a name | A `zz` part with a custom name reads the same on every page, for both roles |
 
@@ -180,7 +225,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | IN-5 | Nov 10: stock flow (links to the Stock Log), stock value, stockouts, response and dealer | Section tests | `insights_check.py` |
 | IN-6 | Apply recommendation through Part Settings, with confirmation | Confirm and cancel; refused write shows a next step | Apply changes the setting; the next scan uses the new level |
 
-## M10 security (done Nov 11) and M11 Hosting (Nov 13)
+## M10 security (Group 1, done Nov 11) and M11 Hosting (Group 3, done Nov 14; M11-3 is Group 7)
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
@@ -191,7 +236,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | M11-2 | Scan Now from the hosted page on the shop laptop: Chrome may block an https page calling `http://localhost` (Private Network Access); if so, the backend answers the preflight, or the hosted app says to use the local app | Backend header test | Real Scan Now from the hosted page |
 | M11-3 | Thumbnail in `status/latest`, under 100 KB, written only when counts change or at the heartbeat | Encoder size and cadence | Hosted page shows the shelf image; phone |
 
-## M12 evaluation and regression: Nov 12 to 13
+## M12 evaluation (Group 4: M12-1 to M12-6; M12-7 belongs to Group 6)
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
@@ -203,7 +248,7 @@ Live checks for these run on Nov 6 morning, after the user restarts the backend.
 | M12-6 | Usability test with 3 people: tasks and a SUS questionnaire | — | Results and fixes |
 | M12-7 | Full regression updated for every new feature; screenshots for the report | `regress.mjs`, `states.mjs`, `baseline.mjs` updated | All pass; data restored identical |
 
-## Release: Nov 14 morning (code freeze)
+## Release (Group 6)
 
 | ID | Action | Script tests | Live tests |
 |---|---|---|---|
