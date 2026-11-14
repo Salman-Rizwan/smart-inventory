@@ -17,11 +17,18 @@ describe("Firebase Hosting configuration", () => {
     expect(hosting.rewrites).toContainEqual({ source: "**", destination: "/index.html" });
   });
 
-  it("caches hashed assets for a year and never caches index.html, so a new deploy shows at once", () => {
-    const value = (source: string) =>
-      hosting.headers.find((h: { source: string }) => h.source === source)?.headers[0].value;
-    expect(value("/assets/**")).toBe("public, max-age=31536000, immutable");
-    expect(value("/index.html")).toBe("no-cache");
+  it("never caches a page, so a new deploy shows at once", () => {
+    // A rule for "/index.html" alone is not enough: Hosting redirects that path to "/", and "/" and every
+    // rewritten route (/alerts, /orders) would keep the default one-hour cache. So every path gets no-cache.
+    const rule = hosting.headers.find((h: { source: string }) => h.source === "**");
+    expect(rule?.headers).toEqual([{ key: "Cache-Control", value: "no-cache" }]);
+  });
+
+  it("caches hashed assets for a year, with that rule after the general one so it wins", () => {
+    const sources = hosting.headers.map((h: { source: string }) => h.source);
+    const assets = hosting.headers[sources.indexOf("/assets/**")];
+    expect(assets.headers).toEqual([{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }]);
+    expect(sources.indexOf("/assets/**")).toBeGreaterThan(sources.indexOf("**"));
   });
 
   it("deploys Hosting only: no firestore key, so a deploy can never publish the security rules", () => {
