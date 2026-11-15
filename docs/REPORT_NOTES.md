@@ -8,6 +8,12 @@ Material for the final report (M13), collected while building. Each section says
 - Include the licence note: Ultralytics is AGPL-3.0.
 - Any disclosure of tool use follows the university policy; that decision is the author's.
 
+## Assumptions (Introduction or Scope; repeat in Evaluation)
+Agreed with the user on Nov 15 for the final report:
+- **Shelf layout:** parts are placed in view and spaced apart: one layer, a gap of a few centimetres between parts, none cut off at the frame edge. Touching or overlapping parts are miscounted either way: an extra box spanning two parts (seen twice on Nov 15 while arranging; Operational lessons), or, more often, one box over two plugs lying against each other. The accuracy run measured it on purpose: spaced parts 90.1% of frames fully right, touching plugs 5.6% (Detection accuracy).
+- **Lighting:** the shelf is properly lit (the accuracy run covered normal indoor light from three directions, brightness 139 to 207). Frames below `MIN_FRAME_BRIGHTNESS` (40 of 255) are skipped rather than counted, so a dark shelf is not reported as empty, but nothing is counted until the light is back.
+- **Camera position:** the camera has a fixed view of the whole shelf that using the laptop does not disturb, with nobody in the frame (Operational lessons: faces and a moved camera gave wrong counts).
+
 ## System summary (Introduction, Design)
 A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralytics 8.4.163, `best.pt`, classes `spark_plug` and `petrol_filter`) counts the parts on the shop laptop (FastAPI, Python 3.11). Counts are compared with mock POS records; mismatches raise alerts, and parts that stay low raise purchase orders for the dealer. Firebase on the free Spark plan stores the data (Firestore), signs users in (Auth) and serves the React app (Hosting). Two roles: shopkeeper and dealer. Architecture diagram and data model: `README.md`.
 
@@ -50,10 +56,12 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | Pause Scanning | No scan attempted during a 130 s pause; scanning resumed by itself 29 s after it ended (interval 30 s); from the button, a scan arrived 4 s after Resume | `pause_live.py`, `camstates.mjs`, Nov 11 |
 | Scan Now click to result, camera kept open | 2.4 s and 2.8 s (target 3 s); measured over 50 runs in M12 (row below) | Live regression, Nov 11 |
 | Scan Now click to result, M12 (Nov 15) | **Laptop page** (`localhost:5173`, 20:04 to 20:08 IST, after a 3-run check of 1,695, 855 and 854 ms): 50 of 50 completed with the right counts (1 Petrol Filter, 4 Spark Plug); **mean 989 ms, median 817 ms, 95th percentile 1,748 ms, max 1,948 ms**, sd 368; **50 of 50 at or under the 3 s target**. **Hosted page** (`smart-inventory-da834.web.app` in a Chrome profile with local network access allowed once, 20:12): 10 of 10 right; mean 1,076 ms, median 871 ms, max 2,235 ms; 10 of 10 under 3 s. Inference mean 38 ms (laptop page) and 45 ms (hosted page); camera capture median 188 ms. Two groups of times: with the camera already open a press takes about 0.75 to 0.9 s; 11 of the 60 presses took 1.6 to 2.2 s because they reopened the camera (capture 1,080 to 1,450 ms instead of about 185 ms). Scanning was paused for the measurement, so no automatic scan could hold the lock, and while paused the automatic loop releases the camera every 30 s; the first press after each release waits for the warm-up frames (on the laptop page every sixth run, about 30 s apart). That is what a shopkeeper sees on the first Scan Now during a pause; with automatic scanning running the camera stays open. One other run (1,528 ms) had a normal capture, so its extra time was the network or the save. The earlier 2.8 to 5.4 s (Oct 30 to 31) was before the camera was kept open. Scan records hold only capture and inference times (they are written before the save finishes), so the rest of each press is the save, reconciliation, the network and drawing the result. Real data snapshotted first, restored and verified identical; the 63 manual scan records are real scans of the real shelf and were kept | `scan_timing.mjs` (in-page timer from the click to the result on screen, counts checked every run), `m12.py breakdown`, Nov 15 |
+| Sync latency, M12 (Nov 15) | A change saved in one shopkeeper session until a second session shows it: two separate browser profiles on the laptop, each with its own Firebase connection, both on the Products tab; session A changes the temporary part `zz_sync`'s Reorder At in Part Settings and session B's live listener redraws its table (both timed on the laptop's clock). After a 2-trial check (409 and 172 ms), 10 trials at 20:45 IST: **10 of 10 seen, mean 175 ms, median 150 ms, 95th percentile and max 348 ms, min 123 ms**, sd 66. The first trial of each run is the slowest (348 and 409 ms; the connection is still warming up). Firestore held the final value (Reorder At 20); no alert, order or stock change was made for `zz_sync`, and it was removed afterwards. The real data matched the snapshot except two fields the backend owns: the snapshot (20:44:31) caught Spark Plug as Mismatch during a rearrangement (5 counted, see Operational lessons), and the next scan (20:45:03, 4 and 1) set it back to Matched, so nothing was restored over it | `sync_latency.mjs`, `m12.py sync-setup`/`sync-teardown`, Nov 15 |
+| Detection accuracy, M12 (Nov 15) | 11 arrangements x 3 lighting conditions x 3 frames = 99 frames, the backend's own camera, model and `.env` settings, scored by count (details and tables in "Detection accuracy" below). **Spaced parts (arrangements 1 to 9, 81 frames): 73 frames with every count right (90.1%); spark plug precision 98.2%, recall 100%; petrol filter precision 93.0%, recall 98.1%; both empty sheets read 0 and 0 in all 18 frames.** **Touching parts (arrangements 10 and 11, 18 frames): 1 frame right (5.6%); spark plug recall 73.0%**, because two plugs lying against each other get one box. Inference median 45 ms. No frame was too dark: the three conditions measured 139 to 207 brightness, so the run covers normal indoor light, not low light | `scripts.accuracy_run capture/score nov15`, annotated images in `backend/evaluation/nov15/` (not committed), Nov 15 |
 | Scan Now on the final layout | 2,829 ms click to result with 29 ms inference; counted 1 filter and 4 plugs correctly | Live regression, Nov 12 |
 | Writes from automatic scanning | Overnight: 8 scan records over the hours the laptop was awake (5 heartbeats every 10 minutes, 2 changes, 1 manual) instead of about 300; a quiet scan costs 1 write | Live soak, Nov 4 to 5 |
 | Brightness (0 to 255) | Lights on 171 to 183; lights off with daylight 40 to 53 (counts still right); lens covered 18 and 39 (skipped); threshold 40 | Live, Nov 4 to 5 |
-| Free-tier budget (estimate) | About 1,500 writes and 7,000 reads a day from the backend at a 60 s interval, plus about 1,440 reads a day per open dashboard; limits are 20,000 and 50,000 | Design calculation; to be measured in M12 |
+| Free-tier budget (estimate) | About 1,500 writes and 7,000 reads a day from the backend at a 60 s interval, plus about 1,440 reads a day per open dashboard; limits are 20,000 and 50,000 | Design calculation; measured as a 4.1-hour sample on Nov 15 (below) |
 | Insights read cost (first 30-day seed, Nov 11) | 64 document reads per session (55 stock changes and 9 orders over a 180-day window), shared by the dashboard tiles and the page; afterwards one read per new change | `insights_check.py` `loaded` counts, Nov 11 |
 | Insights bundle (Nov 11) | Main bundle 1,126 to 1,140 kB (347 to 352 kB gzipped) for the analytics, tiles and loader; the Insights page with the charts library is a separate 347 kB chunk (109 kB gzipped) loaded on first visit | `npm run build`, Nov 11 |
 | Insights correctness (first version, Nov 11) | Page figures equal to an independent Python recomputation at 7, 30 and 90 days and with the part filter: 25 checks per run, all equal | `insights_live.mjs`, Nov 11 |
@@ -69,9 +77,61 @@ A USB or laptop webcam photographs an auto-parts shelf; a YOLOv8 model (Ultralyt
 | One-day free-tier count, first attempt (Nov 12 to 13) | **Invalid**: no scan records from Nov 12 01:27 to Nov 14 16:06, so the backend was not scanning (the laptop slept: it was on battery, and `caffeinate -i -t 90000` does not stop sleep and its timer pauses while asleep). Redone from Nov 15 | `scan_gaps.py`, Nov 14 |
 | One-day free-tier count, redo (Nov 15 to 16) | Backend started 06:42 IST Nov 15 (01:12 UTC) from VS Code without `--reload`, automatic scanning every 30 s, shelf 4 and 1 with nobody in the frame, `caffeinate -dis` (no timer), laptop on the charger from 06:48 (all three sleep assertions held). Measured as the sum of the console's hourly buckets from 07:00 Nov 15 to 07:00 Nov 16 IST (the Usage chart is per hour, so 24 whole hours all after the start), read after 08:00 Nov 16; `scan_gaps.py 2026-11-15T01:12:18 24` must say VALID WINDOW. Console at 06:45 Nov 15, last 24 hours (mostly Nov 14 testing, for reference only): 6.4k reads, 122 writes, 0 deletes, 68 peak listeners. Query Insights over that day agree with the per-scan estimate: per automatic scan the backend reads the 2 products, the open orders (2) and the active alerts (about 0.5), plus the pause setting. Exceptions: 2 manual scans at about 06:42 Nov 15 (start of the window); 2 more manual scans at 07:16; from 07:00 to 07:45 the shelf was rearranged and people were in the frame (the 07:43 image shows a person behind the shelf and a hand in view), and the spark plug count flipped between 4 and 5 eleven times (one reading of 3 and 0 at 07:20), so 17 extra change records and the matching status writes; no alert or order resulted (the 3-minute alert delay and the 2-scan order rule absorbed every flip). Checks during the window: `scan_gaps.py` at 06:48 and 07:43 (VALID, no gap) and one read of the 24 scan records at 07:45, about 60 reads in all **Stopped at 10:46 Nov 15** (the user had to take the laptop): 4.1 h with no gap (`scan_gaps.py`: 44 records, 40 automatic, 20 heartbeats, 4 manual; VALID). Fallback figure: the console's hourly buckets 07:00 to 10:00 Nov 15 (3 whole hours) give a measured rate per hour, scaled to a day and labelled as such. Provisional result from the console's 24-hour totals (06:45 Nov 15: 6.4k reads, 122 writes; 10:50 Nov 15: 9.8k reads, 693 writes; nothing was recorded on Nov 14 before 16:00, so the difference is the window): **about 3,400 reads and 570 writes in about 4 hours**, so **about 20,000 reads (41% of 50,000) and 3,400 writes (17% of 20,000) a day**. Writes are above the 2,900 estimate because of the 4/5 flicker. Reads include a browser: the console shows 10 to 20 live listeners from about 07:00 to 11:00 (whose browser to be confirmed), plus about 130 reads from the gap checks. Exact hourly values can be read from the chart's tooltips for 07:00 to 10:00. The full 24 hours is to be restarted when the laptop can stay put | Partial (4.1 h), provisional figures |
 
-**Status at Nov 15 (Groups 1, 2, 2b and 3 done; Group 5's Stock Log built):** Group 4's measuring tools are built and tested (accuracy capture and scoring, Scan Now timing, sync latency, functional case table, usability kit) and a 4.1-hour usage sample gives provisional free-tier figures; Scan Now timing is measured (50 + 10 runs, Nov 15: median 817 ms, all under 3 s); the sync and accuracy runs, the functional cases and the usability test remain, as do the Stock Log's live checks and the focus check (Group 5) and the release (Group 6). The full 24-hour usage count is deferred to about Nov 19. The Group 7 items (undo on Record Sale, stockouts, stock value, the extra Insights sections, Apply, the hosted thumbnail) are proposed cuts the user has not confirmed.
+**Status at Nov 15 (Groups 1, 2, 2b and 3 done; Group 5's Stock Log built):** Group 4's measuring tools are built and tested (accuracy capture and scoring, Scan Now timing, sync latency, functional case table, usability kit) and a 4.1-hour usage sample gives provisional free-tier figures; Scan Now timing is measured (50 + 10 runs, Nov 15: median 817 ms, all under 3 s) and so is sync latency (10 trials, median 150 ms, max 348 ms) and detection accuracy (11 arrangements, 99 frames: 90.1% of frames fully right with spaced parts, 5.6% with touching plugs); the functional cases and the usability test remain, as do the Stock Log's live checks and the focus check (Group 5) and the release (Group 6). The full 24-hour usage count is deferred to about Nov 19. The Group 7 items (undo on Record Sale, stockouts, stock value, the extra Insights sections, Apply, the hosted thumbnail) are proposed cuts the user has not confirmed.
 
-Still to measure in Group 4 (M12; `docs/TASKS.md`; the measuring tools are built first, and the first one-day usage count of Nov 12 to 13 was invalid because the backend was not scanning, so it is redone): detection accuracy over 20 (or 10) arrangements under 3 lighting conditions, sync latency over 10 trials, one day of real free-tier usage, functional test cases FR1 to FR9, and a usability test with 3 people.
+Still to measure in Group 4 (M12; `docs/TASKS.md`; the measuring tools are built first, and the first one-day usage count of Nov 12 to 13 was invalid because the backend was not scanning, so it is redone): one day of real free-tier usage (deferred to about Nov 19), functional test cases FR1 to FR9, and a usability test with 3 people.
+
+## Detection accuracy (Evaluation, Group 4 item 31; NFR1)
+**Method.** On Nov 15, 21:13 to 21:42 IST, with the backend stopped, `python -m scripts.accuracy_run capture nov15 --conditions "room light,dim light,side light"` used the backend's own camera (the laptop's webcam, `CAMERA_INDEX` 0), model (`best.pt`) and settings (`DETECTION_CONF` 0.5, the two box-size guards, `MIN_FRAME_BRIGHTNESS` 40). The user set out each arrangement on a sheet of paper on a table and typed the true counts; for each lighting condition the script took 3 frames about 1.5 s apart. Nothing was written to Firestore. Scored by count: per part, matched = min(true, predicted), precision = matched / predicted, recall = matched / true; a frame is "all right" when every part's count is right. The user decided on 10 arrangements (11 were captured: the empty sheet twice, from two camera angles); arrangements 10 and 11 were made touching on purpose, to measure that weakness rather than hide it (Assumptions).
+
+| # | Spark plugs | Petrol filters | Layout |
+|---|---|---|---|
+| 1, 2 | 4 | 1 | Spaced, plugs lying at different angles |
+| 3 | 4 | 1 | Spaced, a wider view |
+| 4 | 3 | 1 | Spaced |
+| 5 | 2 | 0 | Spaced |
+| 6 | 1 | 1 | Spaced |
+| 7 | 0 | 1 | Filter alone |
+| 8, 9 | 0 | 0 | Empty sheet (two camera angles) |
+| 10 | 4 | 1 | Two plugs lying against each other |
+| 11 | 3 | 1 | Two plugs against each other, the filter touching a third |
+
+**Results by layout.**
+
+| Layout | Frames | All counts right | Mean count error per frame | Spark plug precision / recall | Petrol filter precision / recall |
+|---|---|---|---|---|---|
+| Spaced (1 to 9) | 81 | 73 (90.1%) | 0.10 | 98.2% / 100% | 93.0% / 98.1% |
+| Touching (10, 11) | 18 | 1 (5.6%) | 0.94 | 100% / 73.0% | 100% / 100% |
+| All | 99 | 74 (74.7%) | 0.25 | 98.6% / 92.4% | 94.7% / 98.6% |
+
+**Spaced parts by lighting condition** (frames with every count right): room light 24 of 27, dim light 22 of 27, side light 27 of 27. The script's tables over all 99 frames:
+
+| Condition | Frames scored | Too dark (not scored) | All counts right | Mean count error per frame | Brightness (0 to 255) |
+|---|---|---|---|---|---|
+| room light | 33 | 0 | 24 (72.7%) | 0.27 | 166 to 206 |
+| dim light | 33 | 0 | 23 (69.7%) | 0.30 | 141 to 191 |
+| side light | 33 | 0 | 27 (81.8%) | 0.18 | 139 to 207 |
+| All conditions | 99 | 0 | 74 (74.7%) | 0.25 | 139 to 207 |
+
+| Condition | Part | True | Predicted | Matched | Precision | Recall |
+|---|---|---|---|---|---|---|
+| room light | petrol_filter | 24 | 24 | 24 | 100.0% | 100.0% |
+| room light | spark_plug | 75 | 72 | 69 | 95.8% | 92.0% |
+| dim light | petrol_filter | 24 | 27 | 23 | 85.2% | 95.8% |
+| dim light | spark_plug | 75 | 70 | 70 | 100.0% | 93.3% |
+| side light | petrol_filter | 24 | 24 | 24 | 100.0% | 100.0% |
+| side light | spark_plug | 75 | 69 | 69 | 100.0% | 92.0% |
+| All conditions | petrol_filter | 72 | 75 | 71 | 94.7% | 98.6% |
+| All conditions | spark_plug | 225 | 211 | 208 | 98.6% | 92.4% |
+
+**Every wrong frame, read from its annotated image** (25 of 99):
+- **Touching plugs merged into one box (17 frames, arrangements 10 and 11):** a red and a blue plug lying against each other got one box (0.89 to 0.90), so 4 read as 3 and 3 as 2. The filter touching a plug in arrangement 11 was not a problem: both got their own boxes. One frame of arrangement 10 (dim light, frame 3) was right.
+- **The filter's shadow got a second filter box (4 frames: arrangements 3, 4 and 6, all in "dim light"):** a second box directly under the filter, over its shadow on the paper, so 1 read as 2.
+- **A duplicate box on one spaced plug (1 frame, arrangement 1):** two overlapping boxes (0.86 and 0.62) on the same white plug, 4 read as 5; the next frame was right. The same fault was seen on Nov 14 (FUTURE_WORK, "One part can be counted twice").
+- **A false plug off the sheet (2 frames, arrangement 6, room light):** the edge of a laptop at the left of the frame scored 0.51 and 0.58 as a spark plug, just over the 0.5 threshold and inside both size guards.
+- **The filter cut off at the top edge of the frame was missed (1 frame, arrangement 1):** the known edge-of-frame weakness.
+
+**What the run does and does not cover.** The three lighting conditions turned out close in brightness (139 to 207 on every frame; "dim light" 141 to 191): the webcam adjusts its exposure, and the room was not made truly dark, so this run measures normal indoor light from different directions, not low light. Low light was measured earlier: with the lights off and daylight (brightness 40 to 53) the counts were still right, and a covered lens (18 and 39) is skipped as too dark rather than counted as empty (Measurements, "Brightness"). From arrangement 3 on, the wider view showed a person sitting behind the table in most frames; no box was ever drawn on them. The scores are per frame; the system acts on runs of scans (the 3-minute alert delay and the 2-scan order rule), so a single wrong frame raises nothing, but a lasting layout fault (touching plugs) would. Compared with the 0.995 mAP50 on the validation set, live counting on spaced parts is right in 9 frames out of 10; the gap comes from shadows, touching parts and objects off the sheet, which are not in the training images (FUTURE_WORK, Detection).
 
 ## Insights as built (Implementation, for the report)
 Everything is computed in the browser over the last 7, 30 or 90 local calendar days (today included); the previous period is the same number of days before it. A part with no data never shows 0 or infinity: each case names what is missing.
@@ -176,14 +236,14 @@ These were missed by unit tests and found only on the real system; each was fixe
 | Nov 12 | Five tabs are 364 px wide and the header offers 320 px | The strip scrolls, padding is tighter, and the current tab is scrolled into view; five tabs fit from 375 px |
 
 ## Requirements status
-| Req | Status (Nov 12) |
+| Req | Status (Nov 15) |
 |---|---|
 | FR1 capture periodically | Done: automatic scanning (M6) |
 | FR2 to FR8 | Done (detection, counting, cloud storage, POS comparison, alerts, automatic orders, dashboard) |
 | FR9 authentication | Done, with the final role rules (M10, Nov 11) |
-| NFR1 accuracy | 0.995 mAP50 validation; live accuracy in M12 |
-| NFR2 inference under 1 s | Met (25 to 48 ms) |
-| NFR3 free services | Spark plan; usage measured in M12 |
+| NFR1 accuracy | 0.995 mAP50 on the validation set; live (M12, Nov 15): every count right in 90.1% of frames with spaced parts (spark plug recall 100%, precision 98.2%; petrol filter 98.1% and 93.0%), 5.6% with touching plugs (Detection accuracy) |
+| NFR2 inference under 1 s | Met: 25 to 48 ms per frame (median 45 ms in the accuracy run); Scan Now click to result median 817 ms, all 60 timed presses under the 3 s target (M12, Nov 15) |
+| NFR3 free services | Spark plan; a 4.1-hour sample (Nov 15) scales to about 41% of the daily read limit and 17% of the write limit; the full 24-hour count is deferred to about Nov 19 |
 | NFR4 usable by a non-technical shopkeeper | Usability test in M12 |
 | NFR5 any webcam | `CAMERA_INDEX`; a wrong index shows "Camera Not Responding" on the dashboard (seen live, Nov 11) |
 | NFR6 access control | Done: least privilege per role in the rules, and a role check on the backend's camera and image endpoints (M10, Nov 11) |
@@ -200,3 +260,4 @@ These were missed by unit tests and found only on the real system; each was fixe
 - The shop's internet connection drops for seconds at a time; the backend must assume it will.
 - Brightness cannot tell a hand partly over the lens from a dim shelf; the time rules absorb short obstructions.
 - Twice (Nov 4 at 12:05 local and Nov 11), the camera counted no parts in full light. On Nov 11 the saved shelf image confirmed the cause: the camera was pointed at the room, not the shelf. The system behaved as designed (two alerts after 3 minutes, resolved by themselves once the shelf was back in view), but it cannot tell "no parts" from "no shelf"; worth noting in M12 as a setup risk. Later the same morning four single scans read 0 and 0 at full brightness (03:38, 03:44, 03:50 and 03:53 UTC), each while the laptop was being used (before covering the lens, after restarts, pressing Scan Now); the saved image of one of them again showed the person at the laptop instead of the parts. The next scan with the parts in view read 4 and 1 each time, and the alert delay meant nothing was raised. For the evaluation and the demo the camera needs a fixed view of the shelf that using the laptop does not disturb.
+- Parts that touch or overlap are over-counted. Twice on Nov 15 evening, while the shelf was being arranged, the model drew an extra box spanning two plugs: at 19:56 a red plug cut off at the frame edge lay across a white one (6, then 5 counted for 4), and at 20:44 two plugs lay end to end (a wide 0.59 box over both, 5 counted). With the parts a few centimetres apart it read 4 and 1 on every one of 63 timed scans. Shelf layout is part of the setup: one row, gaps between parts, nothing cut off at the edge. The alert delay absorbed both (no alert). The accuracy run (item 31, Nov 15) measured it: with two plugs lying against each other the model usually draws one box over both (an under-count, 17 of 18 frames wrong), while spaced parts were right in 90.1% of frames.
