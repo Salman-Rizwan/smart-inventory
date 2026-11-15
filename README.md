@@ -75,6 +75,17 @@ pip install -r requirements.txt       # runtime; pins ultralytics==8.4.163
 pip install -r requirements-dev.txt   # adds the test and lint tools (pytest, ruff)
 ```
 
+First time on a new machine (the tests and the build need none of this; running against Firebase does):
+
+1. **Settings:** copy `.env.example` (repo root) to `.env` and adjust it; every setting is explained there. Keep `SIMULATED_PARTS` empty outside live testing.
+2. **Service account:** in the Firebase console, Project settings, Service accounts, generate a private key and save it as `backend/serviceAccountKey.json` (gitignored; never commit it or paste it anywhere).
+3. **Accounts:** create the two sign-ins in the Firebase console (Authentication, Users): `shopkeeper@smartinventory.com` and `dealer@smartinventory.com`, each with a password you keep. Then `python -m scripts.seed_users` writes their profiles (name and role).
+4. **Products:** `python -m scripts.seed_products` creates one product per model class with the demo POS counts (4 spark plugs, 1 petrol filter); `python -m scripts.seed_history --apply` adds the 90-day demo history for Insights (optional, marked as demo data).
+5. **Rules:** paste `firestore.rules` into the Firebase console (Firestore, Rules) and Publish.
+6. **Frontend:** `cd frontend && npm install`. The web config in `src/firebase.js` is public by design; access is controlled by the rules.
+
+On the shop laptop: start the backend from VS Code's terminal (macOS gives the camera to the app that launches it), **without** `--reload` (it restarts the backend whenever a file under `backend/` is saved), keep the laptop on the charger with the lid open, and keep it awake with `caffeinate -dis` (the `-s` part only holds on mains power). A sleeping laptop scans nothing.
+
 ## M1: webcam smoke test
 
 Captures one webcam frame, counts the parts, prints counts and inference time, and saves an annotated image.
@@ -162,7 +173,7 @@ The shopkeeper has an **Alerts** tab (`/alerts`, with a badge for open alerts): 
 
 **Automatic ordering.** After every scan the backend (`app/orders.py`, a pure function with unit tests) checks each part against its `reorderLevel`. A part is *low* when the camera count is at or below that level. A **Pending** order for `reorderQty` is raised when the part has been low for `REORDER_CONFIRM_SCANS` scans in a row (default 2, so one bad frame, such as a hand over the camera, cannot order stock), **and** for `REORDER_DELAY_SECONDS` (default 300, `lowSince` on the product, so restocking or a person standing in front of the shelf cannot order once scanning is automatic), **and** has no open order. A part therefore never has two orders. While an order is open both are held at zero, so after it is received the part must be low for fresh scans and a fresh delay before the next order, which leaves time to restock the shelf. A `reorderQty` of 0 turns automatic orders off for the part. Orders are marked `source: auto`.
 
-**Dealer** (Purchase Orders page): summary tiles (Pending, Accepted, Dispatched, Received, Cancelled), an Open, Closed and All filter kept in the URL (`?status=closed`; the old `?status=completed` still works), and an action queue with Pending first and the oldest first. **Accept Order** (Pending to Accepted), then **Mark Dispatched** ("the goods have left my warehouse"). The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance (see Notifications below).
+**Dealer** (Purchase Orders tab, with a count badge for pending orders): summary tiles (Pending, Accepted, Dispatched, Received, Cancelled), an Open, Closed and All filter kept in the URL (`?status=closed`; the old `?status=completed` still works), and an action queue with Pending first and the oldest first. **Accept Order** (Pending to Accepted), then **Mark Dispatched** ("the goods have left my warehouse"). The header bell opens a **Notifications** dropdown listing the orders waiting for acceptance (see Notifications below); a notification about a cancelled order opens the Closed view, where that order is listed.
 
 **Cancel Order (shopkeeper).** An order the dealer has not dispatched (Pending or Accepted) can be cancelled from the Orders tab, with a reason (Not needed any more, Ordered by mistake, Other) after a confirmation. It is kept as **Cancelled**, never deleted: the dealer sees it, and is notified if they had already accepted it. A cancelled order no longer blocks a new one, so if the part stays low the backend raises a fresh order after the usual scans and delay; the message says so and points to Part Settings to stop it. A dispatched order cannot be cancelled: it is on its way, so it is received.
 
@@ -197,7 +208,7 @@ Carbon-style enterprise UI: flat, square, hairline borders, a 4 px grid, IBM Ple
 
 ```bash
 # backend (from backend/)
-uvicorn app.main:app --reload      # API docs at http://localhost:8000/docs
+uvicorn app.main:app               # API docs at http://localhost:8000/docs; add --reload only while developing
 python -m pytest                   # backend tests (fakes only)
 ruff check . && ruff format --check .
 

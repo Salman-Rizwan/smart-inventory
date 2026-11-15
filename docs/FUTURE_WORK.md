@@ -51,6 +51,9 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 | Undo on Record Sale (SL-4) | A mis-tap on Record Sale lowers the POS by one, and the only fix is an Adjust Stock entry | A proposed cut (Group 7), not confirmed by the user; the stock change log is never edited, so a correction would be a new entry | A "Sale recorded. Undo" message for 10 s that writes a Correction entry with a deterministic id, and a rules change the user publishes |
 | Confirmation or undo for Accept and Dispatch | A mis-tap moves an order on | Low risk at demo scale | A confirmation step, or a short undo window |
 | Dealer dashboard | The dealer's own performance and order trends | Shopkeeper analytics come first | Lead time and on-time rate per dealer |
+| Accepted orders as the dealer's work (found in the Nov 15 dealer review) | Only Pending orders count as waiting for the dealer (tab badge, highlighted tile, bell), so an accepted order that is never dispatched is easy to forget | One clear "needs your action" number per role; found on submission day | Count Accepted in the dealer's work, or a reminder when an order stays Accepted for more than a day |
+| Order timeline on the list (Nov 15 review) | The list shows only when an order was requested; when it was accepted, dispatched or cancelled is stored but not shown to either role | Time | A detail row or tooltip with each stage's time |
+| Old "cancelled" notifications (Nov 15 review) | The dealer's notification for a cancelled order they had accepted stays in the bell (marked read) for as long as the order is in the newest 200 | Harmless at demo scale | Drop it after a few days, as the bell does for handled work |
 
 ### Accounts and security
 | Item | Why it matters | Why deferred | How |
