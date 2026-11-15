@@ -23,7 +23,7 @@ export const ROLES = {
     alerts: false,
     orders: true, // sees purchase orders (page and bell)
     insights: false,
-    nav: [{ to: "/orders", label: "Purchase Orders" }],
+    nav: [{ to: "/orders", label: "Purchase Orders", badge: "orders" }], // badge: pending orders waiting for acceptance
   },
 };
 

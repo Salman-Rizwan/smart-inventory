@@ -14,7 +14,7 @@ describe("ROLES", () => {
   });
 
   it("gives the dealer purchase orders only, with no alerts", () => {
-    expect(ROLES.dealer.nav.map((item) => item.to)).toEqual(["/orders"]);
+    expect(ROLES.dealer.nav).toEqual([{ to: "/orders", label: "Purchase Orders", badge: "orders" }]);
     expect(ROLES.dealer.alerts).toBe(false);
     expect(ROLES.dealer.stock).toBe(false); // never sees the shop's stock, costs or prices
     expect(ROLES.dealer.insights).toBe(false);

@@ -17,9 +17,10 @@ const alertItem = (id: string, unread = true): NotificationView => ({
   unread,
   target: { kind: "alert", id },
 });
-const orderItem = (id: string, state: "Pending" | "Dispatched", unread = true): NotificationView => ({
+const ORDER_TITLES = { Pending: "needs acceptance", Dispatched: "is on the way", Cancelled: "was cancelled by the shop" };
+const orderItem = (id: string, state: keyof typeof ORDER_TITLES, unread = true): NotificationView => ({
   key: `order:${id}:${state}`,
-  title: `Order #${id.toUpperCase()} ${state === "Pending" ? "needs acceptance" : "is on the way"}`,
+  title: `Order #${id.toUpperCase()} ${ORDER_TITLES[state]}`,
   detail: "10 × Petrol Filter",
   time: new Date("2026-10-27T05:00:00Z"),
   unread,
@@ -118,7 +119,18 @@ describe("NotificationBell", () => {
       await userEvent.click(screen.getByRole("button", { name: /Order #ABC123/ }));
 
       expect(markRead).toHaveBeenCalledWith(["order:abc123:Dispatched"]);
-      expect(screen.getByTestId("where")).toHaveTextContent("/orders");
+      expect(screen.getByTestId("where")).toHaveTextContent(/^\/orders$/);
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Purchase Orders" })).toHaveFocus());
+    });
+
+    it("opens the Closed view for a cancelled order, where that order is listed", async () => {
+      provide([orderItem("abc123", "Cancelled")], { role: "dealer" });
+      renderBell();
+      await userEvent.click(screen.getByRole("button", { name: /^Notifications/ }));
+      await userEvent.click(screen.getByRole("button", { name: /Order #ABC123 was cancelled/ }));
+
+      expect(markRead).toHaveBeenCalledWith(["order:abc123:Cancelled"]);
+      expect(screen.getByTestId("where")).toHaveTextContent(/^\/orders\?status=closed$/);
       await waitFor(() => expect(screen.getByRole("heading", { name: "Purchase Orders" })).toHaveFocus());
     });
 
