@@ -3,11 +3,11 @@
 ## Automated (run before any hand-off)
 ```bash
 # backend (from backend/, venv on)
-python -m pytest                      # 305 tests, fakes only
+python -m pytest                      # 334 tests, fakes only
 ruff check . && ruff format --check .
 
 # frontend (from frontend/)
-npm run typecheck && npm test && npx oxlint && npm run build   # 819 tests
+npm run typecheck && npm test && npx oxlint && npm run build   # 838 tests
 ```
 Backend tests use fakes from `tests/conftest.py` (no webcam, no Firebase): a camera that returns a mid-grey frame (or a dark one, or fails), a detector, a repository that records every write and counts them as Firestore would, and a clock the test moves by hand, so time rules are tested to the second without waiting. `oxlint` matters: `tsc` skips `.js`/`.jsx`, and it caught a removed component still imported in `AppShell.jsx`.
 
@@ -40,3 +40,6 @@ axe-core run on each page and role at desktop and at 390 px, layout checked at p
 
 ## Known flaky or limited
 Detection can flicker on an unchanged shelf (for example 4 then 3); the two-scan rule absorbs it. End-on filters and dark rooms are missed. Latency compensation in Firestore updates the UI before the server confirms, so verify writes in the console too. In the regression the dealer's Received tile has twice (Oct 30, Nov 11) stayed stale for more than 15 s in the test browser although Firestore was right; a rerun on fresh `zz` data passed both times, and the cause is not proven (`regress.mjs` now logs how long the tile takes to catch up). A scan taken while the camera's view is disturbed reads 0 for every part at normal brightness; check `backend/snapshots/latest.jpg` before blaming the model.
+
+## Evaluation tools (Group 4)
+`backend/scripts/accuracy_run.py` measures detection accuracy on known arrangements (item 31): the person types the true counts, the script captures 3 frames per lighting condition with the backend's own camera, model and `.env` settings, and scores them by count (per part, matched = min(true, predicted); precision = matched / predicted; recall = matched / true; plus the share of frames with every count right and the mean count error). Frames below `MIN_FRAME_BRIGHTNESS` are listed, not scored, because the backend would skip them. Nothing is written to Firestore, and it refuses to start while the backend holds port 8000. Tested on a fixed fixture (exact, over-count, under-count, a part not on the shelf, a false part, a dark frame), the CSV checks, and the capture loop with a fake camera and detector (`tests/test_accuracy_run.py`).
