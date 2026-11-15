@@ -24,6 +24,8 @@ runs/
 backend/snapshots/
 .agents/
 backend/dataset_capture/
+# Accuracy captures (scripts/accuracy_run.py): images and results, summarised in docs/REPORT_NOTES.md
+backend/evaluation/
 .coverage
 htmlcov/
 .firebase/
