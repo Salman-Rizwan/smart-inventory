@@ -95,6 +95,7 @@ The analytics decides what history is needed. Alerts, orders and scans are alrea
 - Still to do: live check in Chrome after the user publishes the rules; `seed_history` moves to F3.
 
 ### Stock Log tab and undo (Nov 6; Nov 12: now a second view inside the Products tab)
+**Built Nov 15 (Group 5, as trimmed):** `/products/log`, periods Today/7/30/90 (default 30), part filter, no type filter, 50 rows at a time with Show More; it reads the stock changes Insights already keeps live instead of its own query (`docs/DESIGN_DECISIONS.md`). The text below is the original plan.
 Shopkeeper only; the Stock Log lives inside the Products tab (which holds Part Settings) so the header keeps five tabs, which fit from 375 px. Today by default; filters by part, type and period; 50 at a time with Load More (as alert history). Columns: time, part, type, change, POS before and after, reason, who. Stock Check rows and the Insights stock-flow section link to it filtered to the part. The dealer never sees it. Five tabs are measured at 320 px; if they do not fit, the tab row scrolls (it already can).
 One name per part: the Orders and Alerts pages name a part from its id (`partLabel`), Stock Check from the product document; use the product name from `ProductsProvider` everywhere, with `partLabel` only as the fallback (found in the F1 live test, where `zz_part` showed as "ZZ Part" and "Zz Part").
 Undo on Record Sale: a few seconds of "Sale recorded. Undo" that writes a reversing entry (never a delete); the analytics leave out both entries.

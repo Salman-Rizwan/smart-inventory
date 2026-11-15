@@ -102,7 +102,7 @@ The demo run on the 90-day seed (30-day view): 36 units, LKR 26,400 sales, LKR 7
 - **Test kit (local, `.handoff/live-tests/`):** `signin_built.mjs` signs in to any built site (the old helper imports the dev server's source files), `hosting_check.mjs` (both roles, plus cache headers on the real address), `hosted_messages.mjs` (the hosted wording; locally on `hosted.localhost`, which Chrome treats as loopback and the app treats as hosted).
 
 ## Functional test cases (Evaluation, Group 4 item 34)
-Each case is run on the real system (real Firebase, real Chrome, the shop laptop's camera) after the one-day usage window, with the real data snapshotted first and restored and verified identical afterwards. "Evidence" names the script check that decides the case (scripts in `.handoff/live-tests/`; `regress.mjs` check numbers in its own order). The Stock Log cases are added after Group 5. Result and Date are filled in when run.
+Each case is run on the real system (real Firebase, real Chrome, the shop laptop's camera) after the one-day usage window, with the real data snapshotted first and restored and verified identical afterwards. "Evidence" names the script check that decides the case (scripts in `.handoff/live-tests/`; `regress.mjs` check numbers in its own order). The Stock Log cases (TC-SL) were added on Nov 15 when it was built. Result and Date are filled in when run.
 
 | Case | Requirement | Steps | Expected | Evidence | Result | Date |
 |---|---|---|---|---|---|---|
@@ -129,6 +129,10 @@ Each case is run on the real system (real Firebase, real Chrome, the shop laptop
 | TC9.4 | FR9 | Refresh a signed-in page | Still signed in | `regress.mjs` "refresh keeps you signed in" | | |
 | TC-IN1 | Insights | Open Insights at 7, 30 and 90 days and with a part filter | Every figure equals an independent recomputation | `insights_live.mjs` with `insights_check.py` | | |
 | TC-IN2 | Insights | Dealer opens `/insights` | No tab; sent to Orders | `insights_ui.mjs` | | |
+| TC-SL1 | Stock Log | Press History on the Spark Plug row in Stock Check | The Products tab opens on the Stock Log, filtered to Spark Plug over 30 days | `stocklog_ui.mjs` | | |
+| TC-SL2 | Stock Log | Change period and part; press Show More on the 90-day view | Rows, counts and the address follow the filters; 50 more rows each time, focus on the footer at the end | `stocklog_ui.mjs` (seeded history, 147 entries) | | |
+| TC-SL3 | Stock Log | Record Sale on a temporary part, then open its log | A Sale entry, -1, POS before and after, by "You", appears without a reload | `stocklog_ui.mjs` on `zz` data | | |
+| TC-SL4 | Stock Log | Dealer opens `/products/log` | Sent to Orders; no stock data read | `stocklog_ui.mjs` | | |
 | TC-H1 | Hosting | Both roles on `https://smart-inventory-da834.web.app` | Sign-in, live data, every page on a full reload, cache headers right, dealer kept out | `hosting_check.mjs` | | |
 | TC-H2 | Hosting | Shopkeeper presses Scan Now on the hosted page after allowing local network access | The scan completes | `scan_timing.mjs` on the hosted page | | |
 
@@ -181,7 +185,7 @@ These were missed by unit tests and found only on the real system; each was fixe
 | NFR7 new parts without code changes | Product ids equal model class names; the Products tab, Stock Check and Insights list parts from the data |
 | Supervisor feedback 1: history of past alerts | Done: the Alerts tab (Oct 31) |
 | Supervisor feedback 2: business intelligence on the dashboard | Done (Nov 11 to 12): four dashboard tiles and the Insights page (sales and gross profit, shrinkage, days of cover, reorder recommendations, What To Do), on a synthetic 90-day history; stockouts, stock value and Apply are future work |
-| Stock history (every POS change logged) | Logged since Nov 4; the viewing page (Stock Log, inside Products) is planned for Nov 13 |
+| Stock history (every POS change logged) | Logged since Nov 4; the viewing page (Stock Log, inside Products at `/products/log`) built Nov 15 with 22 new tests; live checks after the usage window |
 
 ## Operational lessons (Discussion)
 - With the laptop's own camera, the person using the laptop is in the frame. On Nov 11 a face scored 0.54 as a spark plug and passed the size guards; retraining with background images (people, rooms) is the real fix (FUTURE_WORK).

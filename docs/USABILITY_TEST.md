@@ -22,8 +22,9 @@ A short test of whether someone who has never used Smart Inventory can do a shop
 | 5 | "The dealer has sent an order. When it arrives at the shop, you confirm it. Confirm the order that has arrived." | Mark Received done on the dispatched order |
 | 6 | "How much profit did the shop make on parts in the last 30 days, and what does the app suggest you do about petrol filters?" | They read the Gross Profit figure and the What To Do line for Petrol Filter |
 | 7 | "Make the app order petrol filters when the shelf gets down to 2." | Products, Petrol Filter settings, Reorder At is 2 and saved |
-| 8 | "You are about to rearrange the shelf. Stop the camera from counting for a while, then start it again." | Pause Scanning, then Resume |
-| 9 | "Sign out." | The Sign In page is showing |
+| 8 | "Find out who recorded the sale you made earlier, and when." | They open the Stock Log (from Products or a History link) and read the Sale entry: "You" and its time |
+| 9 | "You are about to rearrange the shelf. Stop the camera from counting for a while, then start it again." | Pause Scanning, then Resume |
+| 10 | "Sign out." | The Sign In page is showing |
 
 Optional dealer task (if there is time): sign in as `dealer@smartinventory.com` and "accept the newest order and mark it as sent to the shop".
 
