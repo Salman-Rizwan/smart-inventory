@@ -270,6 +270,7 @@ npx firebase-tools@15.35.0 deploy --only hosting --project smart-inventory-da834
 - [x] Dashboard reordered by the shopkeeper's questions and a Products tab for Part Settings (Nov 12; checked live, full regression 56/56)
 - [x] M10 least-privilege rules and backend role check, Cancel Order, simulated parts for live testing (Nov 11; checked live)
 - [x] Hosting (M11, Group 3, Nov 14): deployed at https://smart-inventory-da834.web.app; both roles checked on the live address; Scan Now from the hosted page works once Chrome's local network access is allowed
-- [ ] Next, in order (the live plan is by Group in [docs/TASKS.md](docs/TASKS.md)): Group 4 the evaluation evidence (M12); Group 5 the Stock Log inside Products; Group 6 the release; Group 7 optional extras (the user decides); M13 the report (the user)
+- [x] Stock Log inside Products (`/products/log`, Group 5, Nov 15; unit-tested, live checks to follow) and the Group 4 evaluation tools (Nov 15)
+- [ ] Next, in order (the live plan is by Group in [docs/TASKS.md](docs/TASKS.md)): finish Group 4 (timing, sync, accuracy, functional cases, usability; the 24-hour usage count about Nov 19); Group 5's live checks and the focus check; Group 6 the release; Group 7 optional extras if wanted
 
 What is left, in order, is in [docs/ROADMAP.md](docs/ROADMAP.md), broken into small tested actions in [docs/TASKS.md](docs/TASKS.md). Material for the final report is kept in [docs/REPORT_NOTES.md](docs/REPORT_NOTES.md) and [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md). Why things are built the way they are is in [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md), and how it is verified is in [docs/TESTING.md](docs/TESTING.md).
