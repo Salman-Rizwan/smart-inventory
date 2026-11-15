@@ -7,7 +7,7 @@ python -m pytest                      # 334 tests, fakes only
 ruff check . && ruff format --check .
 
 # frontend (from frontend/)
-npm run typecheck && npm test && npx oxlint && npm run build   # 860 tests
+npm run typecheck && npm test && npx oxlint && npm run build   # 861 tests
 ```
 Backend tests use fakes from `tests/conftest.py` (no webcam, no Firebase): a camera that returns a mid-grey frame (or a dark one, or fails), a detector, a repository that records every write and counts them as Firestore would, and a clock the test moves by hand, so time rules are tested to the second without waiting. `oxlint` matters: `tsc` skips `.js`/`.jsx`, and it caught a removed component still imported in `AppShell.jsx`.
 
