@@ -313,4 +313,17 @@ describe("StockCheckPanel", () => {
     render(<StockCheckPanel counts={{ spark_plug: 3 }} />);
     expect(screen.getByRole("link", { name: "Products" })).toHaveAttribute("href", "/products");
   });
+
+  it("links each part to its own stock history over the last 30 days", () => {
+    ready(PRODUCTS);
+    render(<StockCheckPanel counts={{ spark_plug: 3, petrol_filter: 1 }} />);
+    expect(within(rowFor("Spark Plug")).getByRole("link", { name: "Stock history for Spark Plug" })).toHaveAttribute(
+      "href",
+      "/products/log?part=spark_plug&period=30",
+    );
+    expect(within(rowFor("Petrol Filter")).getByRole("link", { name: "Stock history for Petrol Filter" })).toHaveAttribute(
+      "href",
+      "/products/log?part=petrol_filter&period=30",
+    );
+  });
 });

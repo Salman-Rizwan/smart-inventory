@@ -7,10 +7,11 @@ import Notification from "../../shared/components/Notification";
 import StatusBadge, { type BadgeKind } from "../../shared/components/StatusBadge";
 import { Cell, ErrorRow, NumCell, Row, RowHeader } from "../../shared/components/table";
 import { formatInteger, formatSigned } from "../../shared/format";
-import { space } from "../../shared/theme/tokens";
+import { space, text } from "../../shared/theme/tokens";
 import { useOrders } from "../orders/OrdersContext";
 import AdjustStockDialog from "./AdjustStockDialog";
 import { receiveStock, recordSale } from "./stockActions";
+import { historyHref } from "./stockLog";
 import { stockErrorMessage } from "./stockErrors";
 import type { StockRow, StockState } from "./types";
 import { parseReceiveQty } from "./validation";
@@ -91,7 +92,14 @@ export default function StockRowItem({ row, onChanged }: Props) {
   return (
     <>
       <Row>
-        <RowHeader translate="no">{product.name}</RowHeader>
+        <RowHeader>
+          <span translate="no">{product.name}</span>
+          <Box component="span" sx={{ display: "block", fontWeight: 400, fontSize: text.sm }}>
+            <Link to={historyHref(product.id)} aria-label={`Stock history for ${product.name}`}>
+              History
+            </Link>
+          </Box>
+        </RowHeader>
         <NumCell>{visual === null ? "—" : formatInteger(visual)}</NumCell>
         <NumCell>{formatInteger(product.posCount)}</NumCell>
         <NumCell>{difference === null ? "—" : formatSigned(difference)}</NumCell>

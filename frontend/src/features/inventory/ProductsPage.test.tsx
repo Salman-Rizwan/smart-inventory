@@ -1,9 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./hooks", () => ({ useProducts: vi.fn() }));
 vi.mock("./productRepository", () => ({ savePartSettings: vi.fn() }));
+// The log itself is tested in StockLogPanel.test.tsx; here only which view the page shows.
+vi.mock("./StockLogPanel", () => ({ default: () => <p>Stock log view</p> }));
 
 import { useProducts } from "./hooks";
 import ProductsPage from "./ProductsPage";
@@ -19,6 +22,7 @@ const renderPage = (path = "/products") =>
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/log" element={<ProductsPage view="log" />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -37,7 +41,7 @@ describe("ProductsPage", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Part Settings" })).toBeInTheDocument();
     const rows = within(screen.getByRole("table", { name: /Cost, selling price and reorder settings/ })).getAllByRole("row");
     expect(rows).toHaveLength(3);
-    expect(screen.getByText(/Stock counts and sales are on the Dashboard and Insights/)).toBeInTheDocument();
+    expect(screen.getByText(/Live shelf counts are on the Dashboard and sales figures on Insights/)).toBeInTheDocument();
   });
 
   it("shows loading, a load error with its next step, and an empty list", () => {
@@ -90,5 +94,29 @@ describe("ProductsPage", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("button", { name: "Edit settings for Spark Plug" })).toHaveFocus();
+  });
+
+  it("switches between Parts and the Stock Log with links, marking the current view", async () => {
+    provide([spark, filter]);
+    renderPage();
+    const views = screen.getByRole("navigation", { name: "Products views" });
+    expect(within(views).getByRole("link", { name: "Parts" })).toHaveAttribute("aria-current", "page");
+    expect(within(views).getByRole("link", { name: "Stock Log" })).not.toHaveAttribute("aria-current");
+    await userEvent.click(within(views).getByRole("link", { name: "Stock Log" }));
+    expect(screen.getByText("Stock log view")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Part Settings" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Products" })).toBeInTheDocument();
+    expect(within(views).getByRole("link", { name: "Stock Log" })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(within(views).getByRole("link", { name: "Parts" }));
+    expect(screen.getByRole("heading", { level: 2, name: "Part Settings" })).toBeInTheDocument();
+  });
+
+  it("keeps the part when switching views, and leaves the unknown-part message to the log", () => {
+    provide([spark, filter]);
+    renderPage("/products/log?part=brake_pad");
+    const views = screen.getByRole("navigation", { name: "Products views" });
+    expect(within(views).getByRole("link", { name: "Parts" })).toHaveAttribute("href", "/products?part=brake_pad");
+    expect(within(views).getByRole("link", { name: "Stock Log" })).toHaveAttribute("href", "/products/log?part=brake_pad");
+    expect(screen.queryByText(/not in the stock records/)).not.toBeInTheDocument();
   });
 });
