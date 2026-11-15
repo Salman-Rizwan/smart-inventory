@@ -106,7 +106,7 @@ Everything left, numbered 1 to 44 (38 to 43 added Nov 12); IDs point to the deta
    - [ ] 34. Functional test cases FR1 to FR9 plus Stock Log and Insights (M12-5). **Case table written Nov 15** in `docs/REPORT_NOTES.md` ("Functional test cases": 25 cases, FR1 to FR9, Insights, Hosting, each with its deciding script check); run after the usage window. TC7.1 needs `SIMULATED_PARTS` and a backend restart by the user.
    - [ ] 35. Usability test with 3 people (M12-6). User runs it. **Kit written Nov 15:** `docs/USABILITY_TEST.md` (10 shopkeeper tasks, SUS, what to send back); Claude prepares and restores the data around the session.
 8. Release
-   - [ ] 36. Full regression, screenshots, fresh-clone check, no secrets, version 1.0.0 (M12-7, R-1, R-2).
+   - [ ] 36. Full regression, screenshots, fresh-clone check, no secrets, version 1.0.0 (M12-7, R-1, R-2). **Trial runs Nov 15:** fresh clone of commit 3611226 set up from the README alone (Python 3.11 venv, both requirements files, `npm install`): backend 334 tests and ruff clean, frontend typecheck, 860 tests, oxlint and build all pass with no `.env` and no service account (the README's first-time list was added the same day); secrets search over every tracked file and the whole history clean (only the public Firebase web key); `regress.mjs` extended for the Stock Log (7 checks). Repeat the fresh clone on the release tag.
    - [ ] 37. PR dev to main (merge commit), tag `v1.0.0`, deploy, smoke test (R-3). User.
 
 9. Insights decisions and dashboard layout (added Nov 12 by the user's decision; each step tested before the next)
