@@ -13,7 +13,8 @@ Attach these files together with this brief. Each is the authority for its subje
 | `docs/FUTURE_WORK.md` | Known limitations of the submitted version, and future work (why it matters, why deferred, how to build it) | Limitations and Future Work chapters |
 | `README.md` | Architecture, repository layout, data model, requirements table, the flows (reconciliation, alerts, orders, notifications, roles), how to run it | Design and Implementation, appendices |
 | `docs/TESTING.md` | How everything is verified: automated tests, live checks, rules checks, accessibility, evaluation tools | Testing chapter, methodology |
-| `docs/USABILITY_TEST.md` | The usability test script (10 tasks, SUS questionnaire) | Evaluation (usability), appendix |
+| `docs/USABILITY_REVIEW.md` | The expert usability review (heuristic evaluation and cognitive walkthrough), the evidence for NFR4 | Evaluation (usability) |
+| `docs/USABILITY_TEST.md` | The usability test script (10 tasks, SUS questionnaire) that was planned but not run; its tasks were used for the walkthrough | Evaluation (usability), appendix |
 
 Rules for the assistant:
 1. **Never invent a number, date, name or result.** Every figure in the report must come from these files. If a figure is missing, write `[PENDING: what is needed]` and list it at the end of the answer.
@@ -225,13 +226,13 @@ A 4.1-hour sample of automatic scanning (Nov 15, 06:42 to 10:46, no gaps) gave a
 - **Problems found only by live testing:** 19 defects that unit tests could not see, each fixed and covered by new tests. Examples: a stale timer after a restart; Firestore's 300 s retries; tile figures breaking mid-number; a cache header rule that never applied on the live site. The table is in REPORT_NOTES.
 
 ### 8.5 Usability (NFR4)
-**[PENDING: one participant (the author's brother), 10 shopkeeper tasks and the System Usability Scale questionnaire (`docs/USABILITY_TEST.md`); planned for Nov 16.]** With one participant the result is an indication, not a statistic; say so.
+**Expert review, not a user test (Nov 16, 2026; `docs/USABILITY_REVIEW.md`).** The planned user test was not run before submission (the author's decision, Nov 16), so there are no task success rates, times or SUS score. Instead, a heuristic evaluation against Nielsen's 10 heuristics and a cognitive walkthrough of the 10 shopkeeper tasks in `docs/USABILITY_TEST.md`, from the running system and screenshots of every screen, carried out with an AI assistant (Claude); the report must say who carried it out and how, following the university's policy. Result: 12 problems, none catastrophic or major; 7 minor (severity 2) and 5 cosmetic (severity 1). Strongest: the system's status is always visible and honest, error messages say what to do next, and risky actions are guarded. Weakest: technical words in messages ("backend", "Inference (ms)"); one setting with two names ("Reorder At" and "reorder level"); old counts presented as current when the camera has stopped; no undo for Record Sale. Walkthrough: 7 of 10 tasks predicted straightforward; likely stumbling points are the 3-minute wait before an alert appears (task 4), finding the Stock Log inside Products (task 8) and the low-emphasis Pause Scanning control (task 9). Accessibility evidence: axe 0 violations on every page and state checked, keyboard walks. Limits: an expert review predicts problems rather than measuring them; a user test with real shopkeepers is future work.
 
 ## 9. Still to do before submission (as of Nov 15, night)
 
 | Item | Status | Effect on the report |
 |---|---|---|
-| Usability test with the author's brother | PENDING, Nov 16 | Fills 8.5 (task results, SUS score, comments) |
+| Usability | Done Nov 16 as an expert review (`docs/USABILITY_REVIEW.md`); no user test | 8.5 is final as written |
 | Stock Log live checks and a keyboard focus check | PENDING, Nov 16 | One more line under testing |
 | Final regression, with the functional test cases, on the release code; version 1.0.0; tag, deploy | PENDING, about Nov 17 | Fills 8.4; the report then describes exactly the submitted version |
 | 24-hour free-tier count | Not run: the 4.1-hour sample stands (the author's decision, Nov 16) | 8.3 is final as written |

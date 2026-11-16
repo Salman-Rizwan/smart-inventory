@@ -26,7 +26,7 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 | The hosted page may not reach the laptop | Since Chrome 142 an https page needs the user's permission ("local network access") to call `http://localhost`, and is blocked if denied; Scan Now from the hosted app works once the person allows it (10 of 10 timed scans, Nov 15) | The hosted app says Scan Now works only from the shop laptop and what to allow, and the shelf image panel says the image lives on the laptop; results in `docs/REPORT_NOTES.md` (TC-H2) |
 | One part can be counted twice | On Nov 14 a scan counted 5 spark plugs for 4: two overlapping boxes covered one plug (the shelf was being handled; the next scan read 4) | The 3-minute alert delay and the 2-scan order rule absorb a single scan; a future fix is a stricter overlap threshold in the detector (`iou`) or merging boxes of the same class that overlap, with re-validation of the model |
 | Free-tier usage cannot be read by the backend's service account | Cloud Monitoring refused it (HTTP 403), so the one-day usage figures are read by hand from the Firebase console | Console readings at the start and end, plus the per-scan estimate from the code |
-| Evaluation evidence is not all collected | Detection accuracy, Scan Now timing and sync latency were measured on Nov 15; the functional cases and the usability test are still to run (Group 4); free-tier usage is measured over a 4.1-hour sample scaled to a day (the user's decision on Nov 16; a full 24-hour count is future work) | Results go into `docs/REPORT_NOTES.md` as they are run; the report states the sample length and the method |
+| Evaluation evidence is not all collected | Detection accuracy, Scan Now timing and sync latency were measured on Nov 15; usability was evaluated by an expert review only (Nov 16; no participants, no SUS score); the functional cases run in the final regression; free-tier usage is measured over a 4.1-hour sample scaled to a day (the user's decision on Nov 16; a full 24-hour count is future work) | Results go into `docs/REPORT_NOTES.md` as they are run; the report states the sample length and the method |
 | The live regression changes real POS counts | Its Mark Received, Record Sale and Receive Stock steps move the real spark plug and petrol filter counts | Snapshot first, restore and verify afterwards (`docs/TESTING.md`) |
 | In-app notifications only | Nobody is told while the app is closed | Email or push needs Cloud Functions (paid plan) |
 | Ultralytics is AGPL-3.0 | Licence obligations for a commercial product | Noted in the report; a commercial licence or another detector would be needed |
@@ -96,6 +96,16 @@ Kept for the final report (Future Work and Limitations sections). Each item says
 | Lead time and the Oct 28 test orders | Three real orders received within minutes during live tests are in the median | Medians absorb them with four seeded deliveries | Exclude orders received under an hour after creation, or clear test orders before the demo |
 | Forecasting with seasonality | Medians miss weekly and seasonal patterns | Needs months of real data | Day-of-week profiles, then a simple forecasting model |
 | Economic order quantity | A better reorder quantity than days of cover | Needs ordering and holding costs | EOQ from the dealer's order cost and the holding cost |
+
+### Usability (from the expert review, `docs/USABILITY_REVIEW.md`, Nov 16)
+| Item | Why it matters | Why deferred | How |
+|---|---|---|---|
+| A user test with real shopkeepers | The expert review predicts problems; only a user test measures task success, time and satisfaction (SUS) | Not run before submission (the author's decision) | Run `docs/USABILITY_TEST.md` with 5 or more shopkeepers |
+| Qualify old counts (P1) | With no recent scan, "All Matched" and "Everything on the shelf matches" rest on an old count | Found by the review | Say "at the last scan, 13 hours ago" when the status line says No Recent Scan |
+| One name for the reorder setting (P5) | "Reorder At" in Products, "reorder level" in Insights | Found by the review | Use "Reorder At" everywhere |
+| Plain words in messages (P2) | "backend" and "Inference (ms)" mean nothing to a shopkeeper | Found by the review | "the Smart Inventory program on the shop laptop"; move inference time to a technical view |
+| Visible affordances (P6, P7) | Adjust, Pause Scanning and Cancel Order look like plain text; the Receive Stock quantity box has no visible label | Found by the review | Outlined buttons; a visible "Qty" label |
+| A help page (P12) | Shrinkage, Days of Cover and Gross Profit are business terms | Found by the review | A short page explaining each figure, linked from Insights |
 
 ### Engineering
 | Item | Why it matters | Why deferred | How |
