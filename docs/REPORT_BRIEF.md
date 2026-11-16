@@ -213,7 +213,7 @@ Validation-set accuracy: 0.995 mAP50 (target at least 85%). Empty sheets read 0 
 - **Sync latency** (a change in one browser until a second browser shows it): 10 of 10 seen; median 150 ms, mean 175 ms, max 348 ms.
 
 ### 8.3 Free-tier usage (NFR3)
-A 4.1-hour sample of automatic scanning (Nov 15, 06:42 to 10:46, no gaps) gave about 3,400 reads and 570 writes, which scales to about 20,000 reads (41% of the 50,000 daily limit) and 3,400 writes (17% of 20,000) a day. These figures are provisional: a sample scaled to a day, including one open browser. **[PENDING: the full 24-hour count, only if it can run before Nov 19; otherwise report the sample and say so.]**
+A 4.1-hour sample of automatic scanning (Nov 15, 06:42 to 10:46, no gaps) gave about 3,400 reads and 570 writes, which scales to about 20,000 reads (41% of the 50,000 daily limit) and 3,400 writes (17% of 20,000) a day. These figures are provisional: a sample scaled to a day, including one open browser. **The author decided (Nov 16) that this sample stands; no 24-hour count is run before submission.** Present it as a 4.1-hour sample scaled to a day, say how it was measured (the Firebase console's usage totals before and after, with the scan records proving the window had no gaps), and list a full 24-hour count as future work.
 
 ### 8.4 Correctness and testing
 - **Functional test cases:** 25-plus cases covering FR1 to FR9, Insights, Stock Log and Hosting, defined in REPORT_NOTES "Functional test cases". TC3.1 (counting) and TC-H2 (Scan Now from the hosted page) passed on Nov 15. **[PENDING: the rest are run in the final regression before release, about Nov 17.]**
@@ -234,8 +234,8 @@ A 4.1-hour sample of automatic scanning (Nov 15, 06:42 to 10:46, no gaps) gave a
 | Usability test with the author's brother | PENDING, Nov 16 | Fills 8.5 (task results, SUS score, comments) |
 | Stock Log live checks and a keyboard focus check | PENDING, Nov 16 | One more line under testing |
 | Final regression, with the functional test cases, on the release code; version 1.0.0; tag, deploy | PENDING, about Nov 17 | Fills 8.4; the report then describes exactly the submitted version |
-| 24-hour free-tier count | Only if the laptop can run for 24 h before Nov 19 | Replaces the provisional figures in 8.3, or the sample stands |
-| Screenshots for the report | Taken during the final regression | Figures for the Implementation chapter |
+| 24-hour free-tier count | Not run: the 4.1-hour sample stands (the author's decision, Nov 16) | 8.3 is final as written |
+| Screenshots for the report | Taken Nov 16 (16 figures with captions, including the model's detection output and four failure examples); the dashboard (desktop and phone) still to take with the backend running | Figures for the Implementation and Evaluation chapters |
 
 ## 10. Limitations (full table in FUTURE_WORK "Known limitations")
 - Touching parts, shadows and objects beside the shelf cause miscounts (measured, 8.1). The model has no "not a part" class; box-size guards mitigate this until it is retrained with background images.
