@@ -217,10 +217,10 @@ Validation-set accuracy: 0.995 mAP50 (target at least 85%). Empty sheets read 0 
 A 4.1-hour sample of automatic scanning (Nov 15, 06:42 to 10:46, no gaps) gave about 3,400 reads and 570 writes, which scales to about 20,000 reads (41% of the 50,000 daily limit) and 3,400 writes (17% of 20,000) a day. These figures are provisional: a sample scaled to a day, including one open browser. **The author decided (Nov 16) that this sample stands; no 24-hour count is run before submission.** Present it as a 4.1-hour sample scaled to a day, say how it was measured (the Firebase console's usage totals before and after, with the scan records proving the window had no gaps), and list a full 24-hour count as future work.
 
 ### 8.4 Correctness and testing
-- **Functional test cases:** 25-plus cases covering FR1 to FR9, Insights, Stock Log and Hosting, defined in REPORT_NOTES "Functional test cases". TC3.1 (counting) and TC-H2 (Scan Now from the hosted page) passed on Nov 15. **[PENDING: the rest are run in the final regression before release, about Nov 17.]**
-- **Full regression:** 56 of 56 checks across both roles, Nov 12. The current version has 63 checks. **[PENDING: final run on the release code.]**
+- **Functional test cases (29, in REPORT_NOTES "Functional test cases"):** not rerun as a set on the final code (the author's decision, Nov 23); each case reports the **last recorded run of its deciding check, with its date**. 25 pass (Nov 11 to Nov 15), TC-SL3 passed in part (an Order Received entry appeared live in the Stock Log, Nov 15), and TC-SL1, TC-SL2 and TC-SL4 (the Stock Log) were not run live: they are unit-tested, and the Stock Log screens render correctly on real data (figures 06 and 21, Nov 16). TC3.1 and TC-H2 passed on Nov 15.
+- **Full regression:** 56 of 56 checks across both roles, including a real Scan Now, Nov 12. It predates the Stock Log and the two dealer fixes (Nov 15); those are covered by the unit tests (334 backend, 861 frontend, Nov 15) and the Nov 15 dealer flow runs. The regression was not rerun on the final code (the author's decision, Nov 23); say so in the report.
 - **Insights:** 175 checks against the independent recomputation, 0 differences.
-- **Security rules:** 63 cases on the Rules API test endpoint, all passing on Nov 11 (the kit now has 65), plus live attack checks over REST with real sign-ins (32 for the stock log and Part Settings, 11 for Pause Scanning, 38 for least privilege, 13 for the dealer's order steps), all passing.
+- **Security rules:** live attack checks over REST with real sign-ins, all passing: 32 for the stock change log and Part Settings, 11 for Pause Scanning and 38 for least privilege (Nov 11); the 38 again and 13 new checks on the dealer's order steps (Nov 15). (A set of 63 cases written for Firebase's Rules API test endpoint was never run, because the service account lacked the permission; do not report it as evidence.)
 - **Dealer flow** (Nov 15): 28 of 28 read-only checks and 48 of 48 two-role checks, also on the hosted address.
 - **A fresh clone** set up from the README alone passed every automated test without access to the Firebase project.
 - **Problems found only by live testing:** 19 defects that unit tests could not see, each fixed and covered by new tests. Examples: a stale timer after a restart; Firestore's 300 s retries; tile figures breaking mid-number; a cache header rule that never applied on the live site. The table is in REPORT_NOTES.
@@ -233,8 +233,8 @@ A 4.1-hour sample of automatic scanning (Nov 15, 06:42 to 10:46, no gaps) gave a
 | Item | Status | Effect on the report |
 |---|---|---|
 | Usability | Done Nov 16 as an expert review (`docs/USABILITY_REVIEW.md`); no user test | 8.5 is final as written |
-| Stock Log live checks and a keyboard focus check | PENDING, Nov 16 | One more line under testing |
-| Final regression, with the functional test cases, on the release code; version 1.0.0; tag, deploy | PENDING, about Nov 17 | Fills 8.4; the report then describes exactly the submitted version |
+| Stock Log live checks and a keyboard focus check | Not run (the author's decision, Nov 23); the Stock Log is unit-tested and shown on real data (figures 06, 21) | State it in 8.4 and as a limitation |
+| Final regression, with the functional test cases, on the release code | Not run (the author's decision, Nov 23): 8.4 reports the last recorded results with their dates | 8.4 is final as written |
 | 24-hour free-tier count | Not run: the 4.1-hour sample stands (the author's decision, Nov 16) | 8.3 is final as written |
 | Screenshots for the report | Taken Nov 16 (16 figures with captions, including the model's detection output and four failure examples); the dashboard (desktop and phone) still to take with the backend running | Figures for the Implementation and Evaluation chapters |
 
