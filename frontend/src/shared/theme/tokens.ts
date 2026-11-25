@@ -1,0 +1,79 @@
+/*
+ * Design tokens: the one place design values live. Carbon-style enterprise UI: flat, square,
+ * hairline borders, 4px spacing grid, one teal accent, IBM Plex. The MUI theme (theme.ts), the
+ * page-wide rules (globalStyles.ts) and component styles are all built from these. Colour pairs are checked against WCAG AA in tokens.test.ts
+ * (text >= 4.5:1, UI boundaries >= 3:1).
+ */
+export const color = {
+  accent: "#0e6b6f",
+  accentHover: "#0a5558",
+  accentActive: "#073f42",
+  onAccent: "#ffffff",
+
+  ink: "#161616",
+  inkMuted: "#525252",
+  canvas: "#ffffff",
+  surface: "#f4f4f4",
+  surfaceStrong: "#e8e8e8",
+  border: "#d0d0d0",
+  borderStrong: "#8d8d8d",
+
+  success: "#0e6027",
+  successBg: "#defbe6",
+  error: "#a2191f",
+  errorBg: "#fff1f1",
+  warning: "#6e5100",
+  warningBg: "#fcf4d6",
+  info: "#0e6b6f",
+  infoBg: "#e0f2f1",
+} as const;
+
+/**
+ * Chart colours (Insights). Series hues are assigned to parts in a fixed order (by product id) and
+ * validated with the dataviz palette checks: lightness band, chroma floor, colour-vision separation
+ * (ΔE 22 at worst), and 3:1 against the canvas. The accent itself is too grey for a bar, hence a
+ * stronger teal here. Text in charts always uses the ink tokens, never a series colour.
+ */
+export const chart = {
+  series: ["#0f9ea4", "#6929c4"],
+  grid: "#e0e0e0",
+} as const;
+
+/** 4px grid. The named spacing steps 1 to 7 used across the app, as multiples of the 4px unit. */
+export const SPACING_UNIT = 4;
+export const spaceSteps = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 6, 6: 8, 7: 12 } as const;
+
+/** A spacing step in px: space(3) = "12px", space(5) = "24px". */
+export const space = (step: keyof typeof spaceSteps): string => `${spaceSteps[step] * SPACING_UNIT}px`;
+
+export const font = {
+  sans: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif',
+  mono: '"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace',
+} as const;
+
+export const text = {
+  xs: "0.75rem",
+  sm: "0.875rem",
+  md: "1rem",
+  lg: "1.25rem",
+  xl: "1.75rem",
+  display: "3rem",
+} as const;
+
+export const layout = {
+  headerHeight: "56px",
+  /** Below breakpoint.tabsRow the tabs get a second header row of their own, so the header is taller. */
+  navRowHeight: "44px",
+  headerHeightNarrow: "101px", // 56 + 44 + the 1px line between the rows
+  contentMax: "1200px",
+} as const;
+
+/** Width breakpoints used in media queries (max-width). */
+export const breakpoint = {
+  /** Phones and small tablets: compact header, name and role hidden. */
+  narrow: "640px",
+  /** Below this the header tabs move to a full-width second row (measured: four tabs with counts need 377 px of nav, which a single row has from about 932 px). */
+  tabsRow: "959.98px",
+  /** From this width the shelf image and the scan table sit side by side; below it they stack (the table needs about 600 px). */
+  wide: "1100px",
+} as const;

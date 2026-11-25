@@ -1,0 +1,83 @@
+import {
+  collection,
+  doc,
+  getDoc,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  runTransaction,
+  serverTimestamp,
+  updateDoc,
+  type Unsubscribe,
+} from "firebase/firestore";
+import { db } from "../../firebase";
+import { currentUid } from "../../shared/currentUser";
+import { parseProduct } from "../inventory/productParsers";
+import { writeMovement } from "../inventory/productRepository";
+import { parseOrder } from "./orderParsers";
+import { OrderError, type OrderAction } from "./orderWorkflow";
+import type { CancelReason, Order } from "./types";
+
+const MAX_ORDERS = 200;
+
+/** The most recent orders, live. Sorting and filtering happen in the UI. */
+export function subscribeOrders(onData: (orders: Order[]) => void, onError: (error: unknown) => void): Unsubscribe {
+  const recent = query(collection(db, "purchase_orders"), orderBy("createdAt", "desc"), limit(MAX_ORDERS));
+  return onSnapshot(
+    recent,
+    (snap) => onData(snap.docs.map((d) => parseOrder(d.id, d.data())).filter((o): o is Order => o !== null)),
+    onError,
+  );
+}
+
+/** One order as it is now, or null if it no longer exists. */
+export async function fetchOrder(orderId: string): Promise<Order | null> {
+  const snap = await getDoc(doc(db, "purchase_orders", orderId));
+  return snap.exists() ? parseOrder(snap.id, snap.data()) : null;
+}
+
+/** Moves an order one step forward. The rules allow only the next step, with a server timestamp. */
+export function advanceOrder(orderId: string, action: OrderAction): Promise<void> {
+  return updateDoc(doc(db, "purchase_orders", orderId), {
+    state: action.next,
+    [action.timestampField]: serverTimestamp(),
+  });
+}
+
+/**
+ * The shopkeeper cancels an order before it is dispatched, stamped with who, when (the server's time)
+ * and why. The rules refuse it once the dealer has dispatched the order.
+ */
+export function cancelOrder(orderId: string, reason: CancelReason): Promise<void> {
+  return updateDoc(doc(db, "purchase_orders", orderId), {
+    state: "Cancelled",
+    cancelledAt: serverTimestamp(),
+    cancelledBy: currentUid(),
+    cancelReason: reason,
+  });
+}
+
+/**
+ * The shop confirms a dispatched order arrived: marks it Received, adds its quantity to the POS record
+ * and logs that as Order Received, in one transaction so the three can never disagree. Receiving
+ * twice is refused.
+ */
+export function receiveOrder(orderId: string): Promise<void> {
+  const uid = currentUid();
+  const orderRef = doc(db, "purchase_orders", orderId);
+  return runTransaction(db, async (tx) => {
+    const orderSnap = await tx.get(orderRef);
+    const order = orderSnap.exists() ? parseOrder(orderSnap.id, orderSnap.data()) : null;
+    if (!order) throw new OrderError("not_found");
+    if (order.state !== "Dispatched") throw new OrderError("moved_on", order.state);
+
+    const productRef = doc(db, "products", order.product);
+    const productSnap = await tx.get(productRef);
+    const product = productSnap.exists() ? parseProduct(productSnap.id, productSnap.data()) : null;
+    if (!product) throw new OrderError("product_missing");
+
+    tx.update(orderRef, { state: "Received", receivedAt: serverTimestamp(), receivedBy: uid });
+    writeMovement(tx, product, { type: "OrderReceived", orderId, qty: order.qty }, uid);
+  });
+}

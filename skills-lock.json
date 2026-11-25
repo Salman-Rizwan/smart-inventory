@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "awesome-design-md": {
+      "source": "onfire7777/universal-ai-skills-library",
+      "sourceType": "github",
+      "skillPath": "skills/awesome-design-md/SKILL.md",
+      "computedHash": "211470b572ee4ee4bbee72c188528e2862f55505aa29316bec9e6923f30a51f4"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "a6a44d5498f7e8f68289902f3dedfc6f38ae0cee1e96527c80724cf27f727c2a"
+    }
+  }
+}

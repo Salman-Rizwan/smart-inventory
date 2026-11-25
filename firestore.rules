@@ -1,0 +1,229 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Final role-based rules (M10). Least privilege: the shopkeeper reads the shop's data; the dealer
+    // reads purchase orders only (each order carries its part's name), never stock, prices, sales,
+    // alerts or scans. A user reads only their own profile and bell read state. The only browser
+    // writes are the shopkeeper's POS actions (each POS change together with its stock_movements
+    // entry), part settings, acknowledging an open alert, Pause Scanning, the dealer moving an order
+    // forward (Pending -> Accepted -> Dispatched), and the shopkeeper confirming a Dispatched order as
+    // Received or cancelling one that is Pending or Accepted. The backend uses the Admin SDK and
+    // bypasses these rules. Nothing can be deleted.
+
+    function hasRole(role) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isShopkeeper() {
+      return hasRole('shopkeeper');
+    }
+
+    function isDealer() {
+      return hasRole('dealer');
+    }
+
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    function path(collectionName, id) {
+      return /databases/$(database)/documents/$(collectionName)/$(id);
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function isCount(value, max) {
+      return value is int && value >= 0 && value <= max;
+    }
+
+    // Money in the shop's currency (LKR). Null means "not set yet".
+    function isMoney(value) {
+      return value == null || ((value is int || value is float) && value >= 0 && value <= 10000000);
+    }
+
+    // A POS change is accepted only together with the stock_movements entry it names in
+    // lastMovementId, created in the same write, whose before and after counts match this change.
+    function isLoggedPosChange(productId) {
+      let after = request.resource.data;
+      let movement = getAfter(path('stock_movements', after.lastMovementId)).data;
+      return changedKeys().hasOnly(['posCount', 'lastMovementId'])
+        && changedKeys().hasAll(['posCount', 'lastMovementId'])
+        && isCount(after.posCount, 100000)
+        && after.lastMovementId is string
+        && !exists(path('stock_movements', after.lastMovementId))
+        && movement.product == productId
+        && movement.posBefore == resource.data.posCount
+        && movement.posAfter == after.posCount;
+    }
+
+    // Part Settings: cost, selling price and reorder settings, stamped with who changed them and when.
+    // updatedBy must be the caller but need not change: the same person often saves twice.
+    function isSettingsChange() {
+      let after = request.resource.data;
+      return changedKeys().hasOnly(['unitCost', 'unitPrice', 'reorderLevel', 'reorderQty', 'updatedBy', 'updatedAt'])
+        && changedKeys().hasAll(['updatedAt'])
+        && isMoney(after.get('unitCost', null))
+        && isMoney(after.get('unitPrice', null))
+        && isCount(after.get('reorderLevel', 0), 100000)
+        && isCount(after.get('reorderQty', 0), 100000)
+        && after.updatedBy == request.auth.uid
+        && after.updatedAt == request.time;
+    }
+
+    match /products/{productId} {
+      allow update: if isShopkeeper() && (isLoggedPosChange(productId) || isSettingsChange());
+    }
+
+    // Stock change log: one entry per POS change, written in the same transaction as the change.
+    // Shopkeeper only (the dealer never sees the shop's sales). Entries are never edited or deleted.
+    // Each entry copies the part's cost and price at that moment, so later price changes never
+    // rewrite past figures. Reset entries are written only by the backend scripts.
+    function isMovementBase(movementId, m, extraKeys) {
+      let before = get(path('products', m.product)).data;
+      let after = getAfter(path('products', m.product)).data;
+      return m.keys().hasOnly(['product', 'type', 'change', 'posBefore', 'posAfter', 'unitCost', 'unitPrice', 'at', 'by'].concat(extraKeys))
+        && m.change is int && m.change != 0
+        && m.posBefore == before.posCount
+        && m.posAfter == m.posBefore + m.change
+        && after.posCount == m.posAfter
+        && after.lastMovementId == movementId
+        && m.unitCost == before.get('unitCost', null)
+        && m.unitPrice == before.get('unitPrice', null)
+        && m.by == request.auth.uid
+        && m.at == request.time;
+    }
+
+    function isAdjustmentReason(m) {
+      return (m.change < 0 && m.reason in ['Damaged', 'LostOrStolen', 'Miscount'])
+        || (m.change > 0 && m.reason in ['Found', 'CustomerReturn', 'Miscount']);
+    }
+
+    // Order Received: only for an order moving from Dispatched to Received in this same write, for
+    // that order's part and exact quantity.
+    function isOrderReceipt(m) {
+      let order = get(path('purchase_orders', m.orderId)).data;
+      let orderAfter = getAfter(path('purchase_orders', m.orderId)).data;
+      return m.orderId is string
+        && order.state == 'Dispatched'
+        && orderAfter.state == 'Received'
+        && order.product == m.product
+        && m.change == order.qty;
+    }
+
+    match /stock_movements/{movementId} {
+      allow read: if isShopkeeper();
+      allow create: if isShopkeeper()
+        && request.resource.data.product is string
+        && (
+          (request.resource.data.type == 'Sale'
+            && isMovementBase(movementId, request.resource.data, [])
+            && request.resource.data.change >= -999 && request.resource.data.change < 0)
+          ||
+          (request.resource.data.type == 'Receipt'
+            && isMovementBase(movementId, request.resource.data, [])
+            && request.resource.data.change > 0 && request.resource.data.change <= 999)
+          ||
+          (request.resource.data.type == 'Adjustment'
+            && isMovementBase(movementId, request.resource.data, ['reason'])
+            && isAdjustmentReason(request.resource.data))
+          ||
+          (request.resource.data.type == 'OrderReceived'
+            && isMovementBase(movementId, request.resource.data, ['orderId'])
+            && isOrderReceipt(request.resource.data))
+        );
+      allow update, delete: if false;
+    }
+
+    // Acknowledge: Open -> Acknowledged only, touching nothing but the state, the server's own
+    // timestamp and who acknowledged it. Creating, resolving or deleting alerts is backend-only.
+    match /alerts/{alertId} {
+      allow update: if isShopkeeper()
+        && resource.data.state == 'Open'
+        && changedKeys().hasOnly(['state', 'acknowledgedAt', 'acknowledgedBy'])
+        && request.resource.data.state == 'Acknowledged'
+        && request.resource.data.acknowledgedAt == request.time
+        && request.resource.data.acknowledgedBy == request.auth.uid;
+    }
+
+    // Orders are created by the backend. Each role moves an order one step, touching nothing but the
+    // state and that step's timestamp (the server's own time): the dealer accepts and dispatches, the
+    // shopkeeper confirms receipt. Receiving must also add the quantity to the POS through an Order
+    // Received log entry for this order, in the same write. The shopkeeper may cancel an order before
+    // it is dispatched (goods on the way are received, not cancelled), with who, when and a reason.
+    match /purchase_orders/{orderId} {
+      allow read: if isShopkeeper() || isDealer();
+      allow update: if
+        (isDealer()
+          && (
+            (resource.data.state == 'Pending'
+              && request.resource.data.state == 'Accepted'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'acceptedAt'])
+              && request.resource.data.acceptedAt == request.time)
+            ||
+            (resource.data.state == 'Accepted'
+              && request.resource.data.state == 'Dispatched'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'dispatchedAt'])
+              && request.resource.data.dispatchedAt == request.time)
+          ))
+        ||
+        (isShopkeeper()
+          && resource.data.state == 'Dispatched'
+          && request.resource.data.state == 'Received'
+          && changedKeys().hasOnly(['state', 'receivedAt', 'receivedBy'])
+          && request.resource.data.receivedAt == request.time
+          && request.resource.data.receivedBy == request.auth.uid
+          && getAfter(path('stock_movements',
+               getAfter(path('products', resource.data.product)).data.lastMovementId)).data.orderId == orderId)
+        ||
+        (isShopkeeper()
+          && resource.data.state in ['Pending', 'Accepted']
+          && request.resource.data.state == 'Cancelled'
+          && changedKeys().hasOnly(['state', 'cancelledAt', 'cancelledBy', 'cancelReason'])
+          && changedKeys().hasAll(['state', 'cancelledAt', 'cancelledBy', 'cancelReason'])
+          && request.resource.data.cancelledAt == request.time
+          && request.resource.data.cancelledBy == request.auth.uid
+          && request.resource.data.cancelReason in ['NotNeeded', 'OrderedByMistake', 'Other']);
+      allow create, delete: if false;
+    }
+
+    // Pause Scanning (settings/scanning): the shopkeeper pauses automatic scanning for restocking, at
+    // most 30 minutes ahead (it resumes by itself), or resumes it (pausedUntil null). Stamped with who and
+    // the server's time; nothing else can be written. The backend reads it before each automatic scan.
+    match /settings/{settingId} {
+      allow read: if isShopkeeper();
+      allow create, update: if isShopkeeper()
+        && settingId == 'scanning'
+        && request.resource.data.keys().hasOnly(['pausedUntil', 'pausedBy', 'pausedAt'])
+        && request.resource.data.pausedBy == request.auth.uid
+        && request.resource.data.pausedAt == request.time
+        && (request.resource.data.pausedUntil == null
+          || (request.resource.data.pausedUntil is timestamp
+            && request.resource.data.pausedUntil > request.time
+            && request.resource.data.pausedUntil <= request.time + duration.value(30, 'm')));
+      allow delete: if false;
+    }
+
+    // Per-user read state for the notification bell: only the owner can read or change it, it holds
+    // nothing but a capped list of keys, and it cannot be deleted.
+    match /notification_reads/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['readKeys'])
+        && request.resource.data.readKeys is list
+        && request.resource.data.readKeys.size() <= 500;
+      allow delete: if false;
+    }
+
+    // The shop's own data: the camera's counts and history, stock records and alerts.
+    match /{collection}/{document=**} {
+      allow read: if isShopkeeper()
+        && collection in ['status', 'scans', 'products', 'alerts'];
+      allow write: if false;
+    }
+  }
+}
